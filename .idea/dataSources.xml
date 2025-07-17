@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
+    <data-source source="LOCAL" name="stars_umfo@dpg-d1r6ddruibrs73f75ih0-a.frankfurt-postgres.render.com" uuid="ac908bd9-f720-42a9-b32d-3266871cb868">
+      <driver-ref>postgresql</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.postgresql.Driver</jdbc-driver>
+      <jdbc-url>jdbc:postgresql://dpg-d1r6ddruibrs73f75ih0-a.frankfurt-postgres.render.com:5432/stars_umfo</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
+  </component>
+</project>
