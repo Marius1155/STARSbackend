@@ -6,18 +6,18 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('Stars', '0003_remove_project_songs_projectsong'),
+        ('STARS', '0003_remove_project_songs_projectsong'),
     ]
 
     operations = [
         migrations.RenameField(
             model_name='review',
-            old_name='Stars',
+            old_name='STARS',
             new_name='stars',
         ),
         migrations.RenameField(
             model_name='subreview',
-            old_name='Stars',
+            old_name='STARS',
             new_name='stars',
         ),
     ]

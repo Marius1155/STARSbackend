@@ -10,18 +10,18 @@ print(f"Directory contents: {os.listdir('.')}")
 
 print("\n=== TRYING TO IMPORT STARS ===")
 try:
-    import Stars
+    import STARS
 
-    print("✓ Successfully imported 'Stars'")
-    print(f"Stars module file: {Stars.__file__}")
-    print(f"Stars module contents: {dir(Stars)}")
+    print("✓ Successfully imported 'STARS'")
+    print(f"STARS module file: {STARS.__file__}")
+    print(f"STARS module contents: {dir(STARS)}")
 except Exception as e:
-    print(f"✗ Failed to import 'Stars': {e}")
+    print(f"✗ Failed to import 'STARS': {e}")
     print(f"Full traceback: {traceback.format_exc()}")
 
 print("\n=== TRYING TO IMPORT STARS.APPS ===")
 try:
-    from Stars.apps import StarsConfig
+    from STARS.apps import StarsConfig
 
     print("✓ Successfully imported StarsConfig")
     print(f"StarsConfig: {StarsConfig}")
@@ -30,20 +30,20 @@ except Exception as e:
     print(f"Full traceback: {traceback.format_exc()}")
 
 print("\n=== CHECKING STARS DIRECTORY ===")
-if os.path.exists('Stars'):
-    print("✓ Stars directory exists")
-    print(f"Stars directory contents: {os.listdir('Stars')}")
+if os.path.exists('STARS'):
+    print("✓ STARS directory exists")
+    print(f"STARS directory contents: {os.listdir('STARS')}")
 
-    if os.path.exists('Stars/__init__.py'):
-        print("✓ Stars/__init__.py exists")
+    if os.path.exists('STARS/__init__.py'):
+        print("✓ STARS/__init__.py exists")
     else:
-        print("✗ Stars/__init__.py missing")
+        print("✗ STARS/__init__.py missing")
 
-    if os.path.exists('Stars/apps.py'):
-        print("✓ Stars/apps.py exists")
-        with open('Stars/apps.py', 'r') as f:
-            print(f"Stars/apps.py content:\n{f.read()}")
+    if os.path.exists('STARS/apps.py'):
+        print("✓ STARS/apps.py exists")
+        with open('STARS/apps.py', 'r') as f:
+            print(f"STARS/apps.py content:\n{f.read()}")
     else:
-        print("✗ Stars/apps.py missing")
+        print("✗ STARS/apps.py missing")
 else:
-    print("✗ Stars directory doesn't exist")
+    print("✗ STARS directory doesn't exist")

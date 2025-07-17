@@ -1,4 +1,4 @@
-# Stars/urls.py
+# STARS/urls.py
 
 from django.urls import path
 

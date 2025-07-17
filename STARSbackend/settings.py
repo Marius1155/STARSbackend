@@ -41,12 +41,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'Stars.apps.StarsConfig',
+    'STARS.apps.StarsConfig',
     'graphene_django',
 ]
 
 GRAPHENE = {
-    'SCHEMA' : 'Stars.schema.schema'
+    'SCHEMA' : 'STARS.schema.schema'
 }
 
 MIDDLEWARE = [
