@@ -1,4 +1,48 @@
-# created by virtualenv automatically
-.venv/bin
-.env
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
 
+# Django stuff:
+*.log
+*.pot
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+
+# Django migrations (optional, but recommended to keep migrations tracked)
+# migrations/
+# or keep only __init__.py in migrations folder
+
+# Environment variables
+.env
+.env.*
+
+# Virtual environment folder
+.venv/
+venv/
+env/
+
+# Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# macOS
+.DS_Store
+
+# Static files and media (if collected locally, usually ignored if you handle with cloud or external storage)
+staticfiles/
+media/
+
+# Coverage reports
+.coverage
+htmlcov/
+
+# MyPy cache
+.mypy_cache/
+
+# Pytest cache
+.pytest_cache/
