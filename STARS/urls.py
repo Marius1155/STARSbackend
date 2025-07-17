@@ -2,4 +2,10 @@
 
 from django.urls import path
 
-urlpatterns = []
+# stars/urls.py
+from django.urls import path
+from .views import load_data_view
+
+urlpatterns = [
+    path('load-data/', load_data_view),  # TEMPORARY
+]
