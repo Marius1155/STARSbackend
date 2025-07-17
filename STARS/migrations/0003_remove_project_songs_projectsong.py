@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('stars', '0002_rename_preview_url_song_preview'),
+        ('Stars', '0002_rename_preview_url_song_preview'),
     ]
 
     operations = [
@@ -20,8 +20,8 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('position', models.PositiveIntegerField()),
-                ('project', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='stars.project')),
-                ('song', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='stars.song')),
+                ('project', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='Stars.project')),
+                ('song', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='Stars.song')),
             ],
             options={
                 'ordering': ['position'],
