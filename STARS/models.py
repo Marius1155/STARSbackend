@@ -133,7 +133,7 @@ class SongArtist(models.Model):
     position = models.PositiveIntegerField()
 
     def __str__(self):
-        return f"{self.position}. {self.artist.name} - {self.song.title}"
+        return f"{self.song.title} - {self.position}. {self.artist.name}"
 
     class Meta:
         ordering = ['position']
@@ -170,7 +170,7 @@ class ProjectArtist(models.Model):
     position = models.PositiveIntegerField()
 
     def __str__(self):
-        return f"{self.position}. {self.artist.name} - {self.project.title}"
+        return f"{self.project.title} - {self.position}. {self.artist.name}"
 
     class Meta:
         ordering = ['position']
