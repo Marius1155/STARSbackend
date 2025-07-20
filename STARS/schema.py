@@ -12,6 +12,15 @@ class ArtistType(DjangoObjectType):
         }
         interfaces = (relay.Node,)
 
+    project_artists = graphene.List(lambda: ProjectArtistType)
+    song_artists = graphene.List(lambda: SongArtistType)
+
+    def resolve_project_artists(self, info):
+        return self.projectartist_set.all()
+
+    def resolve_song_artists(self, info):
+        return self.songartist_set.all()
+
 class ProjectType(DjangoObjectType):
     class Meta:
         model = Project
@@ -20,9 +29,17 @@ class ProjectType(DjangoObjectType):
             "type": ["exact"],
             "is_featured": ["exact"],
             "release_date": ["exact", "gte", "lte"],
-            "artists__name": ["icontains"],
         }
         interfaces = (relay.Node,)
+
+    project_artists = graphene.List(lambda: ProjectArtistType)
+    project_songs = graphene.List(lambda: ProjectSongType)
+
+    def resolve_project_artists(self, info):
+        return self.projectartist_set.all()
+
+    def resolve_project_songs(self, info):
+        return self.projectsong_set.all()
 
 class SongType(DjangoObjectType):
     class Meta:
@@ -31,14 +48,30 @@ class SongType(DjangoObjectType):
             "title": ["icontains", "exact"],
             "release_date": ["exact", "gte", "lte"],
             "is_featured": ["exact"],
-            "artists__name": ["icontains"],
         }
         interfaces = (relay.Node,)
+
+    song_artists = graphene.List(lambda: SongArtistType)
+
+    def resolve_song_artists(self, info):
+        return self.songartist_set.all()
 
 class ProjectSongType(DjangoObjectType):
     class Meta:
         model = ProjectSong
         filter_fields = ["project", "song", "position"]
+        interfaces = (relay.Node,)
+
+class ProjectArtistType(DjangoObjectType):
+    class Meta:
+        model = ProjectArtist
+        filter_fields = ["project", "artist", "position"]
+        interfaces = (relay.Node,)
+
+class SongArtistType(DjangoObjectType):
+    class Meta:
+        model = SongArtist
+        filter_fields = ["song", "artist", "position"]
         interfaces = (relay.Node,)
 
 class PodcastType(DjangoObjectType):
@@ -124,6 +157,14 @@ class ProjectSongConnection(relay.Connection):
     class Meta:
         node = ProjectSongType
 
+class ProjectArtistConnection(relay.Connection):
+    class Meta:
+        node = ProjectArtistType
+
+class SongArtistConnection(relay.Connection):
+    class Meta:
+        node = SongArtistType
+
 class PodcastConnection(relay.Connection):
     class Meta:
         node = PodcastType
@@ -178,6 +219,8 @@ class Query(graphene.ObjectType):
     projects = relay.ConnectionField(ProjectConnection)
     songs = relay.ConnectionField(SongConnection)
     project_songs = relay.ConnectionField(ProjectSongConnection)
+    project_artists = relay.ConnectionField(ProjectArtistConnection)
+    song_artists = relay.ConnectionField(SongArtistConnection)
     podcasts = relay.ConnectionField(PodcastConnection)
     outfits = relay.ConnectionField(OutfitConnection)
     reviews = relay.ConnectionField(ReviewConnection)
