@@ -108,7 +108,6 @@ class MusicVideo(models.Model):
 
 class Song(models.Model):
     title = models.CharField(max_length=500, db_index=True)
-    artists = models.ManyToManyField('Artist', related_name='songs')
     length = models.IntegerField()
     preview = models.URLField(max_length=500, blank=True, null=True)
     release_date = models.DateField(db_index=True)
@@ -129,9 +128,21 @@ PROJECT_TYPE_CHOICES = [
     ('single', 'Single'),
 ]
 
+class SongArtist(models.Model):
+    song = models.ForeignKey(Song, on_delete=models.CASCADE)
+    artist = models.ForeignKey(Artist, on_delete=models.CASCADE)
+    position = models.PositiveIntegerField()
+
+    def __str__(self):
+        return f"{self.position}. {self.artist.name} - {self.song.title}"
+
+    class Meta:
+        ordering = ['position']
+        unique_together = ('song', 'artist')
+
+
 class Project(models.Model):
     title = models.CharField(max_length=500, db_index=True)
-    artists = models.ManyToManyField('Artist', related_name='projects')
     number_of_songs = models.IntegerField()
     release_date = models.DateField(db_index=True)
     type = models.CharField(max_length=50, choices=PROJECT_TYPE_CHOICES, db_index=True)
@@ -155,6 +166,19 @@ class Project(models.Model):
         return f"{self.title} - {artists_names}"
 
 
+class ProjectArtist(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
+    artist = models.ForeignKey(Artist, on_delete=models.CASCADE)
+    position = models.PositiveIntegerField()
+
+    def __str__(self):
+        return f"{self.position}. {self.artist.name} - {self.project.title}"
+
+    class Meta:
+        ordering = ['position']
+        unique_together = ('project', 'artist')
+
+
 class ProjectSong(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     song = models.ForeignKey(Song, on_delete=models.CASCADE)
@@ -166,7 +190,6 @@ class ProjectSong(models.Model):
     class Meta:
         ordering = ['position']
         unique_together = ('project', 'song')
-
 
 class Podcast(models.Model):
     title = models.CharField(max_length=500, db_index=True)
