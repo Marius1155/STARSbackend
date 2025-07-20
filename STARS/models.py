@@ -118,8 +118,7 @@ class Song(models.Model):
     is_featured = models.BooleanField(default=False, db_index=True)
 
     def __str__(self):
-        artists_names = ', '.join(artist.name for artist in self.artists.all())
-        return f"{self.title} - {artists_names}"
+        return f"{self.title} - {self.release_date}"
 
 PROJECT_TYPE_CHOICES = [
     ('album', 'Album'),
@@ -162,8 +161,7 @@ class Project(models.Model):
     is_featured = models.BooleanField(default=False, db_index=True)
 
     def __str__(self):
-        artists_names = ', '.join(artist.name for artist in self.artists.all())
-        return f"{self.title} - {artists_names}"
+        return f"{self.title} - {self.release_date}"
 
 
 class ProjectArtist(models.Model):
