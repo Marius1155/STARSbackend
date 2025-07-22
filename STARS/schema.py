@@ -32,8 +32,16 @@ class ProjectType(DjangoObjectType):
         }
         interfaces = (relay.Node,)
 
+    covers = graphene.List(lambda: CoverType)
+    reviews = graphene.List(lambda: ReviewType)
     project_artists = graphene.List(lambda: ProjectArtistType)
     project_songs = graphene.List(lambda: ProjectSongType)
+
+    def resolve_covers(self, info):
+        return self.covers.all()
+
+    def resolve_reviews(self, info):
+        return self.reviews.all()
 
     def resolve_project_artists(self, info):
         return self.projectartist_set.all()
@@ -51,7 +59,11 @@ class SongType(DjangoObjectType):
         }
         interfaces = (relay.Node,)
 
+    reviews = graphene.List(lambda: ReviewType)
     song_artists = graphene.List(lambda: SongArtistType)
+
+    def resolve_reviews(self, info):
+        return self.reviews.all()
 
     def resolve_song_artists(self, info):
         return self.songartist_set.all()
@@ -80,17 +92,36 @@ class PodcastType(DjangoObjectType):
         filter_fields = ["title", "is_featured"]
         interfaces = (relay.Node,)
 
+    reviews = graphene.List(lambda: ReviewType)
+    covers = graphene.List(lambda: CoverType)
+
+    def resolve_reviews(self, info):
+        return self.reviews.all()
+
+    def resolve_covers(self, info):
+        return self.covers.all()
+
 class OutfitType(DjangoObjectType):
     class Meta:
         model = Outfit
         filter_fields = ["artist__name", "date", "is_featured"]
         interfaces = (relay.Node,)
 
+    reviews = graphene.List(lambda: ReviewType)
+
+    def resolve_reviews(self, info):
+        return self.reviews.all()
+
 class ReviewType(DjangoObjectType):
     class Meta:
         model = Review
         filter_fields = ["user__username", "stars", "is_latest", "date_created"]
         interfaces = (relay.Node,)
+
+    subreviews = graphene.List(lambda: SubReviewType)
+
+    def resolve_subreviews(self, info):
+        return self.subreviews.all()
 
 class SubReviewType(DjangoObjectType):
     class Meta:
@@ -134,11 +165,21 @@ class CoverType(DjangoObjectType):
         filter_fields = []
         interfaces = (relay.Node,)
 
+    reviews = graphene.List(lambda: ReviewType)
+
+    def resolve_reviews(self, info):
+        return self.reviews.all()
+
 class MusicVideoType(DjangoObjectType):
     class Meta:
         model = MusicVideo
         filter_fields = ["title", "releaseDate", "is_featured"]
         interfaces = (relay.Node,)
+
+    reviews = graphene.List(lambda: ReviewType)
+
+    def resolve_reviews(self, info):
+        return self.reviews.all()
 
 # Define Connection classes explicitly
 class ArtistConnection(relay.Connection):

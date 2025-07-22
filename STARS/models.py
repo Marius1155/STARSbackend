@@ -97,6 +97,7 @@ class MusicVideo(models.Model):
     songs = models.ManyToManyField('Song', related_name='music_videos')
     releaseDate = models.DateField(db_index=True)
     youtubeURL = models.URLField(max_length=500)
+    thumbnail = models.URLField(max_length=500)
     reviews_count = models.IntegerField(default=0)
     reviews = GenericRelation('Review')
     star_average = models.FloatField(default=0)
