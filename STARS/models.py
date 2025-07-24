@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.fields import GenericRelation
+from django_choices_field import TextChoicesField
 
 class Artist(models.Model):
     name = models.CharField(max_length=100, db_index=True)
@@ -45,6 +46,10 @@ class Event(models.Model):
     date = models.DateField()
     location = models.CharField(max_length=255, blank=True)
     is_one_time = models.BooleanField(default=False)
+
+    reviews_count = models.IntegerField(default=0)
+    reviews = GenericRelation('Review')
+    star_average = models.FloatField(default=0)
     is_featured = models.BooleanField(default=False, db_index=True)
 
     def __str__(self):
@@ -95,8 +100,8 @@ class Cover(models.Model):
 class MusicVideo(models.Model):
     title = models.CharField(max_length=500, db_index=True)
     songs = models.ManyToManyField('Song', related_name='music_videos')
-    releaseDate = models.DateField(db_index=True)
-    youtubeURL = models.URLField(max_length=500)
+    release_date = models.DateField(db_index=True)
+    youtube = models.URLField(max_length=500)
     thumbnail = models.URLField(max_length=500)
     reviews_count = models.IntegerField(default=0)
     reviews = GenericRelation('Review')
@@ -121,12 +126,11 @@ class Song(models.Model):
     def __str__(self):
         return f"{self.title} - {self.release_date}"
 
-PROJECT_TYPE_CHOICES = [
-    ('album', 'Album'),
-    ('ep', 'EP'),
-    ('mixtape', 'Mixtape'),
-    ('single', 'Single'),
-]
+class ProjectCategory(models.TextChoices):
+    ALBUM = "album", "Album"
+    EP = "ep", "EP"
+    MIXTAPE = "mixtape", "Mixtape"
+    SINGLE = "single", "Single"
 
 class SongArtist(models.Model):
     song = models.ForeignKey(Song, on_delete=models.CASCADE)
@@ -145,7 +149,7 @@ class Project(models.Model):
     title = models.CharField(max_length=500, db_index=True)
     number_of_songs = models.IntegerField()
     release_date = models.DateField(db_index=True)
-    type = models.CharField(max_length=50, choices=PROJECT_TYPE_CHOICES, db_index=True)
+    type = TextChoicesField(choices_enum=ProjectCategory, db_index=True)
     covers = GenericRelation('Cover')
     length = models.IntegerField()
     reviews = GenericRelation('Review')
@@ -260,7 +264,6 @@ class Conversation(models.Model):
 class Message(models.Model):
     conversation = models.ForeignKey('Conversation', on_delete=models.CASCADE, related_name='messages')
     sender = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='sent_messages', null=True)
-    receiver = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='received_messages', null=True)
 
     text = models.TextField()
     time = models.DateTimeField(auto_now_add=True)
@@ -274,20 +277,20 @@ class Message(models.Model):
     replying_to = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='replies')
 
     def __str__(self):
-        return f"Message #{self.pk} from {self.sender.username} to {self.receiver.username}"
+        return f"Message #{self.pk} from {self.sender.username} at {self.time}"
 
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    hasPremium = models.BooleanField(default=False)
-    bannerPicture = models.URLField(max_length=500, blank=True, null=True)
-    profilePicture = models.URLField(max_length=500, blank=True, null=True)
+    has_premium = models.BooleanField(default=False)
+    banner_picture = models.URLField(max_length=500, blank=True, null=True)
+    profile_picture = models.URLField(max_length=500, blank=True, null=True)
     bio = models.TextField(blank=True)
     pronouns = models.CharField(max_length=100, blank=True)
-    accentColorHex = models.CharField(max_length=7, blank=True)
+    accent_color_hex = models.CharField(max_length=7, blank=True)
 
-    followersCount = models.IntegerField(default=0)
-    followingCount = models.IntegerField(default=0)
+    followers_count = models.IntegerField(default=0)
+    following_count = models.IntegerField(default=0)
     followers = models.ManyToManyField(
         'self',
         symmetrical=False,

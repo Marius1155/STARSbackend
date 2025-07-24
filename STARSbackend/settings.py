@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'STARS.apps.StarsConfig',
-    'graphene_django',
+    #'strawberry.django',
 ]
 
 GRAPHENE = {
