@@ -12,7 +12,7 @@ import os
 from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
 from django.urls import path
-from strawberry.django.views import GraphQL
+from strawberry.asgi import GraphQL
 
 # Corrected import path from your 'STARS' app
 from STARS.graphql.schema import schema
