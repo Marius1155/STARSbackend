@@ -1,18 +1,19 @@
 # Core Framework & API
 django
-strawberry-graphql[django,asgi] # <-- UPDATED
-channels                 # For ASGI routing
+strawberry-graphql[asgi]      # For the ASGI server support
+strawberry-graphql-django   # Explicitly add the Django integration
+channels                    # For ASGI routing
 
 # Production Server & Static Files
 gunicorn
-uvicorn                  # Required worker for Gunicorn to run ASGI
-whitenoise               # For serving static files efficiently
+uvicorn
+whitenoise
 
 # Database & Settings
-psycopg2-binary          # For connecting to PostgreSQL
-dj-database-url          # For parsing database URLs from Render's environment
-python-decouple          # For managing environment variables
+psycopg2-binary
+dj-database-url
+python-decouple
 
-# Optional Packages (kept from your original list)
-django-filter            # Useful for filtering querysets
-text-unidecode           # You may need this for specific text processing
+# Optional Packages
+django-filter
+text-unidecode
