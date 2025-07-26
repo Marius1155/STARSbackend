@@ -14,15 +14,14 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+# STARSbackend/urls.py
+
 from django.contrib import admin
 from django.urls import path, include
-from strawberry.django.views import AsyncGraphQLView
 
-from STARS.graphql.schema import schema
+# No Strawberry imports are needed here anymore
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('stars/', include('STARS.urls')),
-    path('graphql/', AsyncGraphQLView.as_view(schema=schema)),
 ]
-

@@ -1,7 +1,9 @@
-import strawberry
-from strawberry_django.optimizer import DjangoOptimizerExtension
+# graphql/schema.py
 
+import strawberry
 from . import types
+
+# NO optimizer import needed here
 
 @strawberry.type
 class Query:
@@ -22,12 +24,9 @@ class Query:
     event_series: list[types.EventSeries] = strawberry.django.field()
     covers: list[types.Cover] = strawberry.django.field()
     music_videos: list[types.MusicVideo] = strawberry.django.field()
-    userss: list[types.User] = strawberry.django.field()
-
+    users: list[types.User] = strawberry.django.field()
 
 schema = strawberry.Schema(
     query=Query,
-    extensions=[
-        DjangoOptimizerExtension,
-    ],
+    # The extensions list is no longer needed for the optimizer
 )

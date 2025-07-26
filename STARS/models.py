@@ -1,9 +1,10 @@
+# STARS/models.py
+
 from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes.fields import GenericForeignKey
-from django.contrib.contenttypes.fields import GenericRelation
-from django_choices_field import TextChoicesField
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+
 
 class Artist(models.Model):
     name = models.CharField(max_length=100, db_index=True)
@@ -46,7 +47,6 @@ class Event(models.Model):
     date = models.DateField()
     location = models.CharField(max_length=255, blank=True)
     is_one_time = models.BooleanField(default=False)
-
     reviews_count = models.IntegerField(default=0)
     reviews = GenericRelation('Review')
     star_average = models.FloatField(default=0)
@@ -59,11 +59,10 @@ class Event(models.Model):
 class Review(models.Model):
     stars = models.DecimalField(max_digits=3, decimal_places=2)
     text = models.TextField(blank=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews') # CASCADE or SET_NULL ?? ... I really don't know what to say
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews')
     date_created = models.DateTimeField(auto_now_add=True)
     date_updated = models.DateTimeField(auto_now=True)
     is_latest = models.BooleanField(default=True)
-
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')
@@ -84,11 +83,9 @@ class SubReview(models.Model):
 
 class Cover(models.Model):
     image = models.URLField(max_length=500)
-
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')
-
     reviews_count = models.IntegerField(default=0)
     reviews = GenericRelation('Review')
     star_average = models.FloatField(default=0)
@@ -96,6 +93,7 @@ class Cover(models.Model):
 
     def __str__(self):
         return f"Cover for {self.content_object} ({self.image})"
+
 
 class MusicVideo(models.Model):
     title = models.CharField(max_length=500, db_index=True)
@@ -126,11 +124,6 @@ class Song(models.Model):
     def __str__(self):
         return f"{self.title} - {self.release_date}"
 
-class ProjectCategory(models.TextChoices):
-    ALBUM = "album", "Album"
-    EP = "ep", "EP"
-    MIXTAPE = "mixtape", "Mixtape"
-    SINGLE = "single", "Single"
 
 class SongArtist(models.Model):
     song = models.ForeignKey(Song, on_delete=models.CASCADE)
@@ -146,10 +139,16 @@ class SongArtist(models.Model):
 
 
 class Project(models.Model):
+    class ProjectType(models.TextChoices):
+        ALBUM = "ALBUM", "Album"
+        EP = "EP", "EP"
+        MIXTAPE = "MIXTAPE", "Mixtape"
+        SINGLE = "SINGLE", "Single"
+
     title = models.CharField(max_length=500, db_index=True)
     number_of_songs = models.IntegerField()
     release_date = models.DateField(db_index=True)
-    type = TextChoicesField(choices_enum=ProjectCategory, db_index=True)
+    project_type = models.CharField(max_length=10, choices=ProjectType.choices, db_index=True) # <-- UPDATED
     covers = GenericRelation('Cover')
     length = models.IntegerField()
     reviews = GenericRelation('Review')
@@ -193,6 +192,7 @@ class ProjectSong(models.Model):
     class Meta:
         ordering = ['position']
         unique_together = ('project', 'song')
+
 
 class Podcast(models.Model):
     title = models.CharField(max_length=500, db_index=True)
@@ -238,23 +238,10 @@ class Outfit(models.Model):
 
 class Conversation(models.Model):
     participants = models.ManyToManyField(User, related_name='conversations')
-
-    latest_message = models.ForeignKey(
-        'Message',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='+'
-    )
+    latest_message = models.ForeignKey('Message', on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
     latest_message_text = models.TextField(blank=True)
     latest_message_time = models.DateTimeField(null=True, blank=True)
-    latest_message_sender = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='latest_sent_conversations'
-    )
+    latest_message_sender = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='latest_sent_conversations')
 
     def __str__(self):
         users = ', '.join(user.username for user in self.participants.all())
@@ -264,16 +251,12 @@ class Conversation(models.Model):
 class Message(models.Model):
     conversation = models.ForeignKey('Conversation', on_delete=models.CASCADE, related_name='messages')
     sender = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='sent_messages', null=True)
-
     text = models.TextField()
     time = models.DateTimeField(auto_now_add=True)
-
     is_pending = models.BooleanField(default=True)
     is_delivered = models.BooleanField(default=False)
     is_read = models.BooleanField(default=False)
-
     liked_by = models.ManyToManyField(User, blank=True, related_name='liked_messages')
-
     replying_to = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='replies')
 
     def __str__(self):
@@ -288,16 +271,9 @@ class Profile(models.Model):
     bio = models.TextField(blank=True)
     pronouns = models.CharField(max_length=100, blank=True)
     accent_color_hex = models.CharField(max_length=7, blank=True)
-
     followers_count = models.IntegerField(default=0)
     following_count = models.IntegerField(default=0)
-    followers = models.ManyToManyField(
-        'self',
-        symmetrical=False,
-        related_name='following',
-        blank=True
-    )
-
+    followers = models.ManyToManyField('self', symmetrical=False, related_name='following', blank=True)
     reviews_count = models.IntegerField(default=0)
     project_reviews_count = models.IntegerField(default=0)
     song_reviews_count = models.IntegerField(default=0)
@@ -308,4 +284,3 @@ class Profile(models.Model):
 
     def __str__(self):
         return f"Profile of {self.user.username}"
-
