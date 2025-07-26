@@ -2,13 +2,11 @@
 
 import strawberry
 from strawberry import auto
-import strawberry.django
+import strawberry_django
 
 from STARS import models
 
-# All the type definitions will go here first...
-
-@strawberry.django.type(models.Artist)
+@strawberry_django.type(models.Artist)
 class Artist:
     id: auto
     name: auto
@@ -36,7 +34,7 @@ class Artist:
     outfits: list["Outfit"]
     podcasts: list["Podcast"]
 
-@strawberry.django.type(models.EventSeries)
+@strawberry_django.type(models.EventSeries)
 class EventSeries:
     id: auto
     name: auto
@@ -44,7 +42,7 @@ class EventSeries:
     is_featured: auto
     events: list["Event"]
 
-@strawberry.django.type(models.Event)
+@strawberry_django.type(models.Event)
 class Event:
     id: auto
     name: auto
@@ -58,7 +56,7 @@ class Event:
     reviews: list["Review"]
     outfits: list["Outfit"]
 
-@strawberry.django.type(models.User)
+@strawberry_django.type(models.User)
 class User:
     id: auto
     username: auto
@@ -69,7 +67,7 @@ class User:
     conversations: list["Conversation"]
     reviews: list["Review"]
 
-@strawberry.django.type(models.Review)
+@strawberry_django.type(models.Review)
 class Review:
     id: auto
     stars: auto
@@ -79,9 +77,9 @@ class Review:
     is_latest: auto
     user: "User"
     subreviews: list["SubReview"]
-    content_object: "Reviewable"  # This will point to the Union defined at the bottom
+    content_object: "Reviewable"
 
-@strawberry.django.type(models.SubReview)
+@strawberry_django.type(models.SubReview)
 class SubReview:
     id: auto
     topic: auto
@@ -89,7 +87,7 @@ class SubReview:
     stars: auto
     review: "Review"
 
-@strawberry.django.type(models.Project)
+@strawberry_django.type(models.Project)
 class Project:
     id: auto
     title: auto
@@ -113,7 +111,7 @@ class Project:
     project_songs: list["ProjectSong"]
     project_artists: list["ProjectArtist"]
 
-@strawberry.django.type(models.Podcast)
+@strawberry_django.type(models.Podcast)
 class Podcast:
     id: auto
     title: auto
@@ -131,7 +129,7 @@ class Podcast:
     covers: list["Cover"]
     reviews: list["Review"]
 
-@strawberry.django.type(models.Cover)
+@strawberry_django.type(models.Cover)
 class Cover:
     id: auto
     image: auto
@@ -139,9 +137,9 @@ class Cover:
     star_average: auto
     is_featured: auto
     reviews: list["Review"]
-    content_object: "Coverable" # This will point to the Union defined at the bottom
+    content_object: "Coverable"
 
-@strawberry.django.type(models.Song)
+@strawberry_django.type(models.Song)
 class Song:
     id: auto
     title: auto
@@ -157,7 +155,7 @@ class Song:
     project_songs: list["ProjectSong"]
     music_videos: list["MusicVideo"]
 
-@strawberry.django.type(models.MusicVideo)
+@strawberry_django.type(models.MusicVideo)
 class MusicVideo:
     id: auto
     title: auto
@@ -171,7 +169,7 @@ class MusicVideo:
     reviews: list["Review"]
     outfits: list["Outfit"]
 
-@strawberry.django.type(models.Outfit)
+@strawberry_django.type(models.Outfit)
 class Outfit:
     id: auto
     description: auto
@@ -188,28 +186,28 @@ class Outfit:
     reviews: list["Review"]
     matches: list["Outfit"]
 
-@strawberry.django.type(models.SongArtist)
+@strawberry_django.type(models.SongArtist)
 class SongArtist:
     id: auto
     position: auto
     song: "Song"
     artist: "Artist"
 
-@strawberry.django.type(models.ProjectArtist)
+@strawberry_django.type(models.ProjectArtist)
 class ProjectArtist:
     id: auto
     position: auto
     project: "Project"
     artist: "Artist"
 
-@strawberry.django.type(models.ProjectSong)
+@strawberry_django.type(models.ProjectSong)
 class ProjectSong:
     id: auto
     position: auto
     project: "Project"
     song: "Song"
 
-@strawberry.django.type(models.Message)
+@strawberry_django.type(models.Message)
 class Message:
     id: auto
     text: auto
@@ -222,7 +220,7 @@ class Message:
     liked_by: list["User"]
     replying_to: "Message"
 
-@strawberry.django.type(models.Conversation)
+@strawberry_django.type(models.Conversation)
 class Conversation:
     id: auto
     latest_message_text: auto
@@ -232,7 +230,7 @@ class Conversation:
     latest_message_sender: "User"
     messages: list["Message"]
 
-@strawberry.django.type(models.Profile)
+@strawberry_django.type(models.Profile)
 class Profile:
     id: auto
     banner_picture: auto
@@ -252,9 +250,6 @@ class Profile:
     user: "User"
     followers: list["Profile"]
     following: list["Profile"]
-
-# --- CORRECT UNION DEFINITIONS ---
-# We define these at the end, after all the member types are defined.
 
 Reviewable = strawberry.union(
     "Reviewable",
