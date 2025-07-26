@@ -1,7 +1,7 @@
 # Core Framework & API
 django
-strawberry-graphql[django] # This is the official integration, includes strawberry-graphql itself
-channels                 # For ASGI routing (required for our asgi.py setup)
+strawberry-graphql[django,asgi] # <-- UPDATED
+channels                 # For ASGI routing
 
 # Production Server & Static Files
 gunicorn
