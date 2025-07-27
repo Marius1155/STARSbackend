@@ -16,12 +16,15 @@ Including another URLconf
 """
 # STARSbackend/urls.py
 
-from django.contrib import admin
-from django.urls import path, include
+# STARSbackend/urls.py
 
-# No Strawberry imports are needed here anymore
+from django.contrib import admin
+from django.urls import path
+from strawberry_django.views import AsyncGraphQLView
+from STARS.graphql.schema import schema
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('stars/', include('STARS.urls')),
+    # The GraphQL endpoint is now a standard Django path
+    path('graphql/', AsyncGraphQLView.as_view(schema=schema)),
 ]
