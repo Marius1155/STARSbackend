@@ -1,3 +1,5 @@
+# graphql/types.py
+
 import strawberry
 from strawberry import auto
 import strawberry_django
@@ -42,7 +44,7 @@ class EventSeries:
 @strawberry_django.type(models.Event)
 class Event:
     id: auto
-    series: auto
+    series: "EventSeries"  # CORRECTED
     name: auto
     date: auto
     location: auto
@@ -60,7 +62,7 @@ class User:
     email: auto
     first_name: auto
     last_name: auto
-    profile: auto
+    profile: "Profile"  # CORRECTED
     conversations: list["Conversation"]
     reviews: list["Review"]
 
@@ -69,7 +71,7 @@ class Review:
     id: auto
     stars: auto
     text: auto
-    user: auto
+    user: "User"  # CORRECTED
     date_created: auto
     date_updated: auto
     is_latest: auto
@@ -79,7 +81,7 @@ class Review:
 @strawberry_django.type(models.SubReview)
 class SubReview:
     id: auto
-    review: auto
+    review: "Review"  # CORRECTED
     topic: auto
     text: auto
     stars: auto
@@ -169,7 +171,7 @@ class MusicVideo:
 @strawberry_django.type(models.Outfit)
 class Outfit:
     id: auto
-    artist: auto
+    artist: "Artist"  # CORRECTED
     description: auto
     date: auto
     preview_picture: auto
@@ -186,51 +188,51 @@ class Outfit:
 @strawberry_django.type(models.SongArtist)
 class SongArtist:
     id: auto
-    song: auto
-    artist: auto
+    song: "Song"  # CORRECTED
+    artist: "Artist"  # CORRECTED
     position: auto
 
 @strawberry_django.type(models.ProjectArtist)
 class ProjectArtist:
     id: auto
-    project: auto
-    artist: auto
+    project: "Project"  # CORRECTED
+    artist: "Artist"  # CORRECTED
     position: auto
 
 @strawberry_django.type(models.ProjectSong)
 class ProjectSong:
     id: auto
-    project: auto
-    song: auto
+    project: "Project"  # CORRECTED
+    song: "Song"  # CORRECTED
     position: auto
 
 @strawberry_django.type(models.Message)
 class Message:
     id: auto
-    conversation: auto
-    sender: auto
+    conversation: "Conversation"  # CORRECTED
+    sender: "User"  # CORRECTED
     text: auto
     time: auto
     is_pending: auto
     is_delivered: auto
     is_read: auto
-    replying_to: auto
+    replying_to: "Message"  # CORRECTED
     liked_by: list["User"]
 
 @strawberry_django.type(models.Conversation)
 class Conversation:
     id: auto
-    latest_message: auto
+    latest_message: "Message"  # CORRECTED
     latest_message_text: auto
     latest_message_time: auto
-    latest_message_sender: auto
+    latest_message_sender: "User"  # CORRECTED
     participants: list["User"]
     messages: list["Message"]
 
 @strawberry_django.type(models.Profile)
 class Profile:
     id: auto
-    user: auto
+    user: "User"  # CORRECTED
     banner_picture: auto
     profile_picture: auto
     bio: auto
