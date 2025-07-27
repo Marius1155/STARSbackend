@@ -1,6 +1,6 @@
-django~=5.0.7
-strawberry-graphql[asgi]~=0.278.0
-strawberry-graphql-django~=0.65.0
+django
+strawberry-graphql[asgi]
+strawberry-graphql-django
 channels
 gunicorn
 uvicorn
