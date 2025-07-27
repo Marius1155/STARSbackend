@@ -16,15 +16,19 @@ Including another URLconf
 """
 # STARSbackend/urls.py
 
-# STARSbackend/urls.py
-
 from django.contrib import admin
 from django.urls import path
-from strawberry_django.views import AsyncGraphQLView
+# DO NOT import the view at the top level
 from STARS.graphql.schema import schema
+
+# We define a function to delay the import of AsyncGraphQLView
+def graphql_view():
+    from strawberry_django.views import AsyncGraphQLView
+    return AsyncGraphQLView.as_view(schema=schema)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # The GraphQL endpoint is now a standard Django path
-    path('graphql/', AsyncGraphQLView.as_view(schema=schema)),
+    # By calling the function here, the import only happens when Django
+    # is building the URL patterns, by which point everything is loaded.
+    path('graphql/', graphql_view()),
 ]
