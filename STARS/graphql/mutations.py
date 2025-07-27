@@ -5,6 +5,7 @@ import strawberry_django
 from strawberry import auto
 from typing import List, Optional
 from django.contrib.auth.models import User
+from asgiref.sync import sync_to_async
 
 from STARS import models
 from . import types
@@ -295,7 +296,7 @@ class Mutation:
 
     # --- UPDATED CUSTOM MUTATION ---
     @strawberry.mutation
-    def add_review_to_project(
+    async def add_review_to_project(
             self,
             info,
             project_id: strawberry.ID,
@@ -304,11 +305,13 @@ class Mutation:
     ) -> types.Review:
         """
         Custom mutation to create a review and link it to a specific project.
+        This is now async to be compatible with the ASGI server.
         """
-        project = models.Project.objects.get(pk=project_id)
-        user = User.objects.get(pk=user_id)
+        # Wrap synchronous database calls in sync_to_async
+        project = await sync_to_async(models.Project.objects.get)(pk=project_id)
+        user = await sync_to_async(User.objects.get)(pk=user_id)
 
-        review = models.Review.objects.create(
+        review = await sync_to_async(models.Review.objects.create)(
             user=user,
             stars=data.stars,
             text=data.text,
