@@ -1,13 +1,14 @@
-# graphql/schema.py
+# STARS/graphql/schema.py
 
 import strawberry
-import strawberry_django # <-- UPDATED IMPORT
+import strawberry_django
+from strawberry_django.optimizer import DjangoOptimizerExtension
 
 from . import types
 
 @strawberry.type
 class Query:
-    artists: list[types.Artist] = strawberry_django.field() # <-- UPDATED
+    artists: list[types.Artist] = strawberry_django.field()
     projects: list[types.Project] = strawberry_django.field()
     songs: list[types.Song] = strawberry_django.field()
     project_songs: list[types.ProjectSong] = strawberry_django.field()
@@ -26,4 +27,10 @@ class Query:
     music_videos: list[types.MusicVideo] = strawberry_django.field()
     users: list[types.User] = strawberry_django.field()
 
-schema = strawberry.Schema(query=Query)
+# We add the DjangoOptimizerExtension here. This is the crucial fix.
+schema = strawberry.Schema(
+    query=Query,
+    extensions=[
+        DjangoOptimizerExtension,
+    ]
+)
