@@ -1,6 +1,7 @@
-django==4.2.15
-strawberry-graphql[asgi]==0.212.0
-strawberry-graphql-django==0.35.0
+# A modern, stable set of packages
+django~=5.0.7
+strawberry-graphql[asgi]~=0.220.0
+strawberry-graphql-django~=0.40.0
 channels
 gunicorn
 uvicorn
