@@ -1,5 +1,3 @@
-# graphql/types.py
-
 import strawberry
 from strawberry import auto
 import strawberry_django

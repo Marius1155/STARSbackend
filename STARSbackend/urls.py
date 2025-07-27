@@ -1,8 +1,10 @@
+# STARSbackend/urls.py
 from django.contrib import admin
 from django.urls import path
 from STARS.graphql.schema import schema
 
 def graphql_view():
+    # This import is now safe because django.setup() has already run
     from strawberry.django.views import AsyncGraphQLView
     return AsyncGraphQLView.as_view(schema=schema)
 
