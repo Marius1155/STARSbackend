@@ -63,6 +63,7 @@ class EventSeries:
 @strawberry_django.type(models.Event)
 class Event:
     id: auto
+    series: auto # <-- CORRECTED
     name: auto
     date: auto
     location: auto
@@ -70,7 +71,6 @@ class Event:
     reviews_count: auto
     star_average: auto
     is_featured: auto
-    series: "EventSeries"
 
     @strawberry.field
     async def reviews(self) -> list["Review"]:
@@ -88,7 +88,7 @@ class User:
     email: auto
     first_name: auto
     last_name: auto
-    profile: "Profile"
+    profile: auto # <-- CORRECTED
 
     @strawberry.field
     async def conversations(self) -> list["Conversation"]:
@@ -104,10 +104,10 @@ class Review:
     id: auto
     stars: auto
     text: auto
+    user: auto # <-- CORRECTED
     date_created: auto
     date_updated: auto
     is_latest: auto
-    user: "User"
     content_object: "Reviewable"
 
     @strawberry.field
@@ -118,10 +118,10 @@ class Review:
 @strawberry_django.type(models.SubReview)
 class SubReview:
     id: auto
+    review: auto # <-- CORRECTED
     topic: auto
     text: auto
     stars: auto
-    review: "Review"
 
 
 @strawberry_django.type(models.Project)
@@ -130,7 +130,7 @@ class Project:
     title: auto
     number_of_songs: auto
     release_date: auto
-    project_type: models.Project.ProjectType
+    project_type: auto
     length: auto
     reviews_count: auto
     star_average: auto
@@ -265,6 +265,7 @@ class MusicVideo:
 @strawberry_django.type(models.Outfit)
 class Outfit:
     id: auto
+    artist: auto # <-- CORRECTED
     description: auto
     date: auto
     preview_picture: auto
@@ -272,7 +273,6 @@ class Outfit:
     reviews_count: auto
     star_average: auto
     is_featured: auto
-    artist: "Artist"
 
     @strawberry.field
     async def events(self) -> list["Event"]:
@@ -298,35 +298,38 @@ class Outfit:
 @strawberry_django.type(models.SongArtist)
 class SongArtist:
     id: auto
+    song: auto # <-- CORRECTED
+    artist: auto # <-- CORRECTED
     position: auto
-    song: "Song"
-    artist: "Artist"
+
 
 @strawberry_django.type(models.ProjectArtist)
 class ProjectArtist:
     id: auto
+    project: auto # <-- CORRECTED
+    artist: auto # <-- CORRECTED
     position: auto
-    project: "Project"
-    artist: "Artist"
+
 
 @strawberry_django.type(models.ProjectSong)
 class ProjectSong:
     id: auto
+    project: auto # <-- CORRECTED
+    song: auto # <-- CORRECTED
     position: auto
-    project: "Project"
-    song: "Song"
+
 
 @strawberry_django.type(models.Message)
 class Message:
     id: auto
+    conversation: auto # <-- CORRECTED
+    sender: auto # <-- CORRECTED
     text: auto
     time: auto
     is_pending: auto
     is_delivered: auto
     is_read: auto
-    conversation: "Conversation"
-    sender: "User"
-    replying_to: "Message"
+    replying_to: auto # <-- CORRECTED
 
     @strawberry.field
     async def liked_by(self) -> list["User"]:
@@ -336,10 +339,10 @@ class Message:
 @strawberry_django.type(models.Conversation)
 class Conversation:
     id: auto
+    latest_message: auto # <-- CORRECTED
     latest_message_text: auto
     latest_message_time: auto
-    latest_message: "Message"
-    latest_message_sender: "User"
+    latest_message_sender: auto # <-- CORRECTED
 
     @strawberry.field
     async def participants(self) -> list["User"]:
@@ -353,6 +356,7 @@ class Conversation:
 @strawberry_django.type(models.Profile)
 class Profile:
     id: auto
+    user: auto # <-- CORRECTED
     banner_picture: auto
     profile_picture: auto
     bio: auto
@@ -367,7 +371,6 @@ class Profile:
     cover_reviews_count: auto
     podcast_reviews_count: auto
     outfit_reviews_count: auto
-    user: "User"
 
     @strawberry.field
     async def followers(self) -> list["Profile"]:
@@ -376,6 +379,7 @@ class Profile:
     @strawberry.field
     async def following(self) -> list["Profile"]:
         return await sync_to_async(list)(self.following.all())
+
 
 Reviewable = strawberry.union(
     "Reviewable",
