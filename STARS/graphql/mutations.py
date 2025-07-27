@@ -6,6 +6,7 @@ from strawberry import auto
 from typing import List, Optional
 from django.contrib.auth.models import User
 from asgiref.sync import sync_to_async
+from django.utils import timezone
 
 from STARS import models
 from . import types
@@ -86,7 +87,6 @@ class ReviewUpdateInput:
     text: Optional[str] = strawberry.UNSET
 
 
-# --- NEW INPUT TYPE FOR REVIEW DATA ---
 @strawberry.input
 class ReviewDataInput:
     stars: float
@@ -107,6 +107,13 @@ class SubReviewUpdateInput:
     topic: Optional[str] = strawberry.UNSET
     text: Optional[str] = strawberry.UNSET
     stars: Optional[float] = strawberry.UNSET
+
+
+@strawberry.input
+class SubReviewDataInput:
+    topic: str
+    text: str
+    stars: float
 
 
 @strawberry_django.input(models.MusicVideo)
@@ -238,8 +245,19 @@ class ProjectSongCreateInput:
     position: auto
 
 
+@strawberry.input
+class MessageDataInput:
+    text: str
+
+
+@strawberry.input
+class CoverDataInput:
+    image_url: str
+
+
 @strawberry.type
 class Mutation:
+    # --- Auto-generated Mutations ---
     create_artist: types.Artist = strawberry_django.mutations.create(ArtistCreateInput)
     update_artist: types.Artist = strawberry_django.mutations.update(ArtistUpdateInput)
     delete_artist: types.Artist = strawberry_django.mutations.delete(strawberry.ID)
@@ -262,9 +280,6 @@ class Mutation:
     create_review: types.Review = strawberry_django.mutations.create(ReviewCreateInput)
     update_review: types.Review = strawberry_django.mutations.update(ReviewUpdateInput)
     delete_review: types.Review = strawberry_django.mutations.delete(strawberry.ID)
-    create_sub_review: types.SubReview = strawberry_django.mutations.create(SubReviewCreateInput)
-    update_sub_review: types.SubReview = strawberry_django.mutations.update(SubReviewUpdateInput)
-    delete_sub_review: types.SubReview = strawberry_django.mutations.delete(strawberry.ID)
 
     create_music_video: types.MusicVideo = strawberry_django.mutations.create(MusicVideoCreateInput)
     update_music_video: types.MusicVideo = strawberry_django.mutations.update(MusicVideoUpdateInput)
@@ -278,43 +293,152 @@ class Mutation:
 
     update_profile: types.Profile = strawberry_django.mutations.update(ProfileUpdateInput)
 
-    create_song_artist: types.SongArtist = strawberry_django.mutations.create(SongArtistCreateInput)
-    create_project_artist: types.ProjectArtist = strawberry_django.mutations.create(ProjectArtistCreateInput)
-    create_project_song: types.ProjectSong = strawberry_django.mutations.create(ProjectSongCreateInput)
-
+    # --- Custom User Creation ---
     @strawberry.mutation
-    def create_user(self, data: UserCreateInput) -> types.User:
-        user = User.objects.create_user(
+    async def create_user(self, data: UserCreateInput) -> types.User:
+        user = await sync_to_async(User.objects.create_user)(
             username=data.username,
             password=data.password,
             email=data.email,
             first_name=data.first_name,
             last_name=data.last_name,
         )
-        models.Profile.objects.create(user=user)
+        await sync_to_async(models.Profile.objects.create)(user=user)
         return user
 
-    # --- UPDATED CUSTOM MUTATION ---
+    # --- Custom Review/SubReview Mutations ---
     @strawberry.mutation
-    async def add_review_to_project(
-            self,
-            info,
-            project_id: strawberry.ID,
-            user_id: strawberry.ID,
-            data: ReviewDataInput
-    ) -> types.Review:
-        """
-        Custom mutation to create a review and link it to a specific project.
-        This is now async to be compatible with the ASGI server.
-        """
-        # Wrap synchronous database calls in sync_to_async
+    async def add_review_to_project(self, info, project_id: strawberry.ID, user_id: strawberry.ID,
+                                    data: ReviewDataInput) -> types.Review:
         project = await sync_to_async(models.Project.objects.get)(pk=project_id)
         user = await sync_to_async(User.objects.get)(pk=user_id)
-
-        review = await sync_to_async(models.Review.objects.create)(
-            user=user,
-            stars=data.stars,
-            text=data.text,
-            content_object=project  # This handles the GenericForeignKey
-        )
+        review = await sync_to_async(models.Review.objects.create)(user=user, stars=data.stars, text=data.text,
+                                                                   content_object=project)
         return review
+
+    @strawberry.mutation
+    async def add_review_to_song(self, info, song_id: strawberry.ID, user_id: strawberry.ID,
+                                 data: ReviewDataInput) -> types.Review:
+        song = await sync_to_async(models.Song.objects.get)(pk=song_id)
+        user = await sync_to_async(User.objects.get)(pk=user_id)
+        review = await sync_to_async(models.Review.objects.create)(user=user, stars=data.stars, text=data.text,
+                                                                   content_object=song)
+        return review
+
+    @strawberry.mutation
+    async def add_review_to_outfit(self, info, outfit_id: strawberry.ID, user_id: strawberry.ID,
+                                   data: ReviewDataInput) -> types.Review:
+        outfit = await sync_to_async(models.Outfit.objects.get)(pk=outfit_id)
+        user = await sync_to_async(User.objects.get)(pk=user_id)
+        review = await sync_to_async(models.Review.objects.create)(user=user, stars=data.stars, text=data.text,
+                                                                   content_object=outfit)
+        return review
+
+    @strawberry.mutation
+    async def add_review_to_podcast(self, info, podcast_id: strawberry.ID, user_id: strawberry.ID,
+                                    data: ReviewDataInput) -> types.Review:
+        podcast = await sync_to_async(models.Podcast.objects.get)(pk=podcast_id)
+        user = await sync_to_async(User.objects.get)(pk=user_id)
+        review = await sync_to_async(models.Review.objects.create)(user=user, stars=data.stars, text=data.text,
+                                                                   content_object=podcast)
+        return review
+
+    @strawberry.mutation
+    async def add_review_to_music_video(self, info, music_video_id: strawberry.ID, user_id: strawberry.ID,
+                                        data: ReviewDataInput) -> types.Review:
+        music_video = await sync_to_async(models.MusicVideo.objects.get)(pk=music_video_id)
+        user = await sync_to_async(User.objects.get)(pk=user_id)
+        review = await sync_to_async(models.Review.objects.create)(user=user, stars=data.stars, text=data.text,
+                                                                   content_object=music_video)
+        return review
+
+    @strawberry.mutation
+    async def add_review_to_cover(self, info, cover_id: strawberry.ID, user_id: strawberry.ID,
+                                  data: ReviewDataInput) -> types.Review:
+        cover = await sync_to_async(models.Cover.objects.get)(pk=cover_id)
+        user = await sync_to_async(User.objects.get)(pk=user_id)
+        review = await sync_to_async(models.Review.objects.create)(user=user, stars=data.stars, text=data.text,
+                                                                   content_object=cover)
+        return review
+
+    @strawberry.mutation
+    async def add_sub_review_to_review(self, info, review_id: strawberry.ID,
+                                       data: SubReviewDataInput) -> types.SubReview:
+        review = await sync_to_async(models.Review.objects.get)(pk=review_id)
+        sub_review = await sync_to_async(models.SubReview.objects.create)(
+            review=review,
+            topic=data.topic,
+            text=data.text,
+            stars=data.stars
+        )
+        return sub_review
+
+    # --- Custom Message Mutation ---
+    @strawberry.mutation
+    async def add_message_to_conversation(self, info, conversation_id: strawberry.ID, sender_id: strawberry.ID,
+                                          data: MessageDataInput) -> types.Message:
+        conversation = await sync_to_async(models.Conversation.objects.get)(pk=conversation_id)
+        sender = await sync_to_async(User.objects.get)(pk=sender_id)
+
+        message = await sync_to_async(models.Message.objects.create)(
+            conversation=conversation,
+            sender=sender,
+            text=data.text
+        )
+
+        conversation.latest_message = message
+        conversation.latest_message_text = message.text
+        conversation.latest_message_time = message.time
+        conversation.latest_message_sender = sender
+        await sync_to_async(conversation.save)()
+
+        return message
+
+    # --- NEW CUSTOM RELATIONSHIP MUTATIONS ---
+    @strawberry.mutation
+    async def add_artist_to_song(self, info, song_id: strawberry.ID, artist_id: strawberry.ID,
+                                 position: int) -> types.SongArtist:
+        song = await sync_to_async(models.Song.objects.get)(pk=song_id)
+        artist = await sync_to_async(models.Artist.objects.get)(pk=artist_id)
+        song_artist = await sync_to_async(models.SongArtist.objects.create)(song=song, artist=artist, position=position)
+        return song_artist
+
+    @strawberry.mutation
+    async def add_artist_to_project(self, info, project_id: strawberry.ID, artist_id: strawberry.ID,
+                                    position: int) -> types.ProjectArtist:
+        project = await sync_to_async(models.Project.objects.get)(pk=project_id)
+        artist = await sync_to_async(models.Artist.objects.get)(pk=artist_id)
+        project_artist = await sync_to_async(models.ProjectArtist.objects.create)(project=project, artist=artist,
+                                                                                  position=position)
+        return project_artist
+
+    @strawberry.mutation
+    async def add_song_to_project(self, info, project_id: strawberry.ID, song_id: strawberry.ID,
+                                  position: int) -> types.ProjectSong:
+        project = await sync_to_async(models.Project.objects.get)(pk=project_id)
+        song = await sync_to_async(models.Song.objects.get)(pk=song_id)
+        project_song = await sync_to_async(models.ProjectSong.objects.create)(project=project, song=song,
+                                                                              position=position)
+        return project_song
+
+    @strawberry.mutation
+    async def add_cover_to_project(self, info, project_id: strawberry.ID, data: CoverDataInput) -> types.Cover:
+        project = await sync_to_async(models.Project.objects.get)(pk=project_id)
+        cover = await sync_to_async(models.Cover.objects.create)(image=data.image_url, content_object=project)
+        return cover
+
+    @strawberry.mutation
+    async def follow_user(self, info, follower_id: strawberry.ID, followed_id: strawberry.ID) -> types.Profile:
+        follower_profile = await sync_to_async(models.Profile.objects.get)(user_id=follower_id)
+        followed_profile = await sync_to_async(models.Profile.objects.get)(user_id=followed_id)
+
+        await sync_to_async(follower_profile.following.add)(followed_profile)
+
+        # Update counts
+        follower_profile.following_count = await sync_to_async(follower_profile.following.count)()
+        followed_profile.followers_count = await sync_to_async(followed_profile.followers.count)()
+
+        await sync_to_async(follower_profile.save)()
+        await sync_to_async(followed_profile.save)()
+
+        return followed_profile
