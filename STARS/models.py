@@ -126,8 +126,8 @@ class Song(models.Model):
 
 
 class SongArtist(models.Model):
-    song = models.ForeignKey(Song, on_delete=models.CASCADE)
-    artist = models.ForeignKey(Artist, on_delete=models.CASCADE)
+    song = models.ForeignKey(Song, on_delete=models.CASCADE, related_name='song_artists') # <-- ADDED
+    artist = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='song_artists') # <-- ADDED
     position = models.PositiveIntegerField()
 
     def __str__(self):
@@ -148,7 +148,7 @@ class Project(models.Model):
     title = models.CharField(max_length=500, db_index=True)
     number_of_songs = models.IntegerField()
     release_date = models.DateField(db_index=True)
-    project_type = models.CharField(max_length=10, choices=ProjectType.choices, db_index=True) # <-- UPDATED
+    project_type = models.CharField(max_length=10, choices=ProjectType.choices, db_index=True)
     covers = GenericRelation('Cover')
     length = models.IntegerField()
     reviews = GenericRelation('Review')
@@ -169,8 +169,8 @@ class Project(models.Model):
 
 
 class ProjectArtist(models.Model):
-    project = models.ForeignKey(Project, on_delete=models.CASCADE)
-    artist = models.ForeignKey(Artist, on_delete=models.CASCADE)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='project_artists') # <-- ADDED
+    artist = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='project_artists') # <-- ADDED
     position = models.PositiveIntegerField()
 
     def __str__(self):
@@ -182,8 +182,8 @@ class ProjectArtist(models.Model):
 
 
 class ProjectSong(models.Model):
-    project = models.ForeignKey(Project, on_delete=models.CASCADE)
-    song = models.ForeignKey(Song, on_delete=models.CASCADE)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='project_songs') # <-- ADDED
+    song = models.ForeignKey(Song, on_delete=models.CASCADE, related_name='project_songs') # <-- ADDED
     position = models.PositiveIntegerField()
 
     def __str__(self):
