@@ -129,8 +129,8 @@ class ReviewDataInput:
 class SubReviewCreateInput:
     review_id: strawberry.ID
     topic: auto
-    text: Optional[str] = None
     stars: auto
+    text: Optional[str] = None
 
 
 @strawberry.input
@@ -224,8 +224,8 @@ class ProjectUpdateInput:
 @strawberry_django.input(models.Podcast)
 class PodcastCreateInput:
     title: auto
-    description: Optional[str] = None
     since: auto
+    description: Optional[str] = None
     website: Optional[str] = None
     spotify: Optional[str] = None
     apple_podcasts: Optional[str] = None
@@ -251,10 +251,10 @@ class PodcastUpdateInput:
 @strawberry_django.input(models.Outfit)
 class OutfitCreateInput:
     artist_id: strawberry.ID
-    description: Optional[str] = None
     date: auto
     preview_picture: auto
     instagram_post: auto
+    description: Optional[str] = None
     is_featured: Optional[bool] = False
 
 
