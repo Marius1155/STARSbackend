@@ -3,6 +3,7 @@
 import strawberry
 import strawberry_django
 from strawberry import auto
+from typing import Optional
 
 # Import all the models you want to create filters for
 from STARS import models
@@ -34,13 +35,13 @@ class EventFilter:
     location: auto
     is_one_time: auto
     is_featured: auto
-    series: "EventSeriesFilter"  # Allow filtering by the related series
+    series: Optional["EventSeriesFilter"]
 
 @strawberry_django.filter(models.Review, lookups=True)
 class ReviewFilter:
     id: auto
     stars: auto
-    user: "UserFilter"  # Allow filtering by the related user
+    user: Optional["UserFilter"]
     date_created: auto
     is_latest: auto
 
@@ -72,8 +73,8 @@ class SongFilter:
 @strawberry_django.filter(models.SongArtist, lookups=True)
 class SongArtistFilter:
     id: auto
-    song: "SongFilter"      # CORRECTED: Allow nested filtering on song
-    artist: "ArtistFilter"  # CORRECTED: Allow nested filtering on artist
+    song: Optional["SongFilter"]
+    artist: Optional["ArtistFilter"]
 
 @strawberry_django.filter(models.Project, lookups=True)
 class ProjectFilter:
@@ -86,14 +87,14 @@ class ProjectFilter:
 @strawberry_django.filter(models.ProjectArtist, lookups=True)
 class ProjectArtistFilter:
     id: auto
-    project: "ProjectFilter" # CORRECTED: Allow nested filtering on project
-    artist: "ArtistFilter"   # CORRECTED: Allow nested filtering on artist
+    project: Optional["ProjectFilter"]
+    artist: Optional["ArtistFilter"]
 
 @strawberry_django.filter(models.ProjectSong, lookups=True)
 class ProjectSongFilter:
     id: auto
-    project: "ProjectFilter" # CORRECTED: Allow nested filtering on project
-    song: "SongFilter"       # CORRECTED: Allow nested filtering on song
+    project: Optional["ProjectFilter"]
+    song: Optional["SongFilter"]
 
 @strawberry_django.filter(models.Podcast, lookups=True)
 class PodcastFilter:
@@ -105,7 +106,7 @@ class PodcastFilter:
 @strawberry_django.filter(models.Outfit, lookups=True)
 class OutfitFilter:
     id: auto
-    artist: "ArtistFilter" # CORRECTED: Allow nested filtering on artist
+    artist: Optional["ArtistFilter"]
     date: auto
     is_featured: auto
 
@@ -116,13 +117,13 @@ class ConversationFilter:
 @strawberry_django.filter(models.Message, lookups=True)
 class MessageFilter:
     id: auto
-    sender: "UserFilter" # CORRECTED: Allow nested filtering on sender
+    sender: Optional["UserFilter"]
     is_read: auto
 
 @strawberry_django.filter(models.Profile, lookups=True)
 class ProfileFilter:
     id: auto
-    user: "UserFilter" # CORRECTED: Allow nested filtering on user
+    user: Optional["UserFilter"]
     has_premium: auto
 
 @strawberry_django.filter(User, lookups=True)
