@@ -4,14 +4,42 @@ import strawberry
 import strawberry_django
 from strawberry_django.optimizer import DjangoOptimizerExtension
 
-# Import your type and filter definitions
+# Import your type, filter, and mutation definitions
 from . import types
 from . import filters
+from . import mutations
+
+# --- Explicitly import all input types to ensure they are registered ---
+from .mutations import (
+    ArtistCreateInput,
+    ArtistUpdateInput,
+    EventSeriesCreateInput,
+    EventSeriesUpdateInput,
+    EventCreateInput,
+    EventUpdateInput,
+    ReviewCreateInput,
+    ReviewUpdateInput,
+    SubReviewCreateInput,
+    SubReviewUpdateInput,
+    MusicVideoCreateInput,
+    MusicVideoUpdateInput,
+    SongCreateInput,
+    SongUpdateInput,
+    ProjectCreateInput,
+    ProjectUpdateInput,
+    PodcastCreateInput,
+    PodcastUpdateInput,
+    OutfitCreateInput,
+    OutfitUpdateInput,
+    ProfileUpdateInput,
+    UserCreateInput,
+    SongArtistCreateInput,
+    ProjectArtistCreateInput,
+    ProjectSongCreateInput,
+)
 
 @strawberry.type
 class Query:
-    # Add the 'filters' argument to each field, linking it to the
-    # corresponding filter class you defined in filters.py
     artists: list[types.Artist] = strawberry_django.field(filters=filters.ArtistFilter)
     projects: list[types.Project] = strawberry_django.field(filters=filters.ProjectFilter)
     songs: list[types.Song] = strawberry_django.field(filters=filters.SongFilter)
@@ -32,8 +60,10 @@ class Query:
     users: list[types.User] = strawberry_django.field(filters=filters.UserFilter)
 
 
+# Pass the mutation class to the schema constructor
 schema = strawberry.Schema(
     query=Query,
+    mutation=mutations.Mutation,
     extensions=[
         DjangoOptimizerExtension,
     ]
