@@ -9,6 +9,7 @@ from django.contrib.auth.models import User
 from STARS import models
 from . import types
 
+
 # -----------------------------------------------------------------------------
 # Input Types (Stable Pattern)
 # -----------------------------------------------------------------------------
@@ -25,6 +26,7 @@ class ArtistCreateInput:
     birthdate: auto
     origin: auto
 
+
 @strawberry.input
 class ArtistUpdateInput:
     id: strawberry.ID
@@ -36,16 +38,19 @@ class ArtistUpdateInput:
     birthdate: Optional[str] = strawberry.UNSET
     origin: Optional[str] = strawberry.UNSET
 
+
 @strawberry_django.input(models.EventSeries)
 class EventSeriesCreateInput:
     name: auto
     description: auto
+
 
 @strawberry.input
 class EventSeriesUpdateInput:
     id: strawberry.ID
     name: Optional[str] = strawberry.UNSET
     description: Optional[str] = strawberry.UNSET
+
 
 @strawberry_django.input(models.Event)
 class EventCreateInput:
@@ -54,6 +59,7 @@ class EventCreateInput:
     location: auto
     is_one_time: auto
     series_id: Optional[strawberry.ID] = None
+
 
 @strawberry.input
 class EventUpdateInput:
@@ -64,17 +70,29 @@ class EventUpdateInput:
     is_one_time: Optional[bool] = strawberry.UNSET
     series_id: Optional[strawberry.ID] = strawberry.UNSET
 
+
 @strawberry_django.input(models.Review)
 class ReviewCreateInput:
     user_id: strawberry.ID
     stars: auto
     text: auto
 
+
 @strawberry.input
 class ReviewUpdateInput:
     id: strawberry.ID
     stars: Optional[float] = strawberry.UNSET
     text: Optional[str] = strawberry.UNSET
+
+
+# --- NEW INPUT TYPE FOR ADDING A REVIEW TO A PROJECT ---
+@strawberry.input
+class ProjectReviewCreateInput:
+    user_id: strawberry.ID
+    project_id: strawberry.ID
+    stars: float
+    text: str
+
 
 @strawberry_django.input(models.SubReview)
 class SubReviewCreateInput:
@@ -83,6 +101,7 @@ class SubReviewCreateInput:
     text: auto
     stars: auto
 
+
 @strawberry.input
 class SubReviewUpdateInput:
     id: strawberry.ID
@@ -90,12 +109,14 @@ class SubReviewUpdateInput:
     text: Optional[str] = strawberry.UNSET
     stars: Optional[float] = strawberry.UNSET
 
+
 @strawberry_django.input(models.MusicVideo)
 class MusicVideoCreateInput:
     title: auto
     release_date: auto
     youtube: auto
     thumbnail: auto
+
 
 @strawberry.input
 class MusicVideoUpdateInput:
@@ -105,12 +126,14 @@ class MusicVideoUpdateInput:
     youtube: Optional[str] = strawberry.UNSET
     thumbnail: Optional[str] = strawberry.UNSET
 
+
 @strawberry_django.input(models.Song)
 class SongCreateInput:
     title: auto
     length: auto
     release_date: auto
     preview: auto
+
 
 @strawberry.input
 class SongUpdateInput:
@@ -120,6 +143,7 @@ class SongUpdateInput:
     release_date: Optional[str] = strawberry.UNSET
     preview: Optional[str] = strawberry.UNSET
 
+
 @strawberry_django.input(models.Project)
 class ProjectCreateInput:
     title: auto
@@ -127,6 +151,7 @@ class ProjectCreateInput:
     release_date: auto
     project_type: auto
     length: auto
+
 
 @strawberry.input
 class ProjectUpdateInput:
@@ -137,12 +162,14 @@ class ProjectUpdateInput:
     project_type: Optional[str] = strawberry.UNSET
     length: Optional[int] = strawberry.UNSET
 
+
 @strawberry_django.input(models.Podcast)
 class PodcastCreateInput:
     title: auto
     description: auto
     since: auto
     website: auto
+
 
 @strawberry.input
 class PodcastUpdateInput:
@@ -152,6 +179,7 @@ class PodcastUpdateInput:
     since: Optional[str] = strawberry.UNSET
     website: Optional[str] = strawberry.UNSET
 
+
 @strawberry_django.input(models.Outfit)
 class OutfitCreateInput:
     artist_id: strawberry.ID
@@ -159,6 +187,7 @@ class OutfitCreateInput:
     date: auto
     preview_picture: auto
     instagram_post: auto
+
 
 @strawberry.input
 class OutfitUpdateInput:
@@ -169,6 +198,7 @@ class OutfitUpdateInput:
     preview_picture: Optional[str] = strawberry.UNSET
     instagram_post: Optional[str] = strawberry.UNSET
 
+
 @strawberry.input
 class ProfileUpdateInput:
     id: strawberry.ID
@@ -178,6 +208,7 @@ class ProfileUpdateInput:
     profile_picture: Optional[str] = strawberry.UNSET
     accent_color_hex: Optional[str] = strawberry.UNSET
 
+
 @strawberry.input
 class UserCreateInput:
     username: str
@@ -186,11 +217,13 @@ class UserCreateInput:
     first_name: Optional[str] = None
     last_name: Optional[str] = None
 
+
 @strawberry_django.input(models.SongArtist)
 class SongArtistCreateInput:
     song_id: strawberry.ID
     artist_id: strawberry.ID
     position: auto
+
 
 @strawberry_django.input(models.ProjectArtist)
 class ProjectArtistCreateInput:
@@ -198,11 +231,13 @@ class ProjectArtistCreateInput:
     artist_id: strawberry.ID
     position: auto
 
+
 @strawberry_django.input(models.ProjectSong)
 class ProjectSongCreateInput:
     project_id: strawberry.ID
     song_id: strawberry.ID
     position: auto
+
 
 @strawberry.type
 class Mutation:
@@ -259,3 +294,20 @@ class Mutation:
         )
         models.Profile.objects.create(user=user)
         return user
+
+    # --- NEW CUSTOM MUTATION ---
+    @strawberry.mutation
+    def add_review_to_project(self, info, data: ProjectReviewCreateInput) -> types.Review:
+        """
+        Custom mutation to create a review and link it to a specific project.
+        """
+        project = models.Project.objects.get(pk=data.project_id)
+        user = User.objects.get(pk=data.user_id)
+
+        review = models.Review.objects.create(
+            user=user,
+            stars=data.stars,
+            text=data.text,
+            content_object=project  # This handles the GenericForeignKey
+        )
+        return review
