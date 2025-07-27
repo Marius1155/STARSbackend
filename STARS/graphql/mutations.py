@@ -15,18 +15,31 @@ from . import types
 # -----------------------------------------------------------------------------
 # Input Types (Stable Pattern)
 # -----------------------------------------------------------------------------
-# Create inputs are generated automatically.
+# Create inputs include all model fields, with optional ones explicitly typed.
 # Update inputs are defined manually, with each field being Optional.
 
 @strawberry_django.input(models.Artist)
 class ArtistCreateInput:
     name: auto
     picture: auto
-    bio: auto
-    wikipedia: auto
-    pronouns: auto
-    birthdate: auto
-    origin: auto
+    bio: Optional[str] = None
+    wikipedia: Optional[str] = None
+    pronouns: Optional[str] = None
+    birthdate: Optional[str] = None
+    origin: Optional[str] = None
+    website: Optional[str] = None
+    facebook: Optional[str] = None
+    instagram: Optional[str] = None
+    twitter: Optional[str] = None
+    youtube_channel: Optional[str] = None
+    spotify: Optional[str] = None
+    apple_music: Optional[str] = None
+    youtube_music: Optional[str] = None
+    tidal: Optional[str] = None
+    deezer: Optional[str] = None
+    soundcloud: Optional[str] = None
+    bandcamp: Optional[str] = None
+    is_featured: Optional[bool] = False
 
 
 @strawberry.input
@@ -39,12 +52,26 @@ class ArtistUpdateInput:
     pronouns: Optional[str] = strawberry.UNSET
     birthdate: Optional[str] = strawberry.UNSET
     origin: Optional[str] = strawberry.UNSET
+    website: Optional[str] = strawberry.UNSET
+    facebook: Optional[str] = strawberry.UNSET
+    instagram: Optional[str] = strawberry.UNSET
+    twitter: Optional[str] = strawberry.UNSET
+    youtube_channel: Optional[str] = strawberry.UNSET
+    spotify: Optional[str] = strawberry.UNSET
+    apple_music: Optional[str] = strawberry.UNSET
+    youtube_music: Optional[str] = strawberry.UNSET
+    tidal: Optional[str] = strawberry.UNSET
+    deezer: Optional[str] = strawberry.UNSET
+    soundcloud: Optional[str] = strawberry.UNSET
+    bandcamp: Optional[str] = strawberry.UNSET
+    is_featured: Optional[bool] = strawberry.UNSET
 
 
 @strawberry_django.input(models.EventSeries)
 class EventSeriesCreateInput:
     name: auto
-    description: auto
+    description: Optional[str] = None
+    is_featured: Optional[bool] = False
 
 
 @strawberry.input
@@ -52,15 +79,17 @@ class EventSeriesUpdateInput:
     id: strawberry.ID
     name: Optional[str] = strawberry.UNSET
     description: Optional[str] = strawberry.UNSET
+    is_featured: Optional[bool] = strawberry.UNSET
 
 
 @strawberry_django.input(models.Event)
 class EventCreateInput:
     name: auto
     date: auto
-    location: auto
-    is_one_time: auto
+    location: Optional[str] = None
+    is_one_time: Optional[bool] = False
     series_id: Optional[strawberry.ID] = None
+    is_featured: Optional[bool] = False
 
 
 @strawberry.input
@@ -71,13 +100,15 @@ class EventUpdateInput:
     location: Optional[str] = strawberry.UNSET
     is_one_time: Optional[bool] = strawberry.UNSET
     series_id: Optional[strawberry.ID] = strawberry.UNSET
+    is_featured: Optional[bool] = strawberry.UNSET
 
 
 @strawberry_django.input(models.Review)
 class ReviewCreateInput:
     user_id: strawberry.ID
     stars: auto
-    text: auto
+    text: Optional[str] = None
+    is_latest: Optional[bool] = True
 
 
 @strawberry.input
@@ -85,6 +116,7 @@ class ReviewUpdateInput:
     id: strawberry.ID
     stars: Optional[float] = strawberry.UNSET
     text: Optional[str] = strawberry.UNSET
+    is_latest: Optional[bool] = strawberry.UNSET
 
 
 @strawberry.input
@@ -97,7 +129,7 @@ class ReviewDataInput:
 class SubReviewCreateInput:
     review_id: strawberry.ID
     topic: auto
-    text: auto
+    text: Optional[str] = None
     stars: auto
 
 
@@ -122,6 +154,7 @@ class MusicVideoCreateInput:
     release_date: auto
     youtube: auto
     thumbnail: auto
+    is_featured: Optional[bool] = False
 
 
 @strawberry.input
@@ -131,6 +164,7 @@ class MusicVideoUpdateInput:
     release_date: Optional[str] = strawberry.UNSET
     youtube: Optional[str] = strawberry.UNSET
     thumbnail: Optional[str] = strawberry.UNSET
+    is_featured: Optional[bool] = strawberry.UNSET
 
 
 @strawberry_django.input(models.Song)
@@ -138,7 +172,8 @@ class SongCreateInput:
     title: auto
     length: auto
     release_date: auto
-    preview: auto
+    preview: Optional[str] = None
+    is_featured: Optional[bool] = False
 
 
 @strawberry.input
@@ -148,6 +183,7 @@ class SongUpdateInput:
     length: Optional[int] = strawberry.UNSET
     release_date: Optional[str] = strawberry.UNSET
     preview: Optional[str] = strawberry.UNSET
+    is_featured: Optional[bool] = strawberry.UNSET
 
 
 @strawberry_django.input(models.Project)
@@ -157,6 +193,14 @@ class ProjectCreateInput:
     release_date: auto
     project_type: auto
     length: auto
+    spotify: Optional[str] = None
+    apple_music: Optional[str] = None
+    youtube_music: Optional[str] = None
+    tidal: Optional[str] = None
+    deezer: Optional[str] = None
+    soundcloud: Optional[str] = None
+    bandcamp: Optional[str] = None
+    is_featured: Optional[bool] = False
 
 
 @strawberry.input
@@ -167,14 +211,27 @@ class ProjectUpdateInput:
     release_date: Optional[str] = strawberry.UNSET
     project_type: Optional[str] = strawberry.UNSET
     length: Optional[int] = strawberry.UNSET
+    spotify: Optional[str] = strawberry.UNSET
+    apple_music: Optional[str] = strawberry.UNSET
+    youtube_music: Optional[str] = strawberry.UNSET
+    tidal: Optional[str] = strawberry.UNSET
+    deezer: Optional[str] = strawberry.UNSET
+    soundcloud: Optional[str] = strawberry.UNSET
+    bandcamp: Optional[str] = strawberry.UNSET
+    is_featured: Optional[bool] = strawberry.UNSET
 
 
 @strawberry_django.input(models.Podcast)
 class PodcastCreateInput:
     title: auto
-    description: auto
+    description: Optional[str] = None
     since: auto
-    website: auto
+    website: Optional[str] = None
+    spotify: Optional[str] = None
+    apple_podcasts: Optional[str] = None
+    youtube: Optional[str] = None
+    youtube_music: Optional[str] = None
+    is_featured: Optional[bool] = False
 
 
 @strawberry.input
@@ -184,15 +241,21 @@ class PodcastUpdateInput:
     description: Optional[str] = strawberry.UNSET
     since: Optional[str] = strawberry.UNSET
     website: Optional[str] = strawberry.UNSET
+    spotify: Optional[str] = strawberry.UNSET
+    apple_podcasts: Optional[str] = strawberry.UNSET
+    youtube: Optional[str] = strawberry.UNSET
+    youtube_music: Optional[str] = strawberry.UNSET
+    is_featured: Optional[bool] = strawberry.UNSET
 
 
 @strawberry_django.input(models.Outfit)
 class OutfitCreateInput:
     artist_id: strawberry.ID
-    description: auto
+    description: Optional[str] = None
     date: auto
     preview_picture: auto
     instagram_post: auto
+    is_featured: Optional[bool] = False
 
 
 @strawberry.input
@@ -203,6 +266,7 @@ class OutfitUpdateInput:
     date: Optional[str] = strawberry.UNSET
     preview_picture: Optional[str] = strawberry.UNSET
     instagram_post: Optional[str] = strawberry.UNSET
+    is_featured: Optional[bool] = strawberry.UNSET
 
 
 @strawberry.input
@@ -394,7 +458,7 @@ class Mutation:
 
         return message
 
-    # --- NEW CUSTOM RELATIONSHIP MUTATIONS ---
+    # --- Custom Relationship Mutations ---
     @strawberry.mutation
     async def add_artist_to_song(self, info, song_id: strawberry.ID, artist_id: strawberry.ID,
                                  position: int) -> types.SongArtist:
