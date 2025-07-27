@@ -493,8 +493,9 @@ class Mutation:
 
     @strawberry.mutation
     async def follow_user(self, info, follower_id: strawberry.ID, followed_id: strawberry.ID) -> types.Profile:
-        follower_profile = await sync_to_async(models.Profile.objects.get)(user_id=follower_id)
-        followed_profile = await sync_to_async(models.Profile.objects.get)(user_id=followed_id)
+        # CORRECTED: Use user__pk for the lookup to ensure Global ID is decoded
+        follower_profile = await sync_to_async(models.Profile.objects.get)(user__pk=follower_id)
+        followed_profile = await sync_to_async(models.Profile.objects.get)(user__pk=followed_id)
 
         await sync_to_async(follower_profile.following.add)(followed_profile)
 
