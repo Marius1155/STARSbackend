@@ -85,11 +85,9 @@ class ReviewUpdateInput:
     text: Optional[str] = strawberry.UNSET
 
 
-# --- NEW INPUT TYPE FOR ADDING A REVIEW TO A PROJECT ---
+# --- NEW INPUT TYPE FOR REVIEW DATA ---
 @strawberry.input
-class ProjectReviewCreateInput:
-    user_id: strawberry.ID
-    project_id: strawberry.ID
+class ReviewDataInput:
     stars: float
     text: str
 
@@ -295,14 +293,20 @@ class Mutation:
         models.Profile.objects.create(user=user)
         return user
 
-    # --- NEW CUSTOM MUTATION ---
+    # --- UPDATED CUSTOM MUTATION ---
     @strawberry.mutation
-    def add_review_to_project(self, info, data: ProjectReviewCreateInput) -> types.Review:
+    def add_review_to_project(
+            self,
+            info,
+            project_id: strawberry.ID,
+            user_id: strawberry.ID,
+            data: ReviewDataInput
+    ) -> types.Review:
         """
         Custom mutation to create a review and link it to a specific project.
         """
-        project = models.Project.objects.get(pk=data.project_id)
-        user = User.objects.get(pk=data.user_id)
+        project = models.Project.objects.get(pk=project_id)
+        user = User.objects.get(pk=user_id)
 
         review = models.Review.objects.create(
             user=user,
