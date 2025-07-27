@@ -1,19 +1,12 @@
-# Core Framework & API
-django
-strawberry-graphql[asgi]      # For the ASGI server support
-strawberry-graphql-django   # Explicitly add the Django integration
-channels                    # For ASGI routing
-
-# Production Server & Static Files
+django==4.2.15
+strawberry-graphql[asgi]==0.215.0
+strawberry-graphql-django==0.35.0
+channels
 gunicorn
 uvicorn
 whitenoise
-
-# Database & Settings
 psycopg2-binary
 dj-database-url
 python-decouple
-
-# Optional Packages
 django-filter
 text-unidecode
