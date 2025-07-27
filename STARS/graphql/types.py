@@ -1,6 +1,7 @@
 # graphql/types.py
 
 import strawberry
+from strawberry import auto
 import strawberry_django
 from asgiref.sync import sync_to_async
 
@@ -8,27 +9,27 @@ from STARS import models
 
 @strawberry_django.type(models.Artist)
 class Artist:
-    id: strawberry_django.auto
-    name: strawberry_django.auto
-    picture: strawberry_django.auto
-    bio: strawberry_django.auto
-    wikipedia: strawberry_django.auto
-    pronouns: strawberry_django.auto
-    birthdate: strawberry_django.auto
-    origin: strawberry_django.auto
-    website: strawberry_django.auto
-    facebook: strawberry_django.auto
-    instagram: strawberry_django.auto
-    twitter: strawberry_django.auto
-    youtube_channel: strawberry_django.auto
-    spotify: strawberry_django.auto
-    apple_music: strawberry_django.auto
-    youtube_music: strawberry_django.auto
-    tidal: strawberry_django.auto
-    deezer: strawberry_django.auto
-    soundcloud: strawberry_django.auto
-    bandcamp: strawberry_django.auto
-    is_featured: strawberry_django.auto
+    id: auto
+    name: auto
+    picture: auto
+    bio: auto
+    wikipedia: auto
+    pronouns: auto
+    birthdate: auto
+    origin: auto
+    website: auto
+    facebook: auto
+    instagram: auto
+    twitter: auto
+    youtube_channel: auto
+    spotify: auto
+    apple_music: auto
+    youtube_music: auto
+    tidal: auto
+    deezer: auto
+    soundcloud: auto
+    bandcamp: auto
+    is_featured: auto
 
     @strawberry.field
     async def song_artists(self) -> list["SongArtist"]:
@@ -49,10 +50,10 @@ class Artist:
 
 @strawberry_django.type(models.EventSeries)
 class EventSeries:
-    id: strawberry_django.auto
-    name: strawberry_django.auto
-    description: strawberry_django.auto
-    is_featured: strawberry_django.auto
+    id: auto
+    name: auto
+    description: auto
+    is_featured: auto
 
     @strawberry.field
     async def events(self) -> list["Event"]:
@@ -61,15 +62,15 @@ class EventSeries:
 
 @strawberry_django.type(models.Event)
 class Event:
-    id: strawberry_django.auto
-    series: strawberry_django.auto
-    name: strawberry_django.auto
-    date: strawberry_django.auto
-    location: strawberry_django.auto
-    is_one_time: strawberry_django.auto
-    reviews_count: strawberry_django.auto
-    star_average: strawberry_django.auto
-    is_featured: strawberry_django.auto
+    id: auto
+    series: auto
+    name: auto
+    date: auto
+    location: auto
+    is_one_time: auto
+    reviews_count: auto
+    star_average: auto
+    is_featured: auto
 
     @strawberry.field
     async def reviews(self) -> list["Review"]:
@@ -82,12 +83,12 @@ class Event:
 
 @strawberry_django.type(models.User)
 class User:
-    id: strawberry_django.auto
-    username: strawberry_django.auto
-    email: strawberry_django.auto
-    first_name: strawberry_django.auto
-    last_name: strawberry_django.auto
-    profile: strawberry_django.auto
+    id: auto
+    username: auto
+    email: auto
+    first_name: auto
+    last_name: auto
+    profile: auto
 
     @strawberry.field
     async def conversations(self) -> list["Conversation"]:
@@ -100,13 +101,13 @@ class User:
 
 @strawberry_django.type(models.Review)
 class Review:
-    id: strawberry_django.auto
-    stars: strawberry_django.auto
-    text: strawberry_django.auto
-    user: strawberry_django.auto
-    date_created: strawberry_django.auto
-    date_updated: strawberry_django.auto
-    is_latest: strawberry_django.auto
+    id: auto
+    stars: auto
+    text: auto
+    user: auto
+    date_created: auto
+    date_updated: auto
+    is_latest: auto
     content_object: "Reviewable"
 
     @strawberry.field
@@ -116,31 +117,31 @@ class Review:
 
 @strawberry_django.type(models.SubReview)
 class SubReview:
-    id: strawberry_django.auto
-    review: strawberry_django.auto
-    topic: strawberry_django.auto
-    text: strawberry_django.auto
-    stars: strawberry_django.auto
+    id: auto
+    review: auto
+    topic: auto
+    text: auto
+    stars: auto
 
 
 @strawberry_django.type(models.Project)
 class Project:
-    id: strawberry_django.auto
-    title: strawberry_django.auto
-    number_of_songs: strawberry_django.auto
-    release_date: strawberry_django.auto
-    project_type: strawberry_django.auto
-    length: strawberry_django.auto
-    reviews_count: strawberry_django.auto
-    star_average: strawberry_django.auto
-    spotify: strawberry_django.auto
-    apple_music: strawberry_django.auto
-    youtube_music: strawberry_django.auto
-    tidal: strawberry_django.auto
-    deezer: strawberry_django.auto
-    soundcloud: strawberry_django.auto
-    bandcamp: strawberry_django.auto
-    is_featured: strawberry_django.auto
+    id: auto
+    title: auto
+    number_of_songs: auto
+    release_date: auto
+    project_type: auto
+    length: auto
+    reviews_count: auto
+    star_average: auto
+    spotify: auto
+    apple_music: auto
+    youtube_music: auto
+    tidal: auto
+    deezer: auto
+    soundcloud: auto
+    bandcamp: auto
+    is_featured: auto
 
     @strawberry.field
     async def covers(self) -> list["Cover"]:
@@ -165,18 +166,18 @@ class Project:
 
 @strawberry_django.type(models.Podcast)
 class Podcast:
-    id: strawberry_django.auto
-    title: strawberry_django.auto
-    description: strawberry_django.auto
-    since: strawberry_django.auto
-    website: strawberry_django.auto
-    spotify: strawberry_django.auto
-    apple_podcasts: strawberry_django.auto
-    youtube: strawberry_django.auto
-    youtube_music: strawberry_django.auto
-    reviews_count: strawberry_django.auto
-    star_average: strawberry_django.auto
-    is_featured: strawberry_django.auto
+    id: auto
+    title: auto
+    description: auto
+    since: auto
+    website: auto
+    spotify: auto
+    apple_podcasts: auto
+    youtube: auto
+    youtube_music: auto
+    reviews_count: auto
+    star_average: auto
+    is_featured: auto
 
     @strawberry.field
     async def hosts(self) -> list["Artist"]:
@@ -193,11 +194,11 @@ class Podcast:
 
 @strawberry_django.type(models.Cover)
 class Cover:
-    id: strawberry_django.auto
-    image: strawberry_django.auto
-    reviews_count: strawberry_django.auto
-    star_average: strawberry_django.auto
-    is_featured: strawberry_django.auto
+    id: auto
+    image: auto
+    reviews_count: auto
+    star_average: auto
+    is_featured: auto
     content_object: "Coverable"
 
     @strawberry.field
@@ -207,14 +208,14 @@ class Cover:
 
 @strawberry_django.type(models.Song)
 class Song:
-    id: strawberry_django.auto
-    title: strawberry_django.auto
-    length: strawberry_django.auto
-    preview: strawberry_django.auto
-    release_date: strawberry_django.auto
-    reviews_count: strawberry_django.auto
-    star_average: strawberry_django.auto
-    is_featured: strawberry_django.auto
+    id: auto
+    title: auto
+    length: auto
+    preview: auto
+    release_date: auto
+    reviews_count: auto
+    star_average: auto
+    is_featured: auto
 
     @strawberry.field
     async def reviews(self) -> list["Review"]:
@@ -239,14 +240,14 @@ class Song:
 
 @strawberry_django.type(models.MusicVideo)
 class MusicVideo:
-    id: strawberry_django.auto
-    title: strawberry_django.auto
-    release_date: strawberry_django.auto
-    youtube: strawberry_django.auto
-    thumbnail: strawberry_django.auto
-    reviews_count: strawberry_django.auto
-    star_average: strawberry_django.auto
-    is_featured: strawberry_django.auto
+    id: auto
+    title: auto
+    release_date: auto
+    youtube: auto
+    thumbnail: auto
+    reviews_count: auto
+    star_average: auto
+    is_featured: auto
 
     @strawberry.field
     async def songs(self) -> list["Song"]:
@@ -263,15 +264,15 @@ class MusicVideo:
 
 @strawberry_django.type(models.Outfit)
 class Outfit:
-    id: strawberry_django.auto
-    artist: strawberry_django.auto
-    description: strawberry_django.auto
-    date: strawberry_django.auto
-    preview_picture: strawberry_django.auto
-    instagram_post: strawberry_django.auto
-    reviews_count: strawberry_django.auto
-    star_average: strawberry_django.auto
-    is_featured: strawberry_django.auto
+    id: auto
+    artist: auto
+    description: auto
+    date: auto
+    preview_picture: auto
+    instagram_post: auto
+    reviews_count: auto
+    star_average: auto
+    is_featured: auto
 
     @strawberry.field
     async def events(self) -> list["Event"]:
@@ -296,39 +297,39 @@ class Outfit:
 
 @strawberry_django.type(models.SongArtist)
 class SongArtist:
-    id: strawberry_django.auto
-    song: strawberry_django.auto
-    artist: strawberry_django.auto
-    position: strawberry_django.auto
+    id: auto
+    song: auto
+    artist: auto
+    position: auto
 
 
 @strawberry_django.type(models.ProjectArtist)
 class ProjectArtist:
-    id: strawberry_django.auto
-    project: strawberry_django.auto
-    artist: strawberry_django.auto
-    position: strawberry_django.auto
+    id: auto
+    project: auto
+    artist: auto
+    position: auto
 
 
 @strawberry_django.type(models.ProjectSong)
 class ProjectSong:
-    id: strawberry_django.auto
-    project: strawberry_django.auto
-    song: strawberry_django.auto
-    position: strawberry_django.auto
+    id: auto
+    project: auto
+    song: auto
+    position: auto
 
 
 @strawberry_django.type(models.Message)
 class Message:
-    id: strawberry_django.auto
-    conversation: strawberry_django.auto
-    sender: strawberry_django.auto
-    text: strawberry_django.auto
-    time: strawberry_django.auto
-    is_pending: strawberry_django.auto
-    is_delivered: strawberry_django.auto
-    is_read: strawberry_django.auto
-    replying_to: strawberry_django.auto
+    id: auto
+    conversation: auto
+    sender: auto
+    text: auto
+    time: auto
+    is_pending: auto
+    is_delivered: auto
+    is_read: auto
+    replying_to: auto
 
     @strawberry.field
     async def liked_by(self) -> list["User"]:
@@ -337,11 +338,11 @@ class Message:
 
 @strawberry_django.type(models.Conversation)
 class Conversation:
-    id: strawberry_django.auto
-    latest_message: strawberry_django.auto
-    latest_message_text: strawberry_django.auto
-    latest_message_time: strawberry_django.auto
-    latest_message_sender: strawberry_django.auto
+    id: auto
+    latest_message: auto
+    latest_message_text: auto
+    latest_message_time: auto
+    latest_message_sender: auto
 
     @strawberry.field
     async def participants(self) -> list["User"]:
@@ -354,22 +355,22 @@ class Conversation:
 
 @strawberry_django.type(models.Profile)
 class Profile:
-    id: strawberry_django.auto
-    user: strawberry_django.auto
-    banner_picture: strawberry_django.auto
-    profile_picture: strawberry_django.auto
-    bio: strawberry_django.auto
-    pronouns: strawberry_django.auto
-    accent_color_hex: strawberry_django.auto
-    followers_count: strawberry_django.auto
-    following_count: strawberry_django.auto
-    reviews_count: strawberry_django.auto
-    project_reviews_count: strawberry_django.auto
-    song_reviews_count: strawberry_django.auto
-    music_video_reviews_count: strawberry_django.auto
-    cover_reviews_count: strawberry_django.auto
-    podcast_reviews_count: strawberry_django.auto
-    outfit_reviews_count: strawberry_django.auto
+    id: auto
+    user: auto
+    banner_picture: auto
+    profile_picture: auto
+    bio: auto
+    pronouns: auto
+    accent_color_hex: auto
+    followers_count: auto
+    following_count: auto
+    reviews_count: auto
+    project_reviews_count: auto
+    song_reviews_count: auto
+    music_video_reviews_count: auto
+    cover_reviews_count: auto
+    podcast_reviews_count: auto
+    outfit_reviews_count: auto
 
     @strawberry.field
     async def followers(self) -> list["Profile"]:
