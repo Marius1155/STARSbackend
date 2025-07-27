@@ -3,6 +3,7 @@
 import strawberry
 from strawberry import auto
 import strawberry_django
+from asgiref.sync import sync_to_async
 
 from STARS import models
 
@@ -29,10 +30,23 @@ class Artist:
     soundcloud: auto
     bandcamp: auto
     is_featured: auto
-    song_artists: list["SongArtist"]
-    project_artists: list["ProjectArtist"]
-    outfits: list["Outfit"]
-    podcasts: list["Podcast"]
+
+    @strawberry.field
+    async def song_artists(self) -> list["SongArtist"]:
+        return await sync_to_async(list)(self.song_artists.all())
+
+    @strawberry.field
+    async def project_artists(self) -> list["ProjectArtist"]:
+        return await sync_to_async(list)(self.project_artists.all())
+
+    @strawberry.field
+    async def outfits(self) -> list["Outfit"]:
+        return await sync_to_async(list)(self.outfits.all())
+
+    @strawberry.field
+    async def podcasts(self) -> list["Podcast"]:
+        return await sync_to_async(list)(self.podcasts.all())
+
 
 @strawberry_django.type(models.EventSeries)
 class EventSeries:
@@ -40,7 +54,11 @@ class EventSeries:
     name: auto
     description: auto
     is_featured: auto
-    events: list["Event"]
+
+    @strawberry.field
+    async def events(self) -> list["Event"]:
+        return await sync_to_async(list)(self.events.all())
+
 
 @strawberry_django.type(models.Event)
 class Event:
@@ -53,8 +71,15 @@ class Event:
     star_average: auto
     is_featured: auto
     series: "EventSeries"
-    reviews: list["Review"]
-    outfits: list["Outfit"]
+
+    @strawberry.field
+    async def reviews(self) -> list["Review"]:
+        return await sync_to_async(list)(self.reviews.all())
+
+    @strawberry.field
+    async def outfits(self) -> list["Outfit"]:
+        return await sync_to_async(list)(self.outfits.all())
+
 
 @strawberry_django.type(models.User)
 class User:
@@ -64,8 +89,15 @@ class User:
     first_name: auto
     last_name: auto
     profile: "Profile"
-    conversations: list["Conversation"]
-    reviews: list["Review"]
+
+    @strawberry.field
+    async def conversations(self) -> list["Conversation"]:
+        return await sync_to_async(list)(self.conversations.all())
+
+    @strawberry.field
+    async def reviews(self) -> list["Review"]:
+        return await sync_to_async(list)(self.reviews.all())
+
 
 @strawberry_django.type(models.Review)
 class Review:
@@ -76,8 +108,12 @@ class Review:
     date_updated: auto
     is_latest: auto
     user: "User"
-    subreviews: list["SubReview"]
     content_object: "Reviewable"
+
+    @strawberry.field
+    async def subreviews(self) -> list["SubReview"]:
+        return await sync_to_async(list)(self.subreviews.all())
+
 
 @strawberry_django.type(models.SubReview)
 class SubReview:
@@ -86,6 +122,7 @@ class SubReview:
     text: auto
     stars: auto
     review: "Review"
+
 
 @strawberry_django.type(models.Project)
 class Project:
@@ -105,11 +142,27 @@ class Project:
     soundcloud: auto
     bandcamp: auto
     is_featured: auto
-    covers: list["Cover"]
-    reviews: list["Review"]
-    alternative_versions: list["Project"]
-    project_songs: list["ProjectSong"]
-    project_artists: list["ProjectArtist"]
+
+    @strawberry.field
+    async def covers(self) -> list["Cover"]:
+        return await sync_to_async(list)(self.covers.all())
+
+    @strawberry.field
+    async def reviews(self) -> list["Review"]:
+        return await sync_to_async(list)(self.reviews.all())
+
+    @strawberry.field
+    async def alternative_versions(self) -> list["Project"]:
+        return await sync_to_async(list)(self.alternative_versions.all())
+
+    @strawberry.field
+    async def project_songs(self) -> list["ProjectSong"]:
+        return await sync_to_async(list)(self.project_songs.all())
+
+    @strawberry.field
+    async def project_artists(self) -> list["ProjectArtist"]:
+        return await sync_to_async(list)(self.project_artists.all())
+
 
 @strawberry_django.type(models.Podcast)
 class Podcast:
@@ -125,9 +178,19 @@ class Podcast:
     reviews_count: auto
     star_average: auto
     is_featured: auto
-    hosts: list["Artist"]
-    covers: list["Cover"]
-    reviews: list["Review"]
+
+    @strawberry.field
+    async def hosts(self) -> list["Artist"]:
+        return await sync_to_async(list)(self.hosts.all())
+
+    @strawberry.field
+    async def covers(self) -> list["Cover"]:
+        return await sync_to_async(list)(self.covers.all())
+
+    @strawberry.field
+    async def reviews(self) -> list["Review"]:
+        return await sync_to_async(list)(self.reviews.all())
+
 
 @strawberry_django.type(models.Cover)
 class Cover:
@@ -136,8 +199,12 @@ class Cover:
     reviews_count: auto
     star_average: auto
     is_featured: auto
-    reviews: list["Review"]
     content_object: "Coverable"
+
+    @strawberry.field
+    async def reviews(self) -> list["Review"]:
+        return await sync_to_async(list)(self.reviews.all())
+
 
 @strawberry_django.type(models.Song)
 class Song:
@@ -149,11 +216,27 @@ class Song:
     reviews_count: auto
     star_average: auto
     is_featured: auto
-    reviews: list["Review"]
-    alternative_versions: list["Song"]
-    song_artists: list["SongArtist"]
-    project_songs: list["ProjectSong"]
-    music_videos: list["MusicVideo"]
+
+    @strawberry.field
+    async def reviews(self) -> list["Review"]:
+        return await sync_to_async(list)(self.reviews.all())
+
+    @strawberry.field
+    async def alternative_versions(self) -> list["Song"]:
+        return await sync_to_async(list)(self.alternative_versions.all())
+
+    @strawberry.field
+    async def song_artists(self) -> list["SongArtist"]:
+        return await sync_to_async(list)(self.song_artists.all())
+
+    @strawberry.field
+    async def project_songs(self) -> list["ProjectSong"]:
+        return await sync_to_async(list)(self.project_songs.all())
+
+    @strawberry.field
+    async def music_videos(self) -> list["MusicVideo"]:
+        return await sync_to_async(list)(self.music_videos.all())
+
 
 @strawberry_django.type(models.MusicVideo)
 class MusicVideo:
@@ -165,9 +248,19 @@ class MusicVideo:
     reviews_count: auto
     star_average: auto
     is_featured: auto
-    songs: list["Song"]
-    reviews: list["Review"]
-    outfits: list["Outfit"]
+
+    @strawberry.field
+    async def songs(self) -> list["Song"]:
+        return await sync_to_async(list)(self.songs.all())
+
+    @strawberry.field
+    async def reviews(self) -> list["Review"]:
+        return await sync_to_async(list)(self.reviews.all())
+
+    @strawberry.field
+    async def outfits(self) -> list["Outfit"]:
+        return await sync_to_async(list)(self.outfits.all())
+
 
 @strawberry_django.type(models.Outfit)
 class Outfit:
@@ -180,11 +273,27 @@ class Outfit:
     star_average: auto
     is_featured: auto
     artist: "Artist"
-    events: list["Event"]
-    music_videos: list["MusicVideo"]
-    covers: list["Cover"]
-    reviews: list["Review"]
-    matches: list["Outfit"]
+
+    @strawberry.field
+    async def events(self) -> list["Event"]:
+        return await sync_to_async(list)(self.events.all())
+
+    @strawberry.field
+    async def music_videos(self) -> list["MusicVideo"]:
+        return await sync_to_async(list)(self.music_videos.all())
+
+    @strawberry.field
+    async def covers(self) -> list["Cover"]:
+        return await sync_to_async(list)(self.covers.all())
+
+    @strawberry.field
+    async def reviews(self) -> list["Review"]:
+        return await sync_to_async(list)(self.reviews.all())
+
+    @strawberry.field
+    async def matches(self) -> list["Outfit"]:
+        return await sync_to_async(list)(self.matches.all())
+
 
 @strawberry_django.type(models.SongArtist)
 class SongArtist:
@@ -217,18 +326,29 @@ class Message:
     is_read: auto
     conversation: "Conversation"
     sender: "User"
-    liked_by: list["User"]
     replying_to: "Message"
+
+    @strawberry.field
+    async def liked_by(self) -> list["User"]:
+        return await sync_to_async(list)(self.liked_by.all())
+
 
 @strawberry_django.type(models.Conversation)
 class Conversation:
     id: auto
     latest_message_text: auto
     latest_message_time: auto
-    participants: list["User"]
     latest_message: "Message"
     latest_message_sender: "User"
-    messages: list["Message"]
+
+    @strawberry.field
+    async def participants(self) -> list["User"]:
+        return await sync_to_async(list)(self.participants.all())
+
+    @strawberry.field
+    async def messages(self) -> list["Message"]:
+        return await sync_to_async(list)(self.messages.all())
+
 
 @strawberry_django.type(models.Profile)
 class Profile:
@@ -248,8 +368,14 @@ class Profile:
     podcast_reviews_count: auto
     outfit_reviews_count: auto
     user: "User"
-    followers: list["Profile"]
-    following: list["Profile"]
+
+    @strawberry.field
+    async def followers(self) -> list["Profile"]:
+        return await sync_to_async(list)(self.followers.all())
+
+    @strawberry.field
+    async def following(self) -> list["Profile"]:
+        return await sync_to_async(list)(self.following.all())
 
 Reviewable = strawberry.union(
     "Reviewable",
