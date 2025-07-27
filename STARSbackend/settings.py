@@ -27,7 +27,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'STARS.apps.StarsConfig',
-    'strawberry.django', # <-- THIS IS NOW ENABLED
+    'strawberry_django', # <-- THIS IS THE CRITICAL FIX
 ]
 
 MIDDLEWARE = [
