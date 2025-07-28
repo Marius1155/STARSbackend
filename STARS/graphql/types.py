@@ -2,6 +2,7 @@
 
 import strawberry
 import strawberry_django
+from strawberry import relay # <-- Make sure relay is imported
 from STARS import models
 
 # Import your filters to use them in the fields
@@ -17,19 +18,20 @@ class Artist:
 
 @strawberry_django.type(models.EventSeries, fields="__all__")
 class EventSeries:
-    events: list["Event"] = strawberry_django.field(filters=filters.EventFilter)
+    events: relay.Connection["Event"] = strawberry_django.connection(filters=filters.EventFilter)
 
 @strawberry_django.type(models.Event, fields="__all__")
 class Event:
     series: "EventSeries"
-    reviews: list["Review"] = strawberry_django.field(filters=filters.ReviewFilter)
-    outfits: list["Outfit"] = strawberry_django.field(filters=filters.OutfitFilter)
+    outfits: relay.Connection["Outfit"] = strawberry_django.connection(filters=filters.OutfitFilter)
+    reviews: relay.Connection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter)
+
 
 @strawberry_django.type(models.User, fields=["id", "username", "email", "first_name", "last_name"])
 class User:
     profile: "Profile"
-    conversations: list["Conversation"] = strawberry_django.field(filters=filters.ConversationFilter)
-    reviews: list["Review"] = strawberry_django.field(filters=filters.ReviewFilter)
+    conversations: relay.Connection["Conversation"] = strawberry_django.connection(filters=filters.ConversationFilter)
+    reviews: relay.Connection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter)
 
 @strawberry_django.type(models.Review, fields="__all__")
 class Review:
@@ -44,21 +46,23 @@ class SubReview:
 @strawberry_django.type(models.Cover, fields="__all__")
 class Cover:
     content_object: "Coverable"
-    reviews: list["Review"] = strawberry_django.field(filters=filters.ReviewFilter)
+    reviews: relay.Connection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter)
 
 @strawberry_django.type(models.MusicVideo, fields="__all__")
 class MusicVideo:
     songs: list["Song"] = strawberry_django.field(filters=filters.SongFilter)
-    reviews: list["Review"] = strawberry_django.field(filters=filters.ReviewFilter)
     outfits: list["Outfit"] = strawberry_django.field(filters=filters.OutfitFilter)
+    reviews: relay.Connection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter)
+
 
 @strawberry_django.type(models.Song, fields="__all__")
 class Song:
-    reviews: list["Review"] = strawberry_django.field(filters=filters.ReviewFilter)
     alternative_versions: list["Song"] = strawberry_django.field(filters=filters.SongFilter)
     song_artists: list["SongArtist"] = strawberry_django.field(filters=filters.SongArtistFilter)
     project_songs: list["ProjectSong"] = strawberry_django.field(filters=filters.ProjectSongFilter)
     music_videos: list["MusicVideo"] = strawberry_django.field(filters=filters.MusicVideoFilter)
+    reviews: relay.Connection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter)
+
 
 @strawberry_django.type(models.SongArtist, fields="__all__")
 class SongArtist:
@@ -68,10 +72,11 @@ class SongArtist:
 @strawberry_django.type(models.Project, fields="__all__")
 class Project:
     covers: list["Cover"] = strawberry_django.field(filters=filters.CoverFilter)
-    reviews: list["Review"] = strawberry_django.field(filters=filters.ReviewFilter)
     alternative_versions: list["Project"] = strawberry_django.field(filters=filters.ProjectFilter)
     project_songs: list["ProjectSong"] = strawberry_django.field(filters=filters.ProjectSongFilter)
     project_artists: list["ProjectArtist"] = strawberry_django.field(filters=filters.ProjectArtistFilter)
+    reviews: relay.Connection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter)
+
 
 @strawberry_django.type(models.ProjectArtist, fields="__all__")
 class ProjectArtist:
@@ -87,7 +92,7 @@ class ProjectSong:
 class Podcast:
     hosts: list["Artist"] = strawberry_django.field(filters=filters.ArtistFilter)
     covers: list["Cover"] = strawberry_django.field(filters=filters.CoverFilter)
-    reviews: list["Review"] = strawberry_django.field(filters=filters.ReviewFilter)
+    reviews: relay.Connection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter)
 
 @strawberry_django.type(models.Outfit, fields="__all__")
 class Outfit:
@@ -95,15 +100,16 @@ class Outfit:
     events: list["Event"] = strawberry_django.field(filters=filters.EventFilter)
     music_videos: list["MusicVideo"] = strawberry_django.field(filters=filters.MusicVideoFilter)
     covers: list["Cover"] = strawberry_django.field(filters=filters.CoverFilter)
-    reviews: list["Review"] = strawberry_django.field(filters=filters.ReviewFilter)
     matches: list["Outfit"] = strawberry_django.field(filters=filters.OutfitFilter)
+    reviews: relay.Connection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter)
+
 
 @strawberry_django.type(models.Conversation, fields="__all__")
 class Conversation:
     latest_message: "Message"
     latest_message_sender: "User"
     participants: list["User"] = strawberry_django.field(filters=filters.UserFilter)
-    messages: list["Message"] = strawberry_django.field(filters=filters.MessageFilter)
+    messages: relay.Connection["Message"] = strawberry_django.connection(filters=filters.MessageFilter)
 
 @strawberry_django.type(models.Message, fields="__all__")
 class Message:
