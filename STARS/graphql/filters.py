@@ -9,14 +9,12 @@ from typing import Optional
 from STARS import models
 from django.contrib.auth.models import User
 
-# This decorator tells Strawberry to create a GraphQL input type
-# based on the model, which can be used for filtering.
-# The `lookups=True` argument automatically enables advanced
-# filtering options like 'icontains', 'gt' (greater than), etc.
+# For Relay Nodes, the `id` filter should accept a simple integer,
+# which the resolver will then use to find the object.
 
 @strawberry_django.filter(models.Artist, lookups=True)
 class ArtistFilter:
-    id: auto
+    id: auto # This will correctly resolve to an Int lookup
     name: auto
     origin: auto
     is_featured: auto
@@ -78,7 +76,7 @@ class SongArtistFilter:
 
 @strawberry_django.filter(models.Project, lookups=True)
 class ProjectFilter:
-    id: auto
+    id: auto # This will now correctly accept a number
     title: auto
     release_date: auto
     project_type: auto
