@@ -1,4 +1,8 @@
-django
+django-allauth>=0.58.0
+requests
+PyJWT
+cryptography
+django==4.2.15
 strawberry-graphql[asgi]
 strawberry-graphql-django
 channels

@@ -1,6 +1,6 @@
 # STARSbackend/urls.py
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include # Make sure 'include' is imported
 from STARS.graphql.schema import schema
 
 def graphql_view():
@@ -11,4 +11,6 @@ def graphql_view():
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('graphql/', graphql_view()),
+    # Add this line for allauth
+    path('accounts/', include('allauth.urls')),
 ]

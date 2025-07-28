@@ -7,6 +7,18 @@ from typing import List, Optional
 from django.contrib.auth.models import User
 from asgiref.sync import sync_to_async
 from django.utils import timezone
+from strawberry.types import Info
+from django.contrib.auth import password_validation
+from django.core.exceptions import ValidationError
+from django.contrib.auth import login
+
+# --- IMPORTS FOR MANUAL SOCIAL LOGIN ---
+from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
+from allauth.socialaccount.providers.apple.views import AppleOAuth2Adapter
+from allauth.socialaccount.helpers import complete_social_login
+from allauth.socialaccount.models import SocialApp, SocialLogin, SocialToken
+from allauth.socialaccount.providers.oauth2.client import OAuth2Client
+import requests  # Make sure 'requests' is in your requirements.txt
 
 from STARS import models
 from . import types
@@ -15,9 +27,7 @@ from . import types
 # -----------------------------------------------------------------------------
 # Input Types (Stable Pattern)
 # -----------------------------------------------------------------------------
-# Create inputs include all model fields, with optional ones explicitly typed.
-# Update inputs are defined manually, with each field being Optional.
-
+# ... (all your existing input types remain the same) ...
 @strawberry_django.input(models.Artist)
 class ArtistCreateInput:
     name: auto
@@ -280,10 +290,11 @@ class ProfileUpdateInput:
 
 
 @strawberry.input
-class UserCreateInput:
-    username: str
+class SignupInput:
+    email: str
     password: str
-    email: Optional[str] = None
+    password_confirmation: str
+    username: str
     first_name: Optional[str] = None
     last_name: Optional[str] = None
 
@@ -320,8 +331,13 @@ class CoverDataInput:
 
 
 @strawberry.type
+class SuccessMessage:
+    message: str
+
+
+@strawberry.type
 class Mutation:
-    # --- Auto-generated Mutations ---
+    # ... (all your existing mutations remain the same) ...
     create_artist: types.Artist = strawberry_django.mutations.create(ArtistCreateInput)
     update_artist: types.Artist = strawberry_django.mutations.update(ArtistUpdateInput)
     delete_artist: types.Artist = strawberry_django.mutations.delete(strawberry.ID)
@@ -357,20 +373,34 @@ class Mutation:
 
     update_profile: types.Profile = strawberry_django.mutations.update(ProfileUpdateInput)
 
-    # --- Custom User Creation ---
     @strawberry.mutation
-    async def create_user(self, data: UserCreateInput) -> types.User:
+    async def signup(self, data: SignupInput) -> types.User:
+        if data.password != data.password_confirmation:
+            raise Exception("Passwords do not match.")
+
+        user_exists = await sync_to_async(User.objects.filter(email=data.email).exists)()
+        if user_exists:
+            raise Exception("A user with this email already exists.")
+
+        username_exists = await sync_to_async(User.objects.filter(username=data.username).exists)()
+        if username_exists:
+            raise Exception("A user with this username already exists.")
+
+        try:
+            await sync_to_async(password_validation.validate_password)(data.password)
+        except ValidationError as e:
+            raise Exception(f"Invalid password: {', '.join(e.messages)}")
+
         user = await sync_to_async(User.objects.create_user)(
             username=data.username,
-            password=data.password,
             email=data.email,
+            password=data.password,
             first_name=data.first_name,
             last_name=data.last_name,
         )
         await sync_to_async(models.Profile.objects.create)(user=user)
         return user
 
-    # --- Custom Review/SubReview Mutations ---
     @strawberry.mutation
     async def add_review_to_project(self, info, project_id: strawberry.ID, user_id: strawberry.ID,
                                     data: ReviewDataInput) -> types.Review:
@@ -437,7 +467,6 @@ class Mutation:
         )
         return sub_review
 
-    # --- Custom Message Mutation ---
     @strawberry.mutation
     async def add_message_to_conversation(self, info, conversation_id: strawberry.ID, sender_id: strawberry.ID,
                                           data: MessageDataInput) -> types.Message:
@@ -458,7 +487,6 @@ class Mutation:
 
         return message
 
-    # --- Custom Relationship Mutations ---
     @strawberry.mutation
     async def add_artist_to_song(self, info, song_id: strawberry.ID, artist_id: strawberry.ID,
                                  position: int) -> types.SongArtist:
@@ -493,13 +521,11 @@ class Mutation:
 
     @strawberry.mutation
     async def follow_user(self, info, follower_id: strawberry.ID, followed_id: strawberry.ID) -> types.Profile:
-        # CORRECTED: Use user__pk for the lookup to ensure Global ID is decoded
         follower_profile = await sync_to_async(models.Profile.objects.get)(user__pk=follower_id)
         followed_profile = await sync_to_async(models.Profile.objects.get)(user__pk=followed_id)
 
         await sync_to_async(follower_profile.following.add)(followed_profile)
 
-        # Update counts
         follower_profile.following_count = await sync_to_async(follower_profile.following.count)()
         followed_profile.followers_count = await sync_to_async(followed_profile.followers.count)()
 
@@ -507,3 +533,82 @@ class Mutation:
         await sync_to_async(followed_profile.save)()
 
         return followed_profile
+
+    @strawberry.mutation
+    async def change_my_password(self, info: Info, old_password: str, new_password: str) -> SuccessMessage:
+        user: User = info.context.request.user
+
+        if not user.is_authenticated:
+            raise Exception("You must be logged in to change your password.")
+
+        is_password_correct = await sync_to_async(user.check_password)(old_password)
+        if not is_password_correct:
+            raise Exception("Incorrect old password.")
+
+        await sync_to_async(password_validation.validate_password)(new_password, user)
+
+        await sync_to_async(user.set_password)(new_password)
+        await sync_to_async(user.save)()
+
+        return SuccessMessage(message="Your password has been successfully changed.")
+
+    @strawberry.mutation
+    async def delete_my_account(self, info: Info, password: str) -> SuccessMessage:
+        user: User = info.context.request.user
+
+        if not user.is_authenticated:
+            raise Exception("You must be logged in to delete your account.")
+
+        is_password_correct = await sync_to_async(user.check_password)(password)
+        if not is_password_correct:
+            raise Exception("Incorrect password.")
+
+        await sync_to_async(user.delete)()
+
+        return SuccessMessage(message="Your account has been successfully deleted.")
+
+    # --- NEW MANUAL SOCIAL LOGIN MUTATIONS ---
+    @strawberry.mutation
+    async def login_with_google(self, info: Info, access_token: str) -> types.User:
+        request = info.context.request
+
+        # 1. Get the SocialApp for Google
+        app = await sync_to_async(SocialApp.objects.get)(provider='google')
+
+        # 2. Create a SocialToken
+        token = SocialToken(app=app, token=access_token)
+
+        # 3. Use the adapter to complete the login
+        adapter = GoogleOAuth2Adapter(request)
+        login_data = await sync_to_async(adapter.complete_login)(request, app, token)
+
+        # 4. Perform the actual login
+        login_data.state = SocialLogin.state_from_request(request)
+        user = await sync_to_async(complete_social_login)(request, login_data)
+
+        if not user.is_authenticated:
+            raise Exception("Google authentication failed.")
+
+        return user
+
+    @strawberry.mutation
+    async def login_with_apple(self, info: Info, access_token: str, id_token: str) -> types.User:
+        request = info.context.request
+
+        app = await sync_to_async(SocialApp.objects.get)(provider='apple')
+        token = SocialToken(app=app, token=access_token)
+
+        # Apple requires an id_token as well
+        request.POST = request.POST.copy()
+        request.POST['id_token'] = id_token
+
+        adapter = AppleOAuth2Adapter(request)
+        login_data = await sync_to_async(adapter.complete_login)(request, app, token)
+
+        login_data.state = SocialLogin.state_from_request(request)
+        user = await sync_to_async(complete_social_login)(request, login_data)
+
+        if not user.is_authenticated:
+            raise Exception("Apple authentication failed.")
+
+        return user

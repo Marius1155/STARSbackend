@@ -32,7 +32,7 @@ from .mutations import (
     OutfitCreateInput,
     OutfitUpdateInput,
     ProfileUpdateInput,
-    UserCreateInput,
+    SignupInput,  # <-- CORRECTED: Was UserCreateInput
     SongArtistCreateInput,
     ProjectArtistCreateInput,
     ProjectSongCreateInput,
