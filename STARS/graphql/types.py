@@ -12,18 +12,12 @@ from django.contrib.auth.models import User as DjangoUser
 from . import filters
 
 
-# Helper function to resolve nodes efficiently
+# Helper function to resolve nodes efficiently and correctly handle IDs
 def resolve_model_nodes(model, node_ids, required=False):
-    try:
-        # The library expects the raw ID from the node_id string
-        int_ids = [int(relay.Node.resolve_global_id(node_id)[1]) for node_id in node_ids]
-    except (TypeError, ValueError):
-        # Handle cases where node_ids might not be valid global IDs
-        return [None for _ in node_ids]
-
-    qs = model.objects.filter(pk__in=int_ids)
+    # The library provides the raw, decoded ID to this function
+    qs = model.objects.filter(pk__in=node_ids)
     nodes_map = {str(n.pk): n for n in qs}
-    return [nodes_map.get(str(pk)) for pk in int_ids]
+    return [nodes_map.get(str(pk)) for pk in node_ids]
 
 
 @strawberry_django.type(models.Artist)
