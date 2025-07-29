@@ -18,30 +18,9 @@ def resolve_model_nodes(model, node_ids, required=False):
     return [nodes_map.get(str(pk)) for pk in node_ids]
 
 
-@strawberry_django.type(models.Artist)
+@strawberry_django.type(models.Artist, fields="__all__")
 class Artist(relay.Node):
     id: relay.NodeID[int]
-    name: strawberry.auto
-    picture: strawberry.auto
-    bio: strawberry.auto
-    wikipedia: strawberry.auto
-    pronouns: strawberry.auto
-    birthdate: strawberry.auto
-    origin: strawberry.auto
-    website: strawberry.auto
-    facebook: strawberry.auto
-    instagram: strawberry.auto
-    twitter: strawberry.auto
-    youtube_channel: strawberry.auto
-    spotify: strawberry.auto
-    apple_music: strawberry.auto
-    youtube_music: strawberry.auto
-    tidal: strawberry.auto
-    deezer: strawberry.auto
-    soundcloud: strawberry.auto
-    bandcamp: strawberry.auto
-    is_featured: strawberry.auto
-
     song_artists: list["SongArtist"] = strawberry_django.field(filters=filters.SongArtistFilter)
     project_artists: list["ProjectArtist"] = strawberry_django.field(filters=filters.ProjectArtistFilter)
     outfits: list["Outfit"] = strawberry_django.field(filters=filters.OutfitFilter)
@@ -56,12 +35,9 @@ class Artist(relay.Node):
         return resolve_model_nodes(models.Artist, node_ids, required)
 
 
-@strawberry_django.type(models.EventSeries)
+@strawberry_django.type(models.EventSeries, fields="__all__")
 class EventSeries(relay.Node):
     id: relay.NodeID[int]
-    name: strawberry.auto
-    description: strawberry.auto
-    is_featured: strawberry.auto
     events: relay.Connection["Event"] = strawberry_django.connection(filters=filters.EventFilter)
 
     @classmethod
@@ -73,17 +49,10 @@ class EventSeries(relay.Node):
         return resolve_model_nodes(models.EventSeries, node_ids, required)
 
 
-@strawberry_django.type(models.Event)
+@strawberry_django.type(models.Event, fields="__all__")
 class Event(relay.Node):
     id: relay.NodeID[int]
     series: "EventSeries"
-    name: strawberry.auto
-    date: strawberry.auto
-    location: strawberry.auto
-    is_one_time: strawberry.auto
-    reviews_count: strawberry.auto
-    star_average: strawberry.auto
-    is_featured: strawberry.auto
     reviews: relay.Connection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter)
     outfits: relay.Connection["Outfit"] = strawberry_django.connection(filters=filters.OutfitFilter)
 
@@ -96,13 +65,9 @@ class Event(relay.Node):
         return resolve_model_nodes(models.Event, node_ids, required)
 
 
-@strawberry_django.type(DjangoUser)
+@strawberry_django.type(DjangoUser, fields=["id", "username", "email", "first_name", "last_name"])
 class User(relay.Node):
     id: relay.NodeID[int]
-    username: strawberry.auto
-    email: strawberry.auto
-    first_name: strawberry.auto
-    last_name: strawberry.auto
     profile: "Profile"
     conversations: relay.Connection["Conversation"] = strawberry_django.connection(filters=filters.ConversationFilter)
     reviews: relay.Connection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter)
@@ -116,15 +81,10 @@ class User(relay.Node):
         return resolve_model_nodes(DjangoUser, node_ids, required)
 
 
-@strawberry_django.type(models.Review)
+@strawberry_django.type(models.Review, fields="__all__")
 class Review(relay.Node):
     id: relay.NodeID[int]
     user: "User"
-    stars: strawberry.auto
-    text: strawberry.auto
-    date_created: strawberry.auto
-    date_updated: strawberry.auto
-    is_latest: strawberry.auto
     content_object: "Reviewable"
     subreviews: list["SubReview"] = strawberry_django.field(filters=filters.SubReviewFilter)
 
@@ -142,13 +102,9 @@ class SubReview:
     review: "Review"
 
 
-@strawberry_django.type(models.Cover)
+@strawberry_django.type(models.Cover, fields="__all__")
 class Cover(relay.Node):
     id: relay.NodeID[int]
-    image: strawberry.auto
-    reviews_count: strawberry.auto
-    star_average: strawberry.auto
-    is_featured: strawberry.auto
     content_object: "Coverable"
     reviews: relay.Connection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter)
 
@@ -161,16 +117,9 @@ class Cover(relay.Node):
         return resolve_model_nodes(models.Cover, node_ids, required)
 
 
-@strawberry_django.type(models.MusicVideo)
+@strawberry_django.type(models.MusicVideo, fields="__all__")
 class MusicVideo(relay.Node):
     id: relay.NodeID[int]
-    title: strawberry.auto
-    release_date: strawberry.auto
-    youtube: strawberry.auto
-    thumbnail: strawberry.auto
-    reviews_count: strawberry.auto
-    star_average: strawberry.auto
-    is_featured: strawberry.auto
     songs: list["Song"] = strawberry_django.field(filters=filters.SongFilter)
     reviews: relay.Connection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter)
     outfits: relay.Connection["Outfit"] = strawberry_django.connection(filters=filters.OutfitFilter)
@@ -184,16 +133,9 @@ class MusicVideo(relay.Node):
         return resolve_model_nodes(models.MusicVideo, node_ids, required)
 
 
-@strawberry_django.type(models.Song)
+@strawberry_django.type(models.Song, fields="__all__")
 class Song(relay.Node):
     id: relay.NodeID[int]
-    title: strawberry.auto
-    length: strawberry.auto
-    preview: strawberry.auto
-    release_date: strawberry.auto
-    reviews_count: strawberry.auto
-    star_average: strawberry.auto
-    is_featured: strawberry.auto
     alternative_versions: list["Song"] = strawberry_django.field(filters=filters.SongFilter)
     song_artists: list["SongArtist"] = strawberry_django.field(filters=filters.SongArtistFilter)
     project_songs: list["ProjectSong"] = strawberry_django.field(filters=filters.ProjectSongFilter)
@@ -215,24 +157,9 @@ class SongArtist:
     artist: "Artist"
 
 
-@strawberry_django.type(models.Project)
+@strawberry_django.type(models.Project, fields="__all__")
 class Project(relay.Node):
     id: relay.NodeID[int]
-    title: strawberry.auto
-    number_of_songs: strawberry.auto
-    release_date: strawberry.auto
-    project_type: strawberry.auto
-    length: strawberry.auto
-    reviews_count: strawberry.auto
-    star_average: strawberry.auto
-    spotify: strawberry.auto
-    apple_music: strawberry.auto
-    youtube_music: strawberry.auto
-    tidal: strawberry.auto
-    deezer: strawberry.auto
-    soundcloud: strawberry.auto
-    bandcamp: strawberry.auto
-    is_featured: strawberry.auto
     covers: list["Cover"] = strawberry_django.field(filters=filters.CoverFilter)
     alternative_versions: list["Project"] = strawberry_django.field(filters=filters.ProjectFilter)
     project_songs: list["ProjectSong"] = strawberry_django.field(filters=filters.ProjectSongFilter)
@@ -260,20 +187,9 @@ class ProjectSong:
     song: "Song"
 
 
-@strawberry_django.type(models.Podcast)
+@strawberry_django.type(models.Podcast, fields="__all__")
 class Podcast(relay.Node):
     id: relay.NodeID[int]
-    title: strawberry.auto
-    description: strawberry.auto
-    since: strawberry.auto
-    website: strawberry.auto
-    spotify: strawberry.auto
-    apple_podcasts: strawberry.auto
-    youtube: strawberry.auto
-    youtube_music: strawberry.auto
-    reviews_count: strawberry.auto
-    star_average: strawberry.auto
-    is_featured: strawberry.auto
     hosts: list["Artist"] = strawberry_django.field(filters=filters.ArtistFilter)
     covers: list["Cover"] = strawberry_django.field(filters=filters.CoverFilter)
     reviews: relay.Connection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter)
@@ -287,17 +203,10 @@ class Podcast(relay.Node):
         return resolve_model_nodes(models.Podcast, node_ids, required)
 
 
-@strawberry_django.type(models.Outfit)
+@strawberry_django.type(models.Outfit, fields="__all__")
 class Outfit(relay.Node):
     id: relay.NodeID[int]
     artist: "Artist"
-    description: strawberry.auto
-    date: strawberry.auto
-    preview_picture: strawberry.auto
-    instagram_post: strawberry.auto
-    reviews_count: strawberry.auto
-    star_average: strawberry.auto
-    is_featured: strawberry.auto
     music_videos: list["MusicVideo"] = strawberry_django.field(filters=filters.MusicVideoFilter)
     covers: list["Cover"] = strawberry_django.field(filters=filters.CoverFilter)
     matches: list["Outfit"] = strawberry_django.field(filters=filters.OutfitFilter)
@@ -313,13 +222,11 @@ class Outfit(relay.Node):
         return resolve_model_nodes(models.Outfit, node_ids, required)
 
 
-@strawberry_django.type(models.Conversation)
+@strawberry_django.type(models.Conversation, fields="__all__")
 class Conversation(relay.Node):
     id: relay.NodeID[int]
     latest_message: Optional["Message"]
     latest_message_sender: Optional["User"]
-    latest_message_text: strawberry.auto
-    latest_message_time: strawberry.auto
     participants: list["User"] = strawberry_django.field(filters=filters.UserFilter)
     messages: relay.Connection["Message"] = strawberry_django.connection(filters=filters.MessageFilter)
 
@@ -332,17 +239,12 @@ class Conversation(relay.Node):
         return resolve_model_nodes(models.Conversation, node_ids, required)
 
 
-@strawberry_django.type(models.Message)
+@strawberry_django.type(models.Message, fields="__all__")
 class Message(relay.Node):
     id: relay.NodeID[int]
     conversation: "Conversation"
     sender: Optional["User"]
     replying_to: Optional["Message"]
-    text: strawberry.auto
-    time: strawberry.auto
-    is_pending: strawberry.auto
-    is_delivered: strawberry.auto
-    is_read: strawberry.auto
     liked_by: list["User"] = strawberry_django.field(filters=filters.UserFilter)
 
     @classmethod
