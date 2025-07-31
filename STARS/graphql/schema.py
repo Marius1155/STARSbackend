@@ -1,68 +1,35 @@
-# STARS/graphql/schema.py
-
 import strawberry
 import strawberry_django
-from strawberry import relay # <-- Make sure relay is imported
+from strawberry import relay
+from strawberry.types import Info
 from strawberry_django.optimizer import DjangoOptimizerExtension
 
-# Import your type, filter, and mutation definitions
+# Import your models and other GraphQL types
 from . import types
 from . import filters
 from . import mutations
-
-# --- Explicitly import all input types to ensure they are registered ---
-from .mutations import (
-    ArtistCreateInput,
-    ArtistUpdateInput,
-    EventSeriesCreateInput,
-    EventSeriesUpdateInput,
-    EventCreateInput,
-    EventUpdateInput,
-    ReviewCreateInput,
-    ReviewUpdateInput,
-    SubReviewCreateInput,
-    SubReviewUpdateInput,
-    MusicVideoCreateInput,
-    MusicVideoUpdateInput,
-    SongCreateInput,
-    SongUpdateInput,
-    ProjectCreateInput,
-    ProjectUpdateInput,
-    PodcastCreateInput,
-    PodcastUpdateInput,
-    OutfitCreateInput,
-    OutfitUpdateInput,
-    ProfileUpdateInput,
-    SignupInput,
-    SongArtistCreateInput,
-    ProjectArtistCreateInput,
-    ProjectSongCreateInput,
-)
-
-from strawberry.types import Info
 from STARS import models
 
+# ... all your other imports ...
 
 @strawberry.type
 class Query:
-    # Convert list fields to paginated connections using the correct path
-    artists: relay.Connection[types.Artist] = strawberry_django.connection(filters=filters.ArtistFilter)
-    # --- THIS IS THE CHANGE ---
-    # The logic is now a method of the Query class.
+    # This is our robust, manual resolver for the 'projects' field
     @strawberry.field
     def projects(self, info: Info, filters: filters.ProjectFilter | None = None) -> relay.Connection[types.Project]:
         """Manually resolves the projects connection."""
         queryset = models.Project.objects.all()
 
         if filters:
+            # Convert the filter input into a dictionary and apply it
             filter_data = strawberry.asdict(filters)
             queryset = strawberry_django.filter(queryset, lookups=filter_data)
 
         return queryset
 
-    # -------------------------
-
-    # -------------------------
+    # The rest of the queries still use the original helper for now.
+    # If this fix works, we can apply it to the others if they fail.
+    artists: relay.Connection[types.Artist] = strawberry_django.connection(filters=filters.ArtistFilter)
     songs: relay.Connection[types.Song] = strawberry_django.connection(filters=filters.SongFilter)
     podcasts: relay.Connection[types.Podcast] = strawberry_django.connection(filters=filters.PodcastFilter)
     outfits: relay.Connection[types.Outfit] = strawberry_django.connection(filters=filters.OutfitFilter)
@@ -74,7 +41,7 @@ class Query:
     music_videos: relay.Connection[types.MusicVideo] = strawberry_django.connection(filters=filters.MusicVideoFilter)
     users: relay.Connection[types.User] = strawberry_django.connection(filters=filters.UserFilter)
 
-    # These fields are less likely to need top-level pagination, so we leave them as lists
+    # These fields are fine as they are
     project_songs: list[types.ProjectSong] = strawberry_django.field(filters=filters.ProjectSongFilter)
     project_artists: list[types.ProjectArtist] = strawberry_django.field(filters=filters.ProjectArtistFilter)
     song_artists: list[types.SongArtist] = strawberry_django.field(filters=filters.SongArtistFilter)

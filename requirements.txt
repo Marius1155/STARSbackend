@@ -1,15 +1,11 @@
-# Using newer, compatible versions to resolve the conflict.
-django~=5.0.7
-django-allauth~=0.61.1
-
-# This version aligns with the dependency requirements from the error.
-strawberry-graphql[django]>=0.276.2
-
-# --- Your other packages ---
+django-allauth>=0.58.0
 djangorestframework
 requests
 PyJWT
 cryptography
+django
+strawberry-graphql[asgi]
+strawberry-graphql-django
 channels
 gunicorn
 uvicorn
