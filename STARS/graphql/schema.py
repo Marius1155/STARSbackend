@@ -63,6 +63,8 @@ class Query:
     profiles: list[types.Profile] = strawberry_django.field(filters=filters.ProfileFilter)
     covers: list[types.Cover] = strawberry_django.field(filters=filters.CoverFilter)
 
+    node: relay.Node = relay.node()
+
 
 # Pass the mutation class to the schema constructor
 schema = strawberry.Schema(
