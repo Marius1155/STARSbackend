@@ -46,14 +46,16 @@ from STARS import models
 @strawberry.field
 def resolve_projects(info: Info, filters: filters.ProjectFilter | None = None) -> relay.Connection[types.Project]:
     """Manually resolves the projects connection."""
-    # This is the corrected line:
     queryset = models.Project.objects.all()
 
     if filters:
-        # This part remains the same and is correct
-        queryset = filters.apply(queryset, info)
+        # Convert the filter input object to a dictionary
+        filter_data = strawberry.asdict(filters)
+        # Apply the filter using the utility function
+        queryset = strawberry_django.filter(queryset, filter_data)
 
     return queryset
+
 
 @strawberry.type
 class Query:
