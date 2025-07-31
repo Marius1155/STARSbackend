@@ -40,16 +40,20 @@ from .mutations import (
 )
 
 from strawberry.types import Info
+from STARS import models
+
 
 @strawberry.field
 def resolve_projects(info: Info, filters: filters.ProjectFilter | None = None) -> relay.Connection[types.Project]:
     """Manually resolves the projects connection."""
-    queryset = types.Project.get_queryset(info=info)
-    if filters:
-        # Apply the filter to the queryset
-        queryset = filters.apply(queryset, info)
-    return queryset
+    # This is the corrected line:
+    queryset = models.Project.objects.all()
 
+    if filters:
+        # This part remains the same and is correct
+        queryset = filters.apply(queryset, info)
+
+    return queryset
 
 @strawberry.type
 class Query:
