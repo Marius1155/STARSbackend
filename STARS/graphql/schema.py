@@ -39,11 +39,25 @@ from .mutations import (
     ProjectSongCreateInput,
 )
 
+from strawberry.types import Info
+
+@strawberry.field
+def resolve_projects(info: Info, filters: filters.ProjectFilter | None = None) -> relay.Connection[types.Project]:
+    """Manually resolves the projects connection."""
+    queryset = types.Project.get_queryset(info=info)
+    if filters:
+        # Apply the filter to the queryset
+        queryset = filters.apply(queryset, info)
+    return queryset
+
+
 @strawberry.type
 class Query:
     # Convert list fields to paginated connections using the correct path
     artists: relay.Connection[types.Artist] = strawberry_django.connection(filters=filters.ArtistFilter)
-    projects: relay.Connection[types.Project] = strawberry_django.connection(filters=filters.ProjectFilter)
+    # We replace the old projects field with our manual resolver
+    projects: relay.Connection[types.Project] = resolve_projects
+    # -------------------------
     songs: relay.Connection[types.Song] = strawberry_django.connection(filters=filters.SongFilter)
     podcasts: relay.Connection[types.Podcast] = strawberry_django.connection(filters=filters.PodcastFilter)
     outfits: relay.Connection[types.Outfit] = strawberry_django.connection(filters=filters.OutfitFilter)
