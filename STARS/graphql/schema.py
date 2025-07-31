@@ -49,13 +49,11 @@ def resolve_projects(info: Info, filters: filters.ProjectFilter | None = None) -
     queryset = models.Project.objects.all()
 
     if filters:
-        # Convert the filter input object to a dictionary
         filter_data = strawberry.asdict(filters)
-        # Apply the filter using the utility function
-        queryset = strawberry_django.filter(queryset, filter_data)
+        # THIS IS THE CHANGE:
+        queryset = strawberry_django.filter(queryset, lookups=filter_data)
 
     return queryset
-
 
 @strawberry.type
 class Query:
