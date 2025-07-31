@@ -43,24 +43,25 @@ from strawberry.types import Info
 from STARS import models
 
 
-@strawberry.field
-def resolve_projects(info: Info, filters: filters.ProjectFilter | None = None) -> relay.Connection[types.Project]:
-    """Manually resolves the projects connection."""
-    queryset = models.Project.objects.all()
-
-    if filters:
-        filter_data = strawberry.asdict(filters)
-        # THIS IS THE CHANGE:
-        queryset = strawberry_django.filter(queryset, lookups=filter_data)
-
-    return queryset
-
 @strawberry.type
 class Query:
     # Convert list fields to paginated connections using the correct path
     artists: relay.Connection[types.Artist] = strawberry_django.connection(filters=filters.ArtistFilter)
-    # We replace the old projects field with our manual resolver
-    projects: relay.Connection[types.Project] = resolve_projects
+    # --- THIS IS THE CHANGE ---
+    # The logic is now a method of the Query class.
+    @strawberry.field
+    def projects(self, info: Info, filters: filters.ProjectFilter | None = None) -> relay.Connection[types.Project]:
+        """Manually resolves the projects connection."""
+        queryset = models.Project.objects.all()
+
+        if filters:
+            filter_data = strawberry.asdict(filters)
+            queryset = strawberry_django.filter(queryset, lookups=filter_data)
+
+        return queryset
+
+    # -------------------------
+
     # -------------------------
     songs: relay.Connection[types.Song] = strawberry_django.connection(filters=filters.SongFilter)
     podcasts: relay.Connection[types.Podcast] = strawberry_django.connection(filters=filters.PodcastFilter)
