@@ -9,10 +9,8 @@ from django.contrib.auth.models import User as DjangoUser
 # Import your filters to use them in the fields
 from . import filters
 
-
 # Helper function to resolve nodes efficiently and correctly handle IDs
 def resolve_model_nodes(model, node_ids, required=False):
-    # The library provides the raw, decoded ID to this function
     qs = model.objects.filter(pk__in=node_ids)
     nodes_map = {str(n.pk): n for n in qs}
     return [nodes_map.get(str(pk)) for pk in node_ids]
