@@ -41,18 +41,18 @@ from .mutations import (
 @strawberry.type
 class Query:
     # All list fields are now wrapped in OffsetPaginated
-    artists: OffsetPaginated[types.Artist] = strawberry_django.field(filters=filters.ArtistFilter)
-    projects: OffsetPaginated[types.Project] = strawberry_django.field(filters=filters.ProjectFilter)
-    songs: OffsetPaginated[types.Song] = strawberry_django.field(filters=filters.SongFilter)
-    podcasts: OffsetPaginated[types.Podcast] = strawberry_django.field(filters=filters.PodcastFilter)
-    outfits: OffsetPaginated[types.Outfit] = strawberry_django.field(filters=filters.OutfitFilter)
-    reviews: OffsetPaginated[types.Review] = strawberry_django.field(filters=filters.ReviewFilter)
-    messages: OffsetPaginated[types.Message] = strawberry_django.field(filters=filters.MessageFilter)
-    conversations: OffsetPaginated[types.Conversation] = strawberry_django.field(filters=filters.ConversationFilter)
-    events: OffsetPaginated[types.Event] = strawberry_django.field(filters=filters.EventFilter)
-    event_series: OffsetPaginated[types.EventSeries] = strawberry_django.field(filters=filters.EventSeriesFilter)
-    music_videos: OffsetPaginated[types.MusicVideo] = strawberry_django.field(filters=filters.MusicVideoFilter)
-    users: OffsetPaginated[types.User] = strawberry_django.field(filters=filters.UserFilter)
+    artists: list[types.Artist] = strawberry_django.field(filters=filters.ArtistFilter)
+    projects: list[types.Project] = strawberry_django.field(filters=filters.ProjectFilter)
+    songs: list[types.Song] = strawberry_django.field(filters=filters.SongFilter)
+    podcasts: list[types.Podcast] = strawberry_django.field(filters=filters.PodcastFilter)
+    outfits: list[types.Outfit] = strawberry_django.field(filters=filters.OutfitFilter)
+    reviews: list[types.Review] = strawberry_django.field(filters=filters.ReviewFilter)
+    messages: list[types.Message] = strawberry_django.field(filters=filters.MessageFilter)
+    conversations: list[types.Conversation] = strawberry_django.field(filters=filters.ConversationFilter)
+    events: list[types.Event] = strawberry_django.field(filters=filters.EventFilter)
+    event_series: list[types.EventSeries] = strawberry_django.field(filters=filters.EventSeriesFilter)
+    music_videos: list[types.MusicVideo] = strawberry_django.field(filters=filters.MusicVideoFilter)
+    users: list[types.User] = strawberry_django.field(filters=filters.UserFilter)
 
     # These fields are simple lists and do not need pagination
     project_songs: list[types.ProjectSong] = strawberry_django.field(filters=filters.ProjectSongFilter)
