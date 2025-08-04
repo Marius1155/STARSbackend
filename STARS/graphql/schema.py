@@ -42,7 +42,7 @@ from .mutations import (
 class Query:
     # All list fields are now wrapped in OffsetPaginated and include their respective filters
     artists: OffsetPaginated[types.Artist] = strawberry_django.field(pagination=True, filters=filters.ArtistFilter)
-    projects: OffsetPaginated[types.Project] = strawberry_django.field(pagination=True, filters=filters.ProjectFilter)
+    allProjects: OffsetPaginated[types.Project] = strawberry_django.field(pagination=True, filters=filters.ProjectFilter)
     songs: OffsetPaginated[types.Song] = strawberry_django.field(pagination=True, filters=filters.SongFilter)
     podcasts: OffsetPaginated[types.Podcast] = strawberry_django.field(pagination=True, filters=filters.PodcastFilter)
     outfits: OffsetPaginated[types.Outfit] = strawberry_django.field(pagination=True, filters=filters.OutfitFilter)
