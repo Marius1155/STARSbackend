@@ -37,7 +37,9 @@ class Subscription:
     @strawberry.subscription
     async def message_events(self, info, conversation_id: int) -> AsyncGenerator[MessageEventPayload, None]:
         """Subscribe to all message events (create, update, delete) in a conversation."""
-        user = info.context.request.user
+        # This is the fix: access user directly from the context dictionary
+        user = info.context["user"]
+
         if not user.is_authenticated:
             raise ValueError("Authentication required.")
 
@@ -65,12 +67,13 @@ class Subscription:
     @strawberry.subscription
     async def conversation_updates(self, info) -> AsyncGenerator[ConversationEventPayload, None]:
         """Subscribe to updates for the authenticated user's conversations."""
-        user = info.context.request.user
+        # This is the fix: access user directly from the context dictionary
+        user = info.context["user"]
+
         if not user.is_authenticated:
             raise ValueError("Authentication required.")
 
         channel_layer = get_channel_layer()
-        # Each user listens on their own personal group for conversation updates
         group_name = f"user_{user.id}_conversations"
 
         async with channel_layer.subscribe(group_name) as subscriber:
@@ -82,6 +85,7 @@ class Subscription:
                 yield ConversationEventPayload(conversation=conversation_obj)
 
 
+# ... (The rest of your signals and broadcast functions are correct and do not need to be changed) ...
 # -----------------------------------------------------------------------------
 # Signal Handlers & Broadcast Functions
 # -----------------------------------------------------------------------------
