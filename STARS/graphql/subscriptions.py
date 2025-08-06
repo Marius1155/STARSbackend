@@ -38,9 +38,9 @@ class Subscription:
     async def message_events(self, info, conversation_id: int) -> AsyncGenerator[MessageEventPayload, None]:
         """Subscribe to all message events (create, update, delete) in a conversation."""
         # This is the fix: access user directly from the context dictionary
-        user = info.context["user"]
+        user = info.context.get("user")
 
-        if not user.is_authenticated:
+        if not user or not user.is_authenticated:
             raise ValueError("Authentication required.")
 
         has_access = await database_sync_to_async(
