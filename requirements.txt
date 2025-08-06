@@ -18,3 +18,4 @@ text-unidecode
 channels
 channels-redis
 redis
+daphne
