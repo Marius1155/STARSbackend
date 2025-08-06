@@ -15,3 +15,6 @@ dj-database-url
 python-decouple
 django-filter
 text-unidecode
+channels
+channels-redis
+redis

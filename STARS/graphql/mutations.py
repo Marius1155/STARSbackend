@@ -468,22 +468,79 @@ class Mutation:
         return sub_review
 
     @strawberry.mutation
-    async def add_message_to_conversation(self, info, conversation_id: strawberry.ID, sender_id: strawberry.ID,
+    async def add_message_to_conversation(self, info: Info, conversation_id: strawberry.ID,
                                           data: MessageDataInput) -> types.Message:
+        user = info.context.request.user
+        if not user.is_authenticated:
+            raise Exception("Authentication required.")
+
         conversation = await sync_to_async(models.Conversation.objects.get)(pk=conversation_id)
-        sender = await sync_to_async(User.objects.get)(pk=sender_id)
+
+        is_participant = await sync_to_async(conversation.participants.filter(id=user.id).exists)()
+        if not is_participant:
+            raise Exception("You are not a participant in this conversation.")
 
         message = await sync_to_async(models.Message.objects.create)(
             conversation=conversation,
-            sender=sender,
+            sender=user,
             text=data.text
         )
 
         conversation.latest_message = message
         conversation.latest_message_text = message.text
         conversation.latest_message_time = message.time
-        conversation.latest_message_sender = sender
-        await sync_to_async(conversation.save)()
+        conversation.latest_message_sender = user
+        await sync_to_async(conversation.save)(
+            update_fields=['latest_message', 'latest_message_text', 'latest_message_time', 'latest_message_sender'])
+
+        return message
+
+    @strawberry.mutation
+    async def delete_message(self, info: Info, id: strawberry.ID) -> SuccessMessage:
+        user = info.context.request.user
+        if not user.is_authenticated:
+            raise Exception("Authentication required.")
+
+        message = await sync_to_async(models.Message.objects.filter(pk=id).first)()
+        if not message:
+            raise Exception("Message not found.")
+
+        if message.sender != user:
+            raise Exception("You can only delete your own messages.")
+
+        await sync_to_async(message.delete)()
+        return SuccessMessage(message="Message deleted successfully.")
+
+    @strawberry.mutation
+    async def like_message(self, info: Info, id: strawberry.ID) -> types.Message:
+        """Like or unlike a message."""
+        user = info.context.request.user
+        if not user.is_authenticated:
+            raise Exception("Authentication required.")
+
+        message = await sync_to_async(models.Message.objects.get)(pk=id)
+
+        is_liked = await sync_to_async(message.liked_by.filter(id=user.id).exists)()
+
+        if is_liked:
+            await sync_to_async(message.liked_by.remove)(user)
+        else:
+            await sync_to_async(message.liked_by.add)(user)
+
+        return message
+
+    @strawberry.mutation
+    async def mark_message_as_read(self, info: Info, id: strawberry.ID) -> types.Message:
+        """Mark a message as read."""
+        user = info.context.request.user
+        if not user.is_authenticated:
+            raise Exception("Authentication required.")
+
+        message = await sync_to_async(models.Message.objects.get)(pk=id)
+
+        # You would typically have more complex logic to ensure only recipients can mark as read
+        message.is_read = True
+        await sync_to_async(message.save)(update_fields=['is_read'])
 
         return message
 

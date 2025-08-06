@@ -7,6 +7,7 @@ from strawberry_django.pagination import OffsetPaginated
 from . import types
 from . import filters
 from . import mutations
+from . import subscriptions
 
 # --- Explicitly import all input types to ensure they are registered ---
 from .mutations import (
@@ -66,6 +67,7 @@ class Query:
 schema = strawberry.Schema(
     query=Query,
     mutation=mutations.Mutation,
+    subscription=subscriptions.Subscription,
     extensions=[
         DjangoOptimizerExtension,
     ]
