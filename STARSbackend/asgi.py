@@ -5,7 +5,7 @@ from channels.auth import AuthMiddlewareStack
 from strawberry.channels import GraphQLProtocolTypeRouter
 from STARS.graphql.schema import schema
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "yourproject.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "STARSbackend.settings")
 
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
