@@ -8,7 +8,7 @@ strawberry-graphql[asgi]
 strawberry-graphql-django
 channels
 gunicorn
-uvicorn
+uvicorn[standard]
 whitenoise
 psycopg2-binary
 dj-database-url
