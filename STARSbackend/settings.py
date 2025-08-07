@@ -80,6 +80,15 @@ MIDDLEWARE = [
 
 CSRF_TRUSTED_ORIGINS = ['https://starsbackend.onrender.com']
 
+# These settings ensure cookies behave correctly over HTTPS and with API clients.
+# 'Lax' is a secure default that should work.
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
+
+# Since your site is on HTTPS, these must be True.
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
 ROOT_URLCONF = 'STARSbackend.urls'
 
 TEMPLATES = [
