@@ -520,15 +520,9 @@ class Mutation:
                                           data: MessageDataInput) -> types.Message:
         # --- TEMPORARY DEBUGGING CODE ---
         # This bypasses real authentication to test the subscription pipeline.
-        user = info.context.get("user")
-        if not user or not user.is_authenticated:
-            print("!!! WARNING: Authentication failed. Using fallback user ID=1 for debugging. !!!")
-            # Replace '1' with a real user ID from your database for the test.
-            try:
-                user = await database_sync_to_async(models.User.objects.get)(id=1)
-            except models.User.DoesNotExist:
-                raise ValueError("Fallback user with ID=1 not found. Please update the ID.")
-        # --- END TEMPORARY CODE ---
+        user = request.user
+        if not user.is_authenticated:
+            raise Exception("Authentication required.")
 
         conversation = await database_sync_to_async(models.Conversation.objects.get)(pk=conversation_id)
 
