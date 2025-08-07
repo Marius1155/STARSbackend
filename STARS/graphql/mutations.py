@@ -476,42 +476,44 @@ class Mutation:
     @strawberry.mutation
     async def create_conversation(self, info: Info, data: ConversationCreateInput) -> types.Conversation:
         """
-        Creates a new conversation with a given list of participants,
-        including the currently authenticated user.
+        Creates a new conversation with a given list of participants.
         """
-        # For mutations, always get the user from the request.
-        user = info.context.request.user
-        if not user.is_authenticated:
-            raise Exception("Authentication required.")
+        # Get the request from the context, which is safe to do here.
+        request = info.context.request
 
-        # Ensure the current user is always a participant
-        participant_ids = set(data.participant_ids)
-        participant_ids.add(str(user.id))
+        # Define a synchronous inner function to handle all database logic.
+        def _create_conversation_sync():
+            user = request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
 
-        if len(participant_ids) < 2:
-            raise Exception("A conversation requires at least two participants.")
+            # Ensure the current user is always a participant
+            participant_ids = set(data.participant_ids)
+            participant_ids.add(str(user.id))
 
-        # Check if a conversation with these exact participants already exists
-        existing_conversation = await database_sync_to_async(
-            models.Conversation.objects.annotate(p_count=Count('participants'))
-            .filter(p_count=len(participant_ids))
-            .filter(participants__in=participant_ids)
-            .first
-        )()
+            if len(participant_ids) < 2:
+                raise Exception("A conversation requires at least two participants.")
 
-        if existing_conversation:
-            return existing_conversation
+            # Check if a conversation with these exact participants already exists
+            # This is all synchronous code now, so we don't need await.
+            existing_conversation = (
+                models.Conversation.objects.annotate(p_count=Count('participants'))
+                .filter(p_count=len(participant_ids))
+                .filter(participants__in=participant_ids)
+                .first()
+            )
 
-        # If no conversation exists, create a new one
-        new_conversation = await database_sync_to_async(models.Conversation.objects.create)()
+            if existing_conversation:
+                return existing_conversation
 
-        participants = await database_sync_to_async(list)(
-            User.objects.filter(id__in=participant_ids)
-        )
+            # If no conversation exists, create a new one
+            new_conversation = models.Conversation.objects.create()
+            participants = list(User.objects.filter(id__in=participant_ids))
+            new_conversation.participants.set(participants)
+            return new_conversation
 
-        await database_sync_to_async(new_conversation.participants.set)(participants)
-
-        return new_conversation
+        # Now, call the synchronous function from our async context
+        return await database_sync_to_async(_create_conversation_sync)()
 
     @strawberry.mutation
     async def add_message_to_conversation(self, info: Info, conversation_id: strawberry.ID,
