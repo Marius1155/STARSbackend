@@ -475,24 +475,23 @@ class Mutation:
 
     @strawberry.mutation
     async def create_conversation(self, info: Info, data: ConversationCreateInput) -> types.Conversation:
-        # --- TEMPORARY DEBUGGING CODE ---
-        # This bypasses real authentication to test the subscription pipeline.
-        user = info.context.get("user")
-        if not user or not user.is_authenticated:
-            print("!!! WARNING: Authentication failed. Using fallback user ID=1 for debugging. !!!")
-            # Replace '1' with a real user ID from your database for the test.
-            try:
-                user = await database_sync_to_async(models.User.objects.get)(id=1)
-            except models.User.DoesNotExist:
-                raise ValueError("Fallback user with ID=1 not found. Please update the ID.")
-        # --- END TEMPORARY CODE ---
+        """
+        Creates a new conversation with a given list of participants,
+        including the currently authenticated user.
+        """
+        # For mutations, always get the user from the request.
+        user = info.context.request.user
+        if not user.is_authenticated:
+            raise Exception("Authentication required.")
 
+        # Ensure the current user is always a participant
         participant_ids = set(data.participant_ids)
         participant_ids.add(str(user.id))
 
         if len(participant_ids) < 2:
             raise Exception("A conversation requires at least two participants.")
 
+        # Check if a conversation with these exact participants already exists
         existing_conversation = await database_sync_to_async(
             models.Conversation.objects.annotate(p_count=Count('participants'))
             .filter(p_count=len(participant_ids))
@@ -503,9 +502,15 @@ class Mutation:
         if existing_conversation:
             return existing_conversation
 
+        # If no conversation exists, create a new one
         new_conversation = await database_sync_to_async(models.Conversation.objects.create)()
-        participants = await database_sync_to_async(list)(User.objects.filter(id__in=participant_ids))
+
+        participants = await database_sync_to_async(list)(
+            User.objects.filter(id__in=participant_ids)
+        )
+
         await database_sync_to_async(new_conversation.participants.set)(participants)
+
         return new_conversation
 
     @strawberry.mutation
