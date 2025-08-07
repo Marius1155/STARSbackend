@@ -40,8 +40,17 @@ class Subscription:
         # This is the fix: access user directly from the context dictionary
         user = info.context.get("user")
 
+        # --- TEMPORARY DEBUGGING CODE ---
+        # This bypasses real authentication to test the subscription pipeline.
+        user = info.context.get("user")
         if not user or not user.is_authenticated:
-            raise ValueError("Authentication required.")
+            print("!!! WARNING: Authentication failed. Using fallback user ID=1 for debugging. !!!")
+            # Replace '1' with a real user ID from your database for the test.
+            try:
+                user = await database_sync_to_async(models.User.objects.get)(id=1)
+            except models.User.DoesNotExist:
+                raise ValueError("Fallback user with ID=1 not found. Please update the ID.")
+        # --- END TEMPORARY CODE ---
 
         has_access = await database_sync_to_async(
             models.Conversation.objects.filter(id=conversation_id, participants=user).exists
@@ -70,8 +79,17 @@ class Subscription:
         # This is the fix: access user directly from the context dictionary
         user = info.context["user"]
 
-        if not user.is_authenticated:
-            raise ValueError("Authentication required.")
+        # --- TEMPORARY DEBUGGING CODE ---
+        # This bypasses real authentication to test the subscription pipeline.
+        user = info.context.get("user")
+        if not user or not user.is_authenticated:
+            print("!!! WARNING: Authentication failed. Using fallback user ID=1 for debugging. !!!")
+            # Replace '1' with a real user ID from your database for the test.
+            try:
+                user = await database_sync_to_async(models.User.objects.get)(id=1)
+            except models.User.DoesNotExist:
+                raise ValueError("Fallback user with ID=1 not found. Please update the ID.")
+        # --- END TEMPORARY CODE ---
 
         channel_layer = get_channel_layer()
         group_name = f"user_{user.id}_conversations"
