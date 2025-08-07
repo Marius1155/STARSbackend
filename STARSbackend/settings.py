@@ -78,6 +78,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+CSRF_TRUSTED_ORIGINS = ['https://starsbackend.onrender.com']
 
 ROOT_URLCONF = 'STARSbackend.urls'
 
