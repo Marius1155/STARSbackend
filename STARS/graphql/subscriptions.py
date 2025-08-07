@@ -17,14 +17,12 @@ from . import types
 
 @strawberry.type
 class MessageEventPayload:
-    """Payload for all message-related events."""
-    event_type: str  # 'created', 'updated', 'deleted'
+    event_type: str
     message: types.Message
 
 
 @strawberry.type
 class ConversationEventPayload:
-    """Payload for conversation updates."""
     conversation: types.Conversation
 
 
@@ -36,21 +34,9 @@ class ConversationEventPayload:
 class Subscription:
     @strawberry.subscription
     async def message_events(self, info, conversation_id: int) -> AsyncGenerator[MessageEventPayload, None]:
-        """Subscribe to all message events (create, update, delete) in a conversation."""
-        # This is the fix: access user directly from the context dictionary
-        user = info.context.get("user")
-
-        # --- TEMPORARY DEBUGGING CODE ---
-        # This bypasses real authentication to test the subscription pipeline.
         user = info.context.get("user")
         if not user or not user.is_authenticated:
-            print("!!! WARNING: Authentication failed. Using fallback user ID=1 for debugging. !!!")
-            # Replace '1' with a real user ID from your database for the test.
-            try:
-                user = await database_sync_to_async(models.User.objects.get)(id=1)
-            except models.User.DoesNotExist:
-                raise ValueError("Fallback user with ID=1 not found. Please update the ID.")
-        # --- END TEMPORARY CODE ---
+            raise ValueError("Authentication required.")
 
         has_access = await database_sync_to_async(
             models.Conversation.objects.filter(id=conversation_id, participants=user).exists
@@ -60,9 +46,14 @@ class Subscription:
 
         channel_layer = get_channel_layer()
         group_name = f"conversation_{conversation_id}"
+        # Create a unique channel name for this specific subscriber
+        channel_name = await channel_layer.new_channel()
 
-        async with channel_layer.subscribe(group_name) as subscriber:
-            async for event in subscriber:
+        await channel_layer.group_add(group_name, channel_name)
+        try:
+            # Listen for messages on the unique channel
+            while True:
+                event = await channel_layer.receive(channel_name)
                 event_type = event["data"]["event_type"]
                 message_id = event["data"]["id"]
 
@@ -72,35 +63,31 @@ class Subscription:
 
                 if message_obj:
                     yield MessageEventPayload(event_type=event_type, message=message_obj)
+        finally:
+            # Clean up and remove the channel from the group when the client disconnects
+            await channel_layer.group_discard(group_name, channel_name)
 
     @strawberry.subscription
     async def conversation_updates(self, info) -> AsyncGenerator[ConversationEventPayload, None]:
-        """Subscribe to updates for the authenticated user's conversations."""
-        # This is the fix: access user directly from the context dictionary
-        user = info.context["user"]
-
-        # --- TEMPORARY DEBUGGING CODE ---
-        # This bypasses real authentication to test the subscription pipeline.
         user = info.context.get("user")
         if not user or not user.is_authenticated:
-            print("!!! WARNING: Authentication failed. Using fallback user ID=1 for debugging. !!!")
-            # Replace '1' with a real user ID from your database for the test.
-            try:
-                user = await database_sync_to_async(models.User.objects.get)(id=1)
-            except models.User.DoesNotExist:
-                raise ValueError("Fallback user with ID=1 not found. Please update the ID.")
-        # --- END TEMPORARY CODE ---
+            raise ValueError("Authentication required.")
 
         channel_layer = get_channel_layer()
         group_name = f"user_{user.id}_conversations"
+        channel_name = await channel_layer.new_channel()
 
-        async with channel_layer.subscribe(group_name) as subscriber:
-            async for event in subscriber:
+        await channel_layer.group_add(group_name, channel_name)
+        try:
+            while True:
+                event = await channel_layer.receive(channel_name)
                 conversation_id = event["data"]["id"]
                 conversation_obj = await database_sync_to_async(
                     models.Conversation.objects.get
                 )(id=conversation_id)
                 yield ConversationEventPayload(conversation=conversation_obj)
+        finally:
+            await channel_layer.group_discard(group_name, channel_name)
 
 
 # ... (The rest of your signals and broadcast functions are correct and do not need to be changed) ...
@@ -110,7 +97,6 @@ class Subscription:
 
 @receiver(post_save, sender=models.Message)
 def handle_message_save(sender, instance, created, update_fields, **kwargs):
-    """Handles message creation and status updates (is_read, is_delivered)."""
     if created:
         async_to_sync(broadcast_message_event)(instance, "created")
     elif update_fields and ('is_read' in update_fields or 'is_delivered' in update_fields):
@@ -119,21 +105,20 @@ def handle_message_save(sender, instance, created, update_fields, **kwargs):
 
 @receiver(m2m_changed, sender=models.Message.liked_by.through)
 def handle_message_like(sender, instance, action, **kwargs):
-    """Handles likes/unlikes on a message."""
     if action in ["post_add", "post_remove"]:
         async_to_sync(broadcast_message_event)(instance, "updated")
 
 
 @receiver(post_delete, sender=models.Message)
 def handle_message_delete(sender, instance, **kwargs):
-    """Handles message deletion."""
     async_to_sync(broadcast_message_event)(instance, "deleted")
 
 
 async def broadcast_message_event(message: models.Message, event_type: str):
-    """Broadcasts a message event to the relevant conversation group."""
     channel_layer = get_channel_layer()
     group_name = f"conversation_{message.conversation_id}"
+    # Note: The 'type' here can be anything, as the resolver doesn't check it.
+    # The important data is nested inside our own 'data' key.
     await channel_layer.group_send(
         group_name,
         {"type": "subscription.event", "data": {"id": message.id, "event_type": event_type}},
@@ -142,13 +127,11 @@ async def broadcast_message_event(message: models.Message, event_type: str):
 
 @receiver(post_save, sender=models.Conversation)
 def handle_conversation_save(sender, instance, created, update_fields, **kwargs):
-    """Handles updates to a conversation's latest message."""
     if not created and update_fields and 'latest_message' in update_fields:
         async_to_sync(broadcast_conversation_update)(instance)
 
 
 async def broadcast_conversation_update(conversation: models.Conversation):
-    """Broadcasts a conversation update to all participants."""
     channel_layer = get_channel_layer()
     participant_ids = await database_sync_to_async(list)(conversation.participants.values_list('id', flat=True))
 
