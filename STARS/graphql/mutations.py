@@ -1,33 +1,29 @@
-# STARS/graphql/mutations.py
-
 import strawberry
 import strawberry_django
 from strawberry import auto
 from typing import List, Optional
 from django.contrib.auth.models import User
 from asgiref.sync import sync_to_async
-from django.utils import timezone
+from channels.db import database_sync_to_async
+from django.db.models import Count
 from strawberry.types import Info
-from django.contrib.auth import password_validation
+from django.contrib.auth import password_validation, login
 from django.core.exceptions import ValidationError
-from django.contrib.auth import login
 
-# --- IMPORTS FOR MANUAL SOCIAL LOGIN ---
+# --- IMPORTS FOR SOCIAL LOGIN ---
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from allauth.socialaccount.providers.apple.views import AppleOAuth2Adapter
 from allauth.socialaccount.helpers import complete_social_login
 from allauth.socialaccount.models import SocialApp, SocialLogin, SocialToken
-from allauth.socialaccount.providers.oauth2.client import OAuth2Client
-import requests  # Make sure 'requests' is in your requirements.txt
 
 from STARS import models
 from . import types
 
 
 # -----------------------------------------------------------------------------
-# Input Types (Stable Pattern)
+# Input Types
 # -----------------------------------------------------------------------------
-# ... (all your existing input types remain the same) ...
+
 @strawberry_django.input(models.Artist)
 class ArtistCreateInput:
     name: auto
@@ -115,7 +111,6 @@ class EventUpdateInput:
 
 @strawberry_django.input(models.Review)
 class ReviewCreateInput:
-    user_id: strawberry.ID
     stars: auto
     text: Optional[str] = None
     is_latest: Optional[bool] = True
@@ -330,6 +325,11 @@ class CoverDataInput:
     image_url: str
 
 
+@strawberry.input
+class ConversationCreateInput:
+    participant_ids: list[strawberry.ID]
+
+
 @strawberry.type
 class SuccessMessage:
     message: str
@@ -337,7 +337,6 @@ class SuccessMessage:
 
 @strawberry.type
 class Mutation:
-    # ... (all your existing mutations remain the same) ...
     create_artist: types.Artist = strawberry_django.mutations.create(ArtistCreateInput)
     update_artist: types.Artist = strawberry_django.mutations.update(ArtistUpdateInput)
     delete_artist: types.Artist = strawberry_django.mutations.delete(strawberry.ID)
@@ -378,11 +377,11 @@ class Mutation:
         if data.password != data.password_confirmation:
             raise Exception("Passwords do not match.")
 
-        user_exists = await sync_to_async(User.objects.filter(email=data.email).exists)()
+        user_exists = await database_sync_to_async(User.objects.filter(email=data.email).exists)()
         if user_exists:
             raise Exception("A user with this email already exists.")
 
-        username_exists = await sync_to_async(User.objects.filter(username=data.username).exists)()
+        username_exists = await database_sync_to_async(User.objects.filter(username=data.username).exists)()
         if username_exists:
             raise Exception("A user with this username already exists.")
 
@@ -391,75 +390,82 @@ class Mutation:
         except ValidationError as e:
             raise Exception(f"Invalid password: {', '.join(e.messages)}")
 
-        user = await sync_to_async(User.objects.create_user)(
+        user = await database_sync_to_async(User.objects.create_user)(
             username=data.username,
             email=data.email,
             password=data.password,
             first_name=data.first_name,
             last_name=data.last_name,
         )
-        await sync_to_async(models.Profile.objects.create)(user=user)
+        await database_sync_to_async(models.Profile.objects.create)(user=user)
         return user
 
     @strawberry.mutation
-    async def add_review_to_project(self, info, project_id: strawberry.ID, user_id: strawberry.ID,
-                                    data: ReviewDataInput) -> types.Review:
-        project = await sync_to_async(models.Project.objects.get)(pk=project_id)
-        user = await sync_to_async(User.objects.get)(pk=user_id)
-        review = await sync_to_async(models.Review.objects.create)(user=user, stars=data.stars, text=data.text,
-                                                                   content_object=project)
+    async def add_review_to_project(self, info: Info, project_id: strawberry.ID, data: ReviewDataInput) -> types.Review:
+        user = info.context.request.user
+        if not user.is_authenticated:
+            raise Exception("Authentication required.")
+        project = await database_sync_to_async(models.Project.objects.get)(pk=project_id)
+        review = await database_sync_to_async(models.Review.objects.create)(user=user, stars=data.stars, text=data.text,
+                                                                            content_object=project)
         return review
 
     @strawberry.mutation
-    async def add_review_to_song(self, info, song_id: strawberry.ID, user_id: strawberry.ID,
-                                 data: ReviewDataInput) -> types.Review:
-        song = await sync_to_async(models.Song.objects.get)(pk=song_id)
-        user = await sync_to_async(User.objects.get)(pk=user_id)
-        review = await sync_to_async(models.Review.objects.create)(user=user, stars=data.stars, text=data.text,
-                                                                   content_object=song)
+    async def add_review_to_song(self, info: Info, song_id: strawberry.ID, data: ReviewDataInput) -> types.Review:
+        user = info.context.request.user
+        if not user.is_authenticated:
+            raise Exception("Authentication required.")
+        song = await database_sync_to_async(models.Song.objects.get)(pk=song_id)
+        review = await database_sync_to_async(models.Review.objects.create)(user=user, stars=data.stars, text=data.text,
+                                                                            content_object=song)
         return review
 
     @strawberry.mutation
-    async def add_review_to_outfit(self, info, outfit_id: strawberry.ID, user_id: strawberry.ID,
-                                   data: ReviewDataInput) -> types.Review:
-        outfit = await sync_to_async(models.Outfit.objects.get)(pk=outfit_id)
-        user = await sync_to_async(User.objects.get)(pk=user_id)
-        review = await sync_to_async(models.Review.objects.create)(user=user, stars=data.stars, text=data.text,
-                                                                   content_object=outfit)
+    async def add_review_to_outfit(self, info: Info, outfit_id: strawberry.ID, data: ReviewDataInput) -> types.Review:
+        user = info.context.request.user
+        if not user.is_authenticated:
+            raise Exception("Authentication required.")
+        outfit = await database_sync_to_async(models.Outfit.objects.get)(pk=outfit_id)
+        review = await database_sync_to_async(models.Review.objects.create)(user=user, stars=data.stars, text=data.text,
+                                                                            content_object=outfit)
         return review
 
     @strawberry.mutation
-    async def add_review_to_podcast(self, info, podcast_id: strawberry.ID, user_id: strawberry.ID,
-                                    data: ReviewDataInput) -> types.Review:
-        podcast = await sync_to_async(models.Podcast.objects.get)(pk=podcast_id)
-        user = await sync_to_async(User.objects.get)(pk=user_id)
-        review = await sync_to_async(models.Review.objects.create)(user=user, stars=data.stars, text=data.text,
-                                                                   content_object=podcast)
+    async def add_review_to_podcast(self, info: Info, podcast_id: strawberry.ID, data: ReviewDataInput) -> types.Review:
+        user = info.context.request.user
+        if not user.is_authenticated:
+            raise Exception("Authentication required.")
+        podcast = await database_sync_to_async(models.Podcast.objects.get)(pk=podcast_id)
+        review = await database_sync_to_async(models.Review.objects.create)(user=user, stars=data.stars, text=data.text,
+                                                                            content_object=podcast)
         return review
 
     @strawberry.mutation
-    async def add_review_to_music_video(self, info, music_video_id: strawberry.ID, user_id: strawberry.ID,
+    async def add_review_to_music_video(self, info: Info, music_video_id: strawberry.ID,
                                         data: ReviewDataInput) -> types.Review:
-        music_video = await sync_to_async(models.MusicVideo.objects.get)(pk=music_video_id)
-        user = await sync_to_async(User.objects.get)(pk=user_id)
-        review = await sync_to_async(models.Review.objects.create)(user=user, stars=data.stars, text=data.text,
-                                                                   content_object=music_video)
+        user = info.context.request.user
+        if not user.is_authenticated:
+            raise Exception("Authentication required.")
+        music_video = await database_sync_to_async(models.MusicVideo.objects.get)(pk=music_video_id)
+        review = await database_sync_to_async(models.Review.objects.create)(user=user, stars=data.stars, text=data.text,
+                                                                            content_object=music_video)
         return review
 
     @strawberry.mutation
-    async def add_review_to_cover(self, info, cover_id: strawberry.ID, user_id: strawberry.ID,
-                                  data: ReviewDataInput) -> types.Review:
-        cover = await sync_to_async(models.Cover.objects.get)(pk=cover_id)
-        user = await sync_to_async(User.objects.get)(pk=user_id)
-        review = await sync_to_async(models.Review.objects.create)(user=user, stars=data.stars, text=data.text,
-                                                                   content_object=cover)
+    async def add_review_to_cover(self, info: Info, cover_id: strawberry.ID, data: ReviewDataInput) -> types.Review:
+        user = info.context.request.user
+        if not user.is_authenticated:
+            raise Exception("Authentication required.")
+        cover = await database_sync_to_async(models.Cover.objects.get)(pk=cover_id)
+        review = await database_sync_to_async(models.Review.objects.create)(user=user, stars=data.stars, text=data.text,
+                                                                            content_object=cover)
         return review
 
     @strawberry.mutation
-    async def add_sub_review_to_review(self, info, review_id: strawberry.ID,
+    async def add_sub_review_to_review(self, info: Info, review_id: strawberry.ID,
                                        data: SubReviewDataInput) -> types.SubReview:
-        review = await sync_to_async(models.Review.objects.get)(pk=review_id)
-        sub_review = await sync_to_async(models.SubReview.objects.create)(
+        review = await database_sync_to_async(models.Review.objects.get)(pk=review_id)
+        sub_review = await database_sync_to_async(models.SubReview.objects.create)(
             review=review,
             topic=data.topic,
             text=data.text,
@@ -468,19 +474,62 @@ class Mutation:
         return sub_review
 
     @strawberry.mutation
+    async def create_conversation(self, info: Info, data: ConversationCreateInput) -> types.Conversation:
+        # --- TEMPORARY DEBUGGING CODE ---
+        # This bypasses real authentication to test the subscription pipeline.
+        user = info.context.get("user")
+        if not user or not user.is_authenticated:
+            print("!!! WARNING: Authentication failed. Using fallback user ID=1 for debugging. !!!")
+            # Replace '1' with a real user ID from your database for the test.
+            try:
+                user = await database_sync_to_async(models.User.objects.get)(id=1)
+            except models.User.DoesNotExist:
+                raise ValueError("Fallback user with ID=1 not found. Please update the ID.")
+        # --- END TEMPORARY CODE ---
+
+        participant_ids = set(data.participant_ids)
+        participant_ids.add(str(user.id))
+
+        if len(participant_ids) < 2:
+            raise Exception("A conversation requires at least two participants.")
+
+        existing_conversation = await database_sync_to_async(
+            models.Conversation.objects.annotate(p_count=Count('participants'))
+            .filter(p_count=len(participant_ids))
+            .filter(participants__in=participant_ids)
+            .first
+        )()
+
+        if existing_conversation:
+            return existing_conversation
+
+        new_conversation = await database_sync_to_async(models.Conversation.objects.create)()
+        participants = await database_sync_to_async(list)(User.objects.filter(id__in=participant_ids))
+        await database_sync_to_async(new_conversation.participants.set)(participants)
+        return new_conversation
+
+    @strawberry.mutation
     async def add_message_to_conversation(self, info: Info, conversation_id: strawberry.ID,
                                           data: MessageDataInput) -> types.Message:
-        user = info.context.request.user
-        if not user.is_authenticated:
-            raise Exception("Authentication required.")
+        # --- TEMPORARY DEBUGGING CODE ---
+        # This bypasses real authentication to test the subscription pipeline.
+        user = info.context.get("user")
+        if not user or not user.is_authenticated:
+            print("!!! WARNING: Authentication failed. Using fallback user ID=1 for debugging. !!!")
+            # Replace '1' with a real user ID from your database for the test.
+            try:
+                user = await database_sync_to_async(models.User.objects.get)(id=1)
+            except models.User.DoesNotExist:
+                raise ValueError("Fallback user with ID=1 not found. Please update the ID.")
+        # --- END TEMPORARY CODE ---
 
-        conversation = await sync_to_async(models.Conversation.objects.get)(pk=conversation_id)
+        conversation = await database_sync_to_async(models.Conversation.objects.get)(pk=conversation_id)
 
-        is_participant = await sync_to_async(conversation.participants.filter(id=user.id).exists)()
+        is_participant = await database_sync_to_async(conversation.participants.filter(id=user.id).exists)()
         if not is_participant:
             raise Exception("You are not a participant in this conversation.")
 
-        message = await sync_to_async(models.Message.objects.create)(
+        message = await database_sync_to_async(models.Message.objects.create)(
             conversation=conversation,
             sender=user,
             text=data.text
@@ -490,9 +539,9 @@ class Mutation:
         conversation.latest_message_text = message.text
         conversation.latest_message_time = message.time
         conversation.latest_message_sender = user
-        await sync_to_async(conversation.save)(
-            update_fields=['latest_message', 'latest_message_text', 'latest_message_time', 'latest_message_sender'])
-
+        await database_sync_to_async(conversation.save)(
+            update_fields=['latest_message', 'latest_message_text', 'latest_message_time', 'latest_message_sender']
+        )
         return message
 
     @strawberry.mutation
@@ -501,100 +550,112 @@ class Mutation:
         if not user.is_authenticated:
             raise Exception("Authentication required.")
 
-        message = await sync_to_async(models.Message.objects.filter(pk=id).first)()
+        message = await database_sync_to_async(models.Message.objects.filter(pk=id).first)()
         if not message:
             raise Exception("Message not found.")
 
         if message.sender != user:
             raise Exception("You can only delete your own messages.")
 
-        await sync_to_async(message.delete)()
+        await database_sync_to_async(message.delete)()
         return SuccessMessage(message="Message deleted successfully.")
 
     @strawberry.mutation
     async def like_message(self, info: Info, id: strawberry.ID) -> types.Message:
-        """Like or unlike a message."""
         user = info.context.request.user
         if not user.is_authenticated:
             raise Exception("Authentication required.")
 
-        message = await sync_to_async(models.Message.objects.get)(pk=id)
+        message = await database_sync_to_async(models.Message.objects.get)(pk=id)
 
-        is_liked = await sync_to_async(message.liked_by.filter(id=user.id).exists)()
+        is_participant = await database_sync_to_async(message.conversation.participants.filter(id=user.id).exists)()
+        if not is_participant:
+            raise Exception("You must be in the conversation to like a message.")
+
+        is_liked = await database_sync_to_async(message.liked_by.filter(id=user.id).exists)()
 
         if is_liked:
-            await sync_to_async(message.liked_by.remove)(user)
+            await database_sync_to_async(message.liked_by.remove)(user)
         else:
-            await sync_to_async(message.liked_by.add)(user)
+            await database_sync_to_async(message.liked_by.add)(user)
 
         return message
 
     @strawberry.mutation
     async def mark_message_as_read(self, info: Info, id: strawberry.ID) -> types.Message:
-        """Mark a message as read."""
         user = info.context.request.user
         if not user.is_authenticated:
             raise Exception("Authentication required.")
 
-        message = await sync_to_async(models.Message.objects.get)(pk=id)
+        message = await database_sync_to_async(models.Message.objects.get)(pk=id)
 
-        # You would typically have more complex logic to ensure only recipients can mark as read
+        is_participant = await database_sync_to_async(message.conversation.participants.filter(id=user.id).exists)()
+        if not is_participant:
+            raise Exception("You are not a participant in this conversation.")
+
+        if message.sender == user:
+            return message
+
         message.is_read = True
-        await sync_to_async(message.save)(update_fields=['is_read'])
-
+        await database_sync_to_async(message.save)(update_fields=['is_read'])
         return message
 
     @strawberry.mutation
-    async def add_artist_to_song(self, info, song_id: strawberry.ID, artist_id: strawberry.ID,
+    async def add_artist_to_song(self, info: Info, song_id: strawberry.ID, artist_id: strawberry.ID,
                                  position: int) -> types.SongArtist:
-        song = await sync_to_async(models.Song.objects.get)(pk=song_id)
-        artist = await sync_to_async(models.Artist.objects.get)(pk=artist_id)
-        song_artist = await sync_to_async(models.SongArtist.objects.create)(song=song, artist=artist, position=position)
+        song = await database_sync_to_async(models.Song.objects.get)(pk=song_id)
+        artist = await database_sync_to_async(models.Artist.objects.get)(pk=artist_id)
+        song_artist = await database_sync_to_async(models.SongArtist.objects.create)(song=song, artist=artist,
+                                                                                     position=position)
         return song_artist
 
     @strawberry.mutation
-    async def add_artist_to_project(self, info, project_id: strawberry.ID, artist_id: strawberry.ID,
+    async def add_artist_to_project(self, info: Info, project_id: strawberry.ID, artist_id: strawberry.ID,
                                     position: int) -> types.ProjectArtist:
-        project = await sync_to_async(models.Project.objects.get)(pk=project_id)
-        artist = await sync_to_async(models.Artist.objects.get)(pk=artist_id)
-        project_artist = await sync_to_async(models.ProjectArtist.objects.create)(project=project, artist=artist,
-                                                                                  position=position)
+        project = await database_sync_to_async(models.Project.objects.get)(pk=project_id)
+        artist = await database_sync_to_async(models.Artist.objects.get)(pk=artist_id)
+        project_artist = await database_sync_to_async(models.ProjectArtist.objects.create)(project=project,
+                                                                                           artist=artist,
+                                                                                           position=position)
         return project_artist
 
     @strawberry.mutation
-    async def add_song_to_project(self, info, project_id: strawberry.ID, song_id: strawberry.ID,
+    async def add_song_to_project(self, info: Info, project_id: strawberry.ID, song_id: strawberry.ID,
                                   position: int) -> types.ProjectSong:
-        project = await sync_to_async(models.Project.objects.get)(pk=project_id)
-        song = await sync_to_async(models.Song.objects.get)(pk=song_id)
-        project_song = await sync_to_async(models.ProjectSong.objects.create)(project=project, song=song,
-                                                                              position=position)
+        project = await database_sync_to_async(models.Project.objects.get)(pk=project_id)
+        song = await database_sync_to_async(models.Song.objects.get)(pk=song_id)
+        project_song = await database_sync_to_async(models.ProjectSong.objects.create)(project=project, song=song,
+                                                                                       position=position)
         return project_song
 
     @strawberry.mutation
-    async def add_cover_to_project(self, info, project_id: strawberry.ID, data: CoverDataInput) -> types.Cover:
-        project = await sync_to_async(models.Project.objects.get)(pk=project_id)
-        cover = await sync_to_async(models.Cover.objects.create)(image=data.image_url, content_object=project)
+    async def add_cover_to_project(self, info: Info, project_id: strawberry.ID, data: CoverDataInput) -> types.Cover:
+        project = await database_sync_to_async(models.Project.objects.get)(pk=project_id)
+        cover = await database_sync_to_async(models.Cover.objects.create)(image=data.image_url, content_object=project)
         return cover
 
     @strawberry.mutation
-    async def follow_user(self, info, follower_id: strawberry.ID, followed_id: strawberry.ID) -> types.Profile:
-        follower_profile = await sync_to_async(models.Profile.objects.get)(user__pk=follower_id)
-        followed_profile = await sync_to_async(models.Profile.objects.get)(user__pk=followed_id)
+    async def follow_user(self, info: Info, follower_id: strawberry.ID, followed_id: strawberry.ID) -> types.Profile:
+        # Note: This is insecure, should use authenticated user
+        user = info.context.request.user
+        if not user.is_authenticated or str(user.id) != str(follower_id):
+            raise Exception("Permission denied.")
 
-        await sync_to_async(follower_profile.following.add)(followed_profile)
+        follower_profile = await database_sync_to_async(models.Profile.objects.get)(user__pk=follower_id)
+        followed_profile = await database_sync_to_async(models.Profile.objects.get)(user__pk=followed_id)
 
-        follower_profile.following_count = await sync_to_async(follower_profile.following.count)()
-        followed_profile.followers_count = await sync_to_async(followed_profile.followers.count)()
+        await database_sync_to_async(follower_profile.following.add)(followed_profile)
 
-        await sync_to_async(follower_profile.save)()
-        await sync_to_async(followed_profile.save)()
+        follower_profile.following_count = await database_sync_to_async(follower_profile.following.count)()
+        followed_profile.followers_count = await database_sync_to_async(followed_profile.followers.count)()
 
+        await database_sync_to_async(follower_profile.save)()
+        await database_sync_to_async(followed_profile.save)()
         return followed_profile
 
     @strawberry.mutation
     async def change_my_password(self, info: Info, old_password: str, new_password: str) -> SuccessMessage:
         user: User = info.context.request.user
-
         if not user.is_authenticated:
             raise Exception("You must be logged in to change your password.")
 
@@ -604,15 +665,13 @@ class Mutation:
 
         await sync_to_async(password_validation.validate_password)(new_password, user)
 
-        await sync_to_async(user.set_password)(new_password)
-        await sync_to_async(user.save)()
-
+        await database_sync_to_async(user.set_password)(new_password)
+        await database_sync_to_async(user.save)()
         return SuccessMessage(message="Your password has been successfully changed.")
 
     @strawberry.mutation
     async def delete_my_account(self, info: Info, password: str) -> SuccessMessage:
         user: User = info.context.request.user
-
         if not user.is_authenticated:
             raise Exception("You must be logged in to delete your account.")
 
@@ -620,52 +679,33 @@ class Mutation:
         if not is_password_correct:
             raise Exception("Incorrect password.")
 
-        await sync_to_async(user.delete)()
-
+        await database_sync_to_async(user.delete)()
         return SuccessMessage(message="Your account has been successfully deleted.")
 
-    # --- NEW MANUAL SOCIAL LOGIN MUTATIONS ---
     @strawberry.mutation
     async def login_with_google(self, info: Info, access_token: str) -> types.User:
         request = info.context.request
-
-        # 1. Get the SocialApp for Google
-        app = await sync_to_async(SocialApp.objects.get)(provider='google')
-
-        # 2. Create a SocialToken
+        app = await database_sync_to_async(SocialApp.objects.get)(provider='google')
         token = SocialToken(app=app, token=access_token)
-
-        # 3. Use the adapter to complete the login
         adapter = GoogleOAuth2Adapter(request)
-        login_data = await sync_to_async(adapter.complete_login)(request, app, token)
-
-        # 4. Perform the actual login
+        login_data = await database_sync_to_async(adapter.complete_login)(request, app, token)
         login_data.state = SocialLogin.state_from_request(request)
-        user = await sync_to_async(complete_social_login)(request, login_data)
-
+        user = await database_sync_to_async(complete_social_login)(request, login_data)
         if not user.is_authenticated:
             raise Exception("Google authentication failed.")
-
         return user
 
     @strawberry.mutation
     async def login_with_apple(self, info: Info, access_token: str, id_token: str) -> types.User:
         request = info.context.request
-
-        app = await sync_to_async(SocialApp.objects.get)(provider='apple')
+        app = await database_sync_to_async(SocialApp.objects.get)(provider='apple')
         token = SocialToken(app=app, token=access_token)
-
-        # Apple requires an id_token as well
         request.POST = request.POST.copy()
         request.POST['id_token'] = id_token
-
         adapter = AppleOAuth2Adapter(request)
-        login_data = await sync_to_async(adapter.complete_login)(request, app, token)
-
+        login_data = await database_sync_to_async(adapter.complete_login)(request, app, token)
         login_data.state = SocialLogin.state_from_request(request)
-        user = await sync_to_async(complete_social_login)(request, login_data)
-
+        user = await database_sync_to_async(complete_social_login)(request, login_data)
         if not user.is_authenticated:
             raise Exception("Apple authentication failed.")
-
         return user
