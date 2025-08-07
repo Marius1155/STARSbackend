@@ -518,32 +518,41 @@ class Mutation:
     @strawberry.mutation
     async def add_message_to_conversation(self, info: Info, conversation_id: strawberry.ID,
                                           data: MessageDataInput) -> types.Message:
-        # --- TEMPORARY DEBUGGING CODE ---
-        # This bypasses real authentication to test the subscription pipeline.
-        user = request.user
-        if not user.is_authenticated:
-            raise Exception("Authentication required.")
+        # First, get the request from the info object in the async scope.
+        request = info.context.request
 
-        conversation = await database_sync_to_async(models.Conversation.objects.get)(pk=conversation_id)
+        # Define a synchronous inner function to handle all database logic.
+        def _add_message_sync():
+            user = request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
 
-        is_participant = await database_sync_to_async(conversation.participants.filter(id=user.id).exists)()
-        if not is_participant:
-            raise Exception("You are not a participant in this conversation.")
+            conversation = models.Conversation.objects.get(pk=conversation_id)
 
-        message = await database_sync_to_async(models.Message.objects.create)(
-            conversation=conversation,
-            sender=user,
-            text=data.text
-        )
+            # Verify user is a participant
+            if not conversation.participants.filter(id=user.id).exists():
+                raise Exception("You are not a participant in this conversation.")
 
-        conversation.latest_message = message
-        conversation.latest_message_text = message.text
-        conversation.latest_message_time = message.time
-        conversation.latest_message_sender = user
-        await database_sync_to_async(conversation.save)(
-            update_fields=['latest_message', 'latest_message_text', 'latest_message_time', 'latest_message_sender']
-        )
-        return message
+            # Create the message
+            message = models.Message.objects.create(
+                conversation=conversation,
+                sender=user,
+                text=data.text
+            )
+
+            # Update the conversation's latest message details
+            conversation.latest_message = message
+            conversation.latest_message_text = message.text
+            conversation.latest_message_time = message.time
+            conversation.latest_message_sender = user
+            conversation.save(
+                update_fields=['latest_message', 'latest_message_text', 'latest_message_time', 'latest_message_sender']
+            )
+
+            return message
+
+        # Call the synchronous function safely from our async context
+        return await database_sync_to_async(_add_message_sync)()
 
     @strawberry.mutation
     async def delete_message(self, info: Info, id: strawberry.ID) -> SuccessMessage:
