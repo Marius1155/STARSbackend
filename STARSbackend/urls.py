@@ -6,10 +6,7 @@ from STARS.graphql.schema import schema
 def graphql_view():
     # This import is now safe because django.setup() has already run
     from strawberry.django.views import AsyncGraphQLView
-    return AsyncGraphQLView.as_view(
-        schema=schema,
-        allow_introspection=True
-    )
+    return AsyncGraphQLView.as_view(schema=schema)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
