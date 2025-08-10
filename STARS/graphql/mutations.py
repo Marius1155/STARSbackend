@@ -330,6 +330,12 @@ class ConversationCreateInput:
     participant_ids: list[strawberry.ID]
 
 
+@strawberry.input
+class LoginInput:
+    username: str
+    password: str
+
+
 @strawberry.type
 class SuccessMessage:
     message: str
@@ -371,6 +377,23 @@ class Mutation:
     delete_outfit: types.Outfit = strawberry_django.mutations.delete(strawberry.ID)
 
     update_profile: types.Profile = strawberry_django.mutations.update(ProfileUpdateInput)
+
+    @strawberry.mutation
+    async def login_user(self, info: Info, data: LoginInput) -> types.User:
+        request = info.context.request
+
+        def _login_sync():
+            # Django's authenticate and login functions are synchronous
+            user = authenticate(request, username=data.username, password=data.password)
+            if user is None:
+                raise Exception("Invalid username or password.")
+
+            login(request, user)
+            return user
+
+        # Use sync_to_async to run the sync auth functions
+        return await sync_to_async(_login_sync)()
+
 
     @strawberry.mutation
     async def signup(self, data: SignupInput) -> types.User:
