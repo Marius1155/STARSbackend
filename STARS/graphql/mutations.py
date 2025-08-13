@@ -381,17 +381,35 @@ class Mutation:
     async def login_user(self, info: Info, data: LoginInput) -> types.User:
         request = info.context.request
 
+        # Define a synchronous inner function for all auth/database logic
         def _login_sync():
-            # Django's authenticate and login functions are synchronous
-            user = authenticate(request, username=data.username, password=data.password)
-            if user is None:
-                raise Exception("Invalid username or password.")
+            username_or_email = data.username
+            password = data.password
+            user = None
 
+            # Check if the input string contains '@' to see if it's an email
+            if '@' in username_or_email:
+                try:
+                    # Find the user by their case-insensitive email
+                    user_obj = User.objects.get(email__iexact=username_or_email)
+                    # Now, authenticate using that user's actual username
+                    user = authenticate(request, username=user_obj.username, password=password)
+                except User.DoesNotExist:
+                    # If the email doesn't exist, user will remain None, and auth will fail
+                    pass
+            else:
+                # If no '@', assume it's a username and authenticate directly
+                user = authenticate(request, username=username_or_email, password=password)
+
+            if user is None:
+                raise Exception("Invalid credentials.")
+
+            # If authentication was successful, log the user in
             login(request, user)
             return user
 
-        # Use sync_to_async to run the sync auth functions
-        return await sync_to_async(_login_sync)()
+
+        return await database_sync_to_async(_login_sync)()
 
 
     @strawberry.mutation
