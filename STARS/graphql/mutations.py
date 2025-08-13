@@ -7,7 +7,7 @@ from asgiref.sync import sync_to_async
 from channels.db import database_sync_to_async
 from django.db.models import Count
 from strawberry.types import Info
-from django.contrib.auth import password_validation, login, authenticate
+from django.contrib.auth import password_validation, login, authenticate, logout
 from django.core.exceptions import ValidationError
 
 # --- IMPORTS FOR SOCIAL LOGIN ---
@@ -392,6 +392,20 @@ class Mutation:
 
         # Use sync_to_async to run the sync auth functions
         return await sync_to_async(_login_sync)()
+
+
+    @strawberry.mutation
+    async def logout_user(self, info: Info) -> SuccessMessage:
+        request = info.context.request
+
+        def _logout_sync():
+            if not request.user.is_authenticated:
+                return "User was already logged out."
+            logout(request)
+            return "Successfully logged out."
+
+        message = await sync_to_async(_logout_sync)()
+        return SuccessMessage(message=message)
 
 
     @strawberry.mutation
