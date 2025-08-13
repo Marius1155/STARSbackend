@@ -448,8 +448,8 @@ class Mutation:
             username=data.username,
             email=data.email,
             password=data.password,
-            first_name=data.first_name,
-            last_name=data.last_name,
+            first_name=data.first_name or "",
+            last_name=data.last_name or ""
         )
         await database_sync_to_async(models.Profile.objects.create)(user=user)
         return user
