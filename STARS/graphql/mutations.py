@@ -7,7 +7,7 @@ from asgiref.sync import sync_to_async
 from channels.db import database_sync_to_async
 from django.db.models import Count
 from strawberry.types import Info
-from django.contrib.auth import password_validation, login
+from django.contrib.auth import password_validation, login, authenticate
 from django.core.exceptions import ValidationError
 
 # --- IMPORTS FOR SOCIAL LOGIN ---
@@ -128,7 +128,6 @@ class ReviewUpdateInput:
 class ReviewDataInput:
     stars: float
     text: str
-
 
 @strawberry_django.input(models.SubReview)
 class SubReviewCreateInput:
