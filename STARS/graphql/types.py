@@ -28,7 +28,7 @@ class Event:
     outfits: List["Outfit"] = strawberry_django.field(filters=filters.OutfitFilter)
 
 
-@strawberry_django.type(DjangoUser, fields=["id", "username", "email", "first_name", "last_name"], pagination=True)
+@strawberry_django.type(DjangoUser, fields=["id", "username", "email", "first_name", "is_staff", "is_superuser"], pagination=True)
 class User:
     profile: "Profile"
     conversations: List["Conversation"] = strawberry_django.field(filters=filters.ConversationFilter)
