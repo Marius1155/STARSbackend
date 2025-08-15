@@ -35,11 +35,21 @@ class User:
     reviews: List["Review"] = strawberry_django.field(filters=filters.ReviewFilter)
 
 
+@strawberry_django.type(models.Comment, fields="__all__", pagination=True)
+class Comment:
+    review: "Review"
+    user: "User"
+    liked_by: List["User"] = strawberry_django.field(filters=filters.UserFilter)
+    disliked_by: List["User"] = strawberry_django.field(filters=filters.UserFilter)
+
+
 @strawberry_django.type(models.Review, fields="__all__", pagination=True)
 class Review:
     user: "User"
     content_object: "Reviewable"
     subreviews: List["SubReview"] = strawberry_django.field(filters=filters.SubReviewFilter)
+    liked_by: List["User"] = strawberry_django.field(filters=filters.UserFilter)
+    disliked_by: List["User"] = strawberry_django.field(filters=filters.UserFilter)
 
 
 @strawberry_django.type(models.SubReview, fields="__all__", pagination=True)

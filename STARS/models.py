@@ -56,6 +56,21 @@ class Event(models.Model):
         return f"{self.name} ({self.date})"
 
 
+class Comment (models.Model):
+    review = models.ForeignKey('Review', on_delete=models.CASCADE, related_name='comments')
+    text = models.TextField()
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comments')
+    date_created = models.DateTimeField(auto_now_add=True)
+    date_updated = models.DateTimeField(auto_now=True)
+    likes_count = models.IntegerField(default=0)
+    dislikes_count = models.IntegerField(default=0)
+    liked_by = models.ManyToManyField(User, blank=True, related_name='liked_comments')
+    disliked_by = models.ManyToManyField(User, blank=True, related_name='disliked_comments')
+
+    def __str__(self):
+        f"Comment from {self.user.username} saying {self.text}"
+
+
 class Review(models.Model):
     stars = models.DecimalField(max_digits=3, decimal_places=2)
     text = models.TextField(blank=True)
@@ -63,6 +78,10 @@ class Review(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
     date_updated = models.DateTimeField(auto_now=True)
     is_latest = models.BooleanField(default=True)
+    likes_count = models.IntegerField(default=0)
+    dislikes_count = models.IntegerField(default=0)
+    liked_by = models.ManyToManyField(User, blank=True, related_name='liked_reviews')
+    disliked_by = models.ManyToManyField(User, blank=True, related_name='disliked_reviews')
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')

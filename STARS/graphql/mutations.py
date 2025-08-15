@@ -9,6 +9,9 @@ from django.db.models import Count
 from strawberry.types import Info
 from django.contrib.auth import password_validation, login, authenticate, logout
 from django.core.exceptions import ValidationError
+from django.db import transaction
+import enum
+
 
 # --- IMPORTS FOR SOCIAL LOGIN ---
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
@@ -109,6 +112,16 @@ class EventUpdateInput:
     is_featured: Optional[bool] = strawberry.UNSET
 
 
+@strawberry_django.input(models.Comment)
+class CommentCreateInput:
+    review_id: strawberry.ID
+    text: auto
+
+@strawberry.input
+class CommentUpdateInput:
+    id: strawberry.ID
+    text: Optional[str] = strawberry.UNSET
+
 @strawberry_django.input(models.Review)
 class ReviewCreateInput:
     stars: auto
@@ -190,6 +203,17 @@ class SongUpdateInput:
     is_featured: Optional[bool] = strawberry.UNSET
 
 
+@strawberry.input
+class ProjectArtistInput:
+    artist_id: strawberry.ID
+    position: int
+
+@strawberry.input
+class ProjectSongInput:
+    song_id: strawberry.ID
+    position: int
+
+
 @strawberry_django.input(models.Project)
 class ProjectCreateInput:
     title: auto
@@ -205,6 +229,8 @@ class ProjectCreateInput:
     soundcloud: Optional[str] = None
     bandcamp: Optional[str] = None
     is_featured: Optional[bool] = False
+    artists: Optional[List[ProjectArtistInput]] = None
+    songs: Optional[List[ProjectSongInput]] = None
 
 
 @strawberry.input
@@ -236,6 +262,7 @@ class PodcastCreateInput:
     youtube: Optional[str] = None
     youtube_music: Optional[str] = None
     is_featured: Optional[bool] = False
+    host_ids: Optional[List[strawberry.ID]] = None
 
 
 @strawberry.input
@@ -340,13 +367,20 @@ class SuccessMessage:
     message: str
 
 
+@strawberry.enum
+class LikeAction(enum.Enum):
+    LIKE = "like"
+    UNLIKE = "unlike"
+    DISLIKE = "dislike"
+    UNDISLIKE = "undislike"
+
+
 @strawberry.type
 class Mutation:
     create_artist: types.Artist = strawberry_django.mutations.create(ArtistCreateInput)
     update_artist: types.Artist = strawberry_django.mutations.update(ArtistUpdateInput)
     delete_artist: types.Artist = strawberry_django.mutations.delete(strawberry.ID)
 
-    create_project: types.Project = strawberry_django.mutations.create(ProjectCreateInput)
     update_project: types.Project = strawberry_django.mutations.update(ProjectUpdateInput)
     delete_project: types.Project = strawberry_django.mutations.delete(strawberry.ID)
 
@@ -368,7 +402,6 @@ class Mutation:
     create_music_video: types.MusicVideo = strawberry_django.mutations.create(MusicVideoCreateInput)
     update_music_video: types.MusicVideo = strawberry_django.mutations.update(MusicVideoUpdateInput)
     delete_music_video: types.MusicVideo = strawberry_django.mutations.delete(strawberry.ID)
-    create_podcast: types.Podcast = strawberry_django.mutations.create(PodcastCreateInput)
     update_podcast: types.Podcast = strawberry_django.mutations.update(PodcastUpdateInput)
     delete_podcast: types.Podcast = strawberry_django.mutations.delete(strawberry.ID)
     create_outfit: types.Outfit = strawberry_django.mutations.create(OutfitCreateInput)
@@ -376,6 +409,165 @@ class Mutation:
     delete_outfit: types.Outfit = strawberry_django.mutations.delete(strawberry.ID)
 
     update_profile: types.Profile = strawberry_django.mutations.update(ProfileUpdateInput)
+
+    update_comment: types.Comment = strawberry_django.mutations.update(CommentUpdateInput)
+    delete_comment: types.Comment = strawberry_django.mutations.delete(strawberry.ID)
+
+    @strawberry.mutation
+    async def create_project(self, info: Info, data: ProjectCreateInput) -> types.Project:
+        # (Add permission checks here if needed)
+
+        def _create_sync():
+            project_data = strawberry.asdict(data)
+
+            # Separate the nested artists and songs data
+            artist_inputs = project_data.pop("artists", None)
+            song_inputs = project_data.pop("songs", None)
+
+            with transaction.atomic():
+                # Create the main project object
+                project = models.Project.objects.create(**project_data)
+
+                # If artists were provided, create the links
+                if artist_inputs:
+                    project_artists = [
+                        models.ProjectArtist(
+                            project=project,
+                            artist_id=artist['artist_id'],
+                            position=artist['position']
+                        ) for artist in artist_inputs
+                    ]
+                    models.ProjectArtist.objects.bulk_create(project_artists)
+
+                # If songs were provided, create the links
+                if song_inputs:
+                    project_songs = [
+                        models.ProjectSong(
+                            project=project,
+                            song_id=song['song_id'],
+                            position=song['position']
+                        ) for song in song_inputs
+                    ]
+                    models.ProjectSong.objects.bulk_create(project_songs)
+
+            return project
+
+        return await database_sync_to_async(_create_sync)()
+
+    @strawberry.mutation
+    async def create_podcast(self, info: Info, data: PodcastCreateInput) -> types.Podcast:
+        # (You would add permission checks here, e.g., if user is staff)
+
+        def _create_sync():
+            # Convert the input to a dictionary
+            podcast_data = strawberry.asdict(data)
+            # Separate the host_ids from the other data
+            host_ids = podcast_data.pop("host_ids", None)
+
+            # Use a transaction to ensure both steps succeed or fail together
+            with transaction.atomic():
+                # Create the podcast with the main data
+                podcast = models.Podcast.objects.create(**podcast_data)
+
+                # If host_ids were provided, find the artists and add them
+                if host_ids:
+                    hosts = models.Artist.objects.filter(pk__in=host_ids)
+                    podcast.hosts.set(hosts)
+
+            return podcast
+
+        return await database_sync_to_async(_create_sync)()
+
+
+    @strawberry.mutation
+    async def create_comment(self, info: Info, data: CommentCreateInput) -> types.Comment:
+        user = info.context.request.user
+        if not user.is_authenticated:
+            raise Exception("Authentication required.")
+
+        def _create_sync():
+            review = models.Review.objects.get(pk=data.review_id)
+            # You might want additional logic to ensure user has access to the review's parent object
+            comment = models.Comment.objects.create(
+                review=review,
+                user=user,
+                text=data.text
+            )
+            return comment
+
+        return await database_sync_to_async(_create_sync)()
+
+    @strawberry.mutation
+    async def like_dislike_comment(self, info: Info, comment_id: strawberry.ID, action: LikeAction) -> types.Comment:
+        user = info.context.request.user
+        if not user.is_authenticated:
+            raise Exception("Authentication required.")
+
+        def _update_sync():
+            comment = models.Comment.objects.get(pk=comment_id)
+
+            # Logic to handle likes and dislikes
+            if action == LikeAction.LIKE:
+                comment.liked_by.add(user)
+                comment.disliked_by.remove(user)
+            elif action == LikeAction.UNLIKE:
+                comment.liked_by.remove(user)
+            elif action == LikeAction.DISLIKE:
+                comment.disliked_by.add(user)
+                comment.liked_by.remove(user)
+            elif action == LikeAction.UNDISLIKE:
+                comment.disliked_by.remove(user)
+
+            # Update counts and save
+            comment.likes_count = comment.liked_by.count()
+            comment.dislikes_count = comment.disliked_by.count()
+            comment.save()
+            return comment
+
+        return await database_sync_to_async(_update_sync)()
+
+    # --- NEW REVIEW MUTATIONS ---
+    @strawberry.mutation
+    async def like_dislike_review(self, info: Info, review_id: strawberry.ID, action: LikeAction) -> types.Review:
+        user = info.context.request.user
+        if not user.is_authenticated:
+            raise Exception("Authentication required.")
+
+        def _update_sync():
+            review = models.Review.objects.get(pk=review_id)
+
+            if action == LikeAction.LIKE:
+                review.liked_by.add(user)
+                review.disliked_by.remove(user)
+            elif action == LikeAction.UNLIKE:
+                review.liked_by.remove(user)
+            elif action == LikeAction.DISLIKE:
+                review.disliked_by.add(user)
+                review.liked_by.remove(user)
+            elif action == LikeAction.UNDISLIKE:
+                review.disliked_by.remove(user)
+
+            review.likes_count = review.liked_by.count()
+            review.dislikes_count = review.disliked_by.count()
+            review.save()
+            return review
+
+        return await database_sync_to_async(_update_sync)()
+
+    # --- NEW PODCAST MUTATIONS ---
+    @strawberry.mutation
+    async def add_hosts_to_podcast(self, info: Info, podcast_id: strawberry.ID,
+                                   artist_ids: List[strawberry.ID]) -> types.Podcast:
+        # You would add permission checks here (e.g., if user is staff)
+
+        def _update_sync():
+            podcast = models.Podcast.objects.get(pk=podcast_id)
+            artists = models.Artist.objects.filter(pk__in=artist_ids)
+            podcast.hosts.add(*artists)
+            return podcast
+
+        return await database_sync_to_async(_update_sync)()
+
 
     @strawberry.mutation
     async def login_user(self, info: Info, data: LoginInput) -> types.User:

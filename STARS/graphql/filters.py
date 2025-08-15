@@ -35,11 +35,22 @@ class EventFilter:
     is_featured: auto
     series: Optional["EventSeriesFilter"]
 
+@strawberry_django.filter(models.Comment, lookups=True)
+class CommentFilter:
+    id: auto
+    review: Optional["ReviewFilter"]
+    user: Optional["UserFilter"]
+    likes_count: auto
+    dislikes_count: auto
+    date_created: auto
+
 @strawberry_django.filter(models.Review, lookups=True)
 class ReviewFilter:
     id: auto
     stars: auto
     user: Optional["UserFilter"]
+    likes_count: auto
+    dislikes_count: auto
     date_created: auto
     is_latest: auto
 
@@ -76,7 +87,7 @@ class SongArtistFilter:
 
 @strawberry_django.filter(models.Project, lookups=True)
 class ProjectFilter:
-    id: auto # This will now correctly accept a number
+    id: auto
     title: auto
     release_date: auto
     project_type: auto

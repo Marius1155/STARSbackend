@@ -1,42 +1,11 @@
 import strawberry
 import strawberry_django
 from strawberry_django.optimizer import DjangoOptimizerExtension
-from strawberry_django.pagination import OffsetPaginated
 
-# Import your type, filter, and mutation definitions
 from . import types
 from . import filters
 from . import mutations
 from . import subscriptions
-
-# --- Explicitly import all input types to ensure they are registered ---
-from .mutations import (
-    ArtistCreateInput,
-    ArtistUpdateInput,
-    EventSeriesCreateInput,
-    EventSeriesUpdateInput,
-    EventCreateInput,
-    EventUpdateInput,
-    ReviewCreateInput,
-    ReviewUpdateInput,
-    SubReviewCreateInput,
-    SubReviewUpdateInput,
-    MusicVideoCreateInput,
-    MusicVideoUpdateInput,
-    SongCreateInput,
-    SongUpdateInput,
-    ProjectCreateInput,
-    ProjectUpdateInput,
-    PodcastCreateInput,
-    PodcastUpdateInput,
-    OutfitCreateInput,
-    OutfitUpdateInput,
-    ProfileUpdateInput,
-    SignupInput,
-    SongArtistCreateInput,
-    ProjectArtistCreateInput,
-    ProjectSongCreateInput,
-)
 
 
 @strawberry.type
@@ -47,6 +16,7 @@ class Query:
     songs: list[types.Song] = strawberry_django.field(filters=filters.SongFilter)
     podcasts: list[types.Podcast] = strawberry_django.field(filters=filters.PodcastFilter)
     outfits: list[types.Outfit] = strawberry_django.field(filters=filters.OutfitFilter)
+    comments: list[types.Comment] = strawberry_django.field(filters=filters.CommentFilter)
     reviews: list[types.Review] = strawberry_django.field(filters=filters.ReviewFilter)
     messages: list[types.Message] = strawberry_django.field(filters=filters.MessageFilter)
     conversations: list[types.Conversation] = strawberry_django.field(filters=filters.ConversationFilter)
