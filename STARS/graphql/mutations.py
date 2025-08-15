@@ -616,43 +616,41 @@ class Mutation:
         return await database_sync_to_async(_update_sync)()
     """
 
-    """
     @strawberry.mutation
     async def login_user(self, info: Info, data: LoginInput) -> types.User:
         request = info.context.request
 
-        # Define a synchronous inner function for all auth/database logic
         def _login_sync():
             username_or_email = data.username
             password = data.password
-            user = None
 
-            # Check if the input string contains '@' to see if it's an email
+            # Login via email
             if '@' in username_or_email:
                 try:
-                    # Find the user by their case-insensitive email
                     user_obj = User.objects.get(email__iexact=username_or_email)
-                    # Now, authenticate using that user's actual username
-                    user = authenticate(request, username=user_obj.username, password=password)
                 except User.DoesNotExist:
-                    # If the email doesn't exist, user will remain None, and auth will fail
-                    pass
+                    raise Exception("No account found with this email.")
+
+                user = authenticate(request, username=user_obj.username, password=password)
+                if user is None:
+                    raise Exception("Incorrect password.")
+
+            # Login via username
             else:
-                # If no '@', assume it's a username and authenticate directly
-                user = authenticate(request, username=username_or_email, password=password)
+                try:
+                    user_obj = User.objects.get(username__iexact=username_or_email)
+                except User.DoesNotExist:
+                    raise Exception("No account found with this username.")
 
-            if user is None:
-                raise Exception("Invalid credentials.")
+                user = authenticate(request, username=user_obj.username, password=password)
+                if user is None:
+                    raise Exception("Incorrect password.")
 
-            # If authentication was successful, log the user in
             login(request, user)
             return user
 
-
         return await database_sync_to_async(_login_sync)()
-    """
 
-    """
     @strawberry.mutation
     async def logout_user(self, info: Info) -> SuccessMessage:
         request = info.context.request
@@ -663,10 +661,8 @@ class Mutation:
             logout(request)
             return "Successfully logged out."
 
-        message = await sync_to_async(_logout_sync)()
+        message = await database_sync_to_async(_logout_sync)()
         return SuccessMessage(message=message)
-
-    """
 
     """
     @strawberry.mutation
@@ -707,7 +703,7 @@ class Mutation:
 
         def _create_sync():
             with transaction.atomic():
-                project = models.Project.objects.get(pk=project_id)
+                project = models.Project.objects.select_for_update().get(pk=project_id)
 
                 models.Review.objects.filter(
                     user=user,
@@ -747,7 +743,7 @@ class Mutation:
 
         def _create_sync():
             with transaction.atomic():
-                song = models.Song.objects.get(pk=song_id)
+                song = models.Song.objects.select_for_update().get(pk=song_id)
 
                 models.Review.objects.filter(
                     user=user,
@@ -787,7 +783,7 @@ class Mutation:
 
         def _create_sync():
             with transaction.atomic():
-                outfit = models.Outfit.objects.get(pk=outfit_id)
+                outfit = models.Outfit.objects.select_for_update().get(pk=outfit_id)
 
                 models.Review.objects.filter(
                     user=user,
@@ -827,7 +823,7 @@ class Mutation:
 
         def _create_sync():
             with transaction.atomic():
-                podcast = models.Outfit.objects.get(pk=podcast_id)
+                podcast = models.Outfit.objects.select_for_update().get(pk=podcast_id)
 
                 models.Review.objects.filter(
                     user=user,
@@ -868,7 +864,7 @@ class Mutation:
 
         def _create_sync():
             with transaction.atomic():
-                music_video = models.Outfit.objects.get(pk=music_video_id)
+                music_video = models.Outfit.objects.select_for_update().get(pk=music_video_id)
 
                 models.Review.objects.filter(
                     user=user,
@@ -908,7 +904,7 @@ class Mutation:
 
         def _create_sync():
             with transaction.atomic():
-                cover = models.Outfit.objects.get(pk=cover_id)
+                cover = models.Outfit.objects.select_for_update().get(pk=cover_id)
 
                 models.Review.objects.filter(
                     user=user,
