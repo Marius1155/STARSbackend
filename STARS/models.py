@@ -27,6 +27,7 @@ class Artist(models.Model):
     soundcloud = models.URLField(max_length=500, blank=True, null=True)
     bandcamp = models.URLField(max_length=500, blank=True, null=True)
     is_featured = models.BooleanField(default=False, db_index=True)
+    featured_message = models.TextField(blank=True)
 
     def __str__(self):
         return self.name
@@ -36,6 +37,7 @@ class EventSeries(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     is_featured = models.BooleanField(default=False, db_index=True)
+    featured_message = models.TextField(blank=True)
 
     def __str__(self):
         return self.name
@@ -51,6 +53,8 @@ class Event(models.Model):
     reviews = GenericRelation('Review')
     star_average = models.FloatField(default=0)
     is_featured = models.BooleanField(default=False, db_index=True)
+    featured_message = models.TextField(blank=True)
+
 
     def __str__(self):
         return f"{self.name} ({self.date})"
@@ -109,6 +113,8 @@ class Cover(models.Model):
     reviews = GenericRelation('Review')
     star_average = models.FloatField(default=0)
     is_featured = models.BooleanField(default=False, db_index=True)
+    featured_message = models.TextField(blank=True)
+
 
     def __str__(self):
         return f"Cover for {self.content_object} ({self.image})"
@@ -124,6 +130,8 @@ class MusicVideo(models.Model):
     reviews = GenericRelation('Review')
     star_average = models.FloatField(default=0)
     is_featured = models.BooleanField(default=False, db_index=True)
+    featured_message = models.TextField(blank=True)
+
 
     def __str__(self):
         return self.title
@@ -139,6 +147,8 @@ class Song(models.Model):
     star_average = models.FloatField(default=0)
     alternative_versions = models.ManyToManyField('self', blank=True)
     is_featured = models.BooleanField(default=False, db_index=True)
+    featured_message = models.TextField(blank=True)
+
 
     def __str__(self):
         return f"{self.title} - {self.release_date}"
@@ -182,6 +192,8 @@ class Project(models.Model):
     soundcloud = models.URLField(max_length=500, blank=True, null=True)
     bandcamp = models.URLField(max_length=500, blank=True, null=True)
     is_featured = models.BooleanField(default=False, db_index=True)
+    featured_message = models.TextField(blank=True)
+
 
     def __str__(self):
         return f"{self.title} - {self.release_date}"
@@ -228,6 +240,8 @@ class Podcast(models.Model):
     reviews = GenericRelation('Review')
     star_average = models.FloatField(default=0)
     is_featured = models.BooleanField(default=False, db_index=True)
+    featured_message = models.TextField(blank=True)
+
 
     def __str__(self):
         hosts_names = ', '.join(host.name for host in self.hosts.all())
@@ -248,6 +262,8 @@ class Outfit(models.Model):
     star_average = models.FloatField(default=0)
     matches = models.ManyToManyField('self', blank=True)
     is_featured = models.BooleanField(default=False, db_index=True)
+    featured_message = models.TextField(blank=True)
+
 
     def __str__(self):
         artist_name = self.artist.name if self.artist else "Unknown Artist"

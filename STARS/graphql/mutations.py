@@ -49,6 +49,7 @@ class ArtistCreateInput:
     soundcloud: Optional[str] = None
     bandcamp: Optional[str] = None
     is_featured: Optional[bool] = False
+    featured_message: Optional[str] = None
 
 
 @strawberry.input
@@ -74,6 +75,7 @@ class ArtistUpdateInput:
     soundcloud: Optional[str] = strawberry.UNSET
     bandcamp: Optional[str] = strawberry.UNSET
     is_featured: Optional[bool] = strawberry.UNSET
+    featured_message: Optional[str] = strawberry.UNSET
 
 
 @strawberry_django.input(models.EventSeries)
@@ -81,6 +83,7 @@ class EventSeriesCreateInput:
     name: auto
     description: Optional[str] = None
     is_featured: Optional[bool] = False
+    featured_message: Optional[str] = None
 
 
 @strawberry.input
@@ -89,6 +92,7 @@ class EventSeriesUpdateInput:
     name: Optional[str] = strawberry.UNSET
     description: Optional[str] = strawberry.UNSET
     is_featured: Optional[bool] = strawberry.UNSET
+    featured_message: Optional[str] = strawberry.UNSET
 
 
 @strawberry_django.input(models.Event)
@@ -99,6 +103,7 @@ class EventCreateInput:
     is_one_time: Optional[bool] = False
     series_id: Optional[strawberry.ID] = None
     is_featured: Optional[bool] = False
+    featured_message: Optional[str] = None
 
 
 @strawberry.input
@@ -110,6 +115,8 @@ class EventUpdateInput:
     is_one_time: Optional[bool] = strawberry.UNSET
     series_id: Optional[strawberry.ID] = strawberry.UNSET
     is_featured: Optional[bool] = strawberry.UNSET
+    featured_message: Optional[str] = strawberry.UNSET
+
 
 
 @strawberry_django.input(models.Comment)
@@ -122,11 +129,11 @@ class CommentUpdateInput:
     id: strawberry.ID
     text: Optional[str] = strawberry.UNSET
 
-@strawberry_django.input(models.Review)
-class ReviewCreateInput:
-    stars: auto
+
+@strawberry.input
+class ReviewDataInput:
+    stars: float
     text: Optional[str] = None
-    is_latest: Optional[bool] = True
 
 
 @strawberry.input
@@ -138,15 +145,9 @@ class ReviewUpdateInput:
 
 
 @strawberry.input
-class ReviewDataInput:
+class SubReviewDataInput:
+    topic: str
     stars: float
-    text: str
-
-@strawberry_django.input(models.SubReview)
-class SubReviewCreateInput:
-    review_id: strawberry.ID
-    topic: auto
-    stars: auto
     text: Optional[str] = None
 
 
@@ -156,13 +157,6 @@ class SubReviewUpdateInput:
     topic: Optional[str] = strawberry.UNSET
     text: Optional[str] = strawberry.UNSET
     stars: Optional[float] = strawberry.UNSET
-
-
-@strawberry.input
-class SubReviewDataInput:
-    topic: str
-    text: str
-    stars: float
 
 
 @strawberry_django.input(models.MusicVideo)
@@ -182,6 +176,8 @@ class MusicVideoUpdateInput:
     youtube: Optional[str] = strawberry.UNSET
     thumbnail: Optional[str] = strawberry.UNSET
     is_featured: Optional[bool] = strawberry.UNSET
+    featured_message: Optional[str] = strawberry.UNSET
+
 
 
 @strawberry_django.input(models.Song)
@@ -201,6 +197,8 @@ class SongUpdateInput:
     release_date: Optional[str] = strawberry.UNSET
     preview: Optional[str] = strawberry.UNSET
     is_featured: Optional[bool] = strawberry.UNSET
+    featured_message: Optional[str] = strawberry.UNSET
+
 
 
 @strawberry.input
@@ -249,6 +247,8 @@ class ProjectUpdateInput:
     soundcloud: Optional[str] = strawberry.UNSET
     bandcamp: Optional[str] = strawberry.UNSET
     is_featured: Optional[bool] = strawberry.UNSET
+    featured_message: Optional[str] = strawberry.UNSET
+
 
 
 @strawberry_django.input(models.Podcast)
@@ -277,6 +277,8 @@ class PodcastUpdateInput:
     youtube: Optional[str] = strawberry.UNSET
     youtube_music: Optional[str] = strawberry.UNSET
     is_featured: Optional[bool] = strawberry.UNSET
+    featured_message: Optional[str] = strawberry.UNSET
+
 
 
 @strawberry_django.input(models.Outfit)
@@ -298,6 +300,8 @@ class OutfitUpdateInput:
     preview_picture: Optional[str] = strawberry.UNSET
     instagram_post: Optional[str] = strawberry.UNSET
     is_featured: Optional[bool] = strawberry.UNSET
+    featured_message: Optional[str] = strawberry.UNSET
+
 
 
 @strawberry.input
@@ -391,13 +395,14 @@ class Mutation:
     create_event_series: types.EventSeries = strawberry_django.mutations.create(EventSeriesCreateInput)
     update_event_series: types.EventSeries = strawberry_django.mutations.update(EventSeriesUpdateInput)
     delete_event_series: types.EventSeries = strawberry_django.mutations.delete(strawberry.ID)
-    create_event: types.Event = strawberry_django.mutations.create(EventCreateInput)
+
     update_event: types.Event = strawberry_django.mutations.update(EventUpdateInput)
     delete_event: types.Event = strawberry_django.mutations.delete(strawberry.ID)
 
-    create_review: types.Review = strawberry_django.mutations.create(ReviewCreateInput)
     update_review: types.Review = strawberry_django.mutations.update(ReviewUpdateInput)
     delete_review: types.Review = strawberry_django.mutations.delete(strawberry.ID)
+    update_subreview: types.SubReview = strawberry_django.mutations.update(SubReviewUpdateInput)
+    delete_subreview: types.SubReview = strawberry_django.mutations.delete(strawberry.ID)
 
     create_music_video: types.MusicVideo = strawberry_django.mutations.create(MusicVideoCreateInput)
     update_music_video: types.MusicVideo = strawberry_django.mutations.update(MusicVideoUpdateInput)
@@ -413,6 +418,42 @@ class Mutation:
     update_comment: types.Comment = strawberry_django.mutations.update(CommentUpdateInput)
     delete_comment: types.Comment = strawberry_django.mutations.delete(strawberry.ID)
 
+
+    @strawberry.mutation
+    async def create_event(self, info: Info, data: EventCreateInput) -> types.Event:
+
+        def _create_sync():
+            if data.is_one_time:
+
+                event = models.Event.objects.create(
+                    name=data.name,
+                    date=data.date,
+                    location=data.location,
+                    is_one_time=data.is_one_time,
+                    event_series=None,
+                    is_featured=data.is_featured,
+                    featured_message=data.featured_message
+                )
+
+            else:
+                event_series = models.EventSeries.objects.get(pk=data.series_id)
+
+                event = models.Event.objects.create(
+                    name = data.name,
+                    date = data.date,
+                    location = data.location,
+                    is_one_time = data.is_one_time,
+                    event_series = event_series,
+                    is_featured = data.is_featured,
+                    featured_message = data.featured_message
+                )
+
+
+            return event
+
+        return await database_sync_to_async(_create_sync)()
+
+    """
     @strawberry.mutation
     async def create_project(self, info: Info, data: ProjectCreateInput) -> types.Project:
         # (Add permission checks here if needed)
@@ -453,7 +494,9 @@ class Mutation:
             return project
 
         return await database_sync_to_async(_create_sync)()
+    """
 
+    """
     @strawberry.mutation
     async def create_podcast(self, info: Info, data: PodcastCreateInput) -> types.Podcast:
         # (You would add permission checks here, e.g., if user is staff)
@@ -477,7 +520,7 @@ class Mutation:
             return podcast
 
         return await database_sync_to_async(_create_sync)()
-
+    """
 
     @strawberry.mutation
     async def create_comment(self, info: Info, data: CommentCreateInput) -> types.Comment:
@@ -487,7 +530,7 @@ class Mutation:
 
         def _create_sync():
             review = models.Review.objects.get(pk=data.review_id)
-            # You might want additional logic to ensure user has access to the review's parent object
+
             comment = models.Comment.objects.create(
                 review=review,
                 user=user,
@@ -497,6 +540,7 @@ class Mutation:
 
         return await database_sync_to_async(_create_sync)()
 
+    """
     @strawberry.mutation
     async def like_dislike_comment(self, info: Info, comment_id: strawberry.ID, action: LikeAction) -> types.Comment:
         user = info.context.request.user
@@ -525,8 +569,9 @@ class Mutation:
             return comment
 
         return await database_sync_to_async(_update_sync)()
+    """
 
-    # --- NEW REVIEW MUTATIONS ---
+    """
     @strawberry.mutation
     async def like_dislike_review(self, info: Info, review_id: strawberry.ID, action: LikeAction) -> types.Review:
         user = info.context.request.user
@@ -554,7 +599,9 @@ class Mutation:
 
         return await database_sync_to_async(_update_sync)()
 
-    # --- NEW PODCAST MUTATIONS ---
+    """
+
+    """
     @strawberry.mutation
     async def add_hosts_to_podcast(self, info: Info, podcast_id: strawberry.ID,
                                    artist_ids: List[strawberry.ID]) -> types.Podcast:
@@ -567,8 +614,9 @@ class Mutation:
             return podcast
 
         return await database_sync_to_async(_update_sync)()
+    """
 
-
+    """
     @strawberry.mutation
     async def login_user(self, info: Info, data: LoginInput) -> types.User:
         request = info.context.request
@@ -602,8 +650,9 @@ class Mutation:
 
 
         return await database_sync_to_async(_login_sync)()
+    """
 
-
+    """
     @strawberry.mutation
     async def logout_user(self, info: Info) -> SuccessMessage:
         request = info.context.request
@@ -617,7 +666,9 @@ class Mutation:
         message = await sync_to_async(_logout_sync)()
         return SuccessMessage(message=message)
 
+    """
 
+    """
     @strawberry.mutation
     async def signup(self, data: SignupInput) -> types.User:
         if data.password != data.password_confirmation:
@@ -646,45 +697,167 @@ class Mutation:
         await database_sync_to_async(models.Profile.objects.create)(user=user)
         return user
 
+    """
+
     @strawberry.mutation
     async def add_review_to_project(self, info: Info, project_id: strawberry.ID, data: ReviewDataInput) -> types.Review:
         user = info.context.request.user
         if not user.is_authenticated:
             raise Exception("Authentication required.")
-        project = await database_sync_to_async(models.Project.objects.get)(pk=project_id)
-        review = await database_sync_to_async(models.Review.objects.create)(user=user, stars=data.stars, text=data.text,
-                                                                            content_object=project)
-        return review
+
+        def _create_sync():
+            with transaction.atomic():
+                project = models.Project.objects.get(pk=project_id)
+
+                models.Review.objects.filter(
+                    user=user,
+                    object_id=project.id,
+                    content_type__model='project',
+                    is_latest=True
+                ).update(is_latest=False)
+
+                old_reviews_count = project.reviews_count
+                old_star_total = project.star_average * old_reviews_count
+
+                review = models.Review.objects.create(
+                    user=user,
+                    stars=data.stars,
+                    text=data.text,
+                    content_object=project
+                )
+
+                new_reviews_count = old_reviews_count + 1
+                new_star_total = old_star_total + float(data.stars)
+                new_average = new_star_total / new_reviews_count if new_reviews_count > 0 else 0.0
+
+                project.reviews_count = new_reviews_count
+                project.star_average = new_average
+                project.save(update_fields=['reviews_count', 'star_average'])
+
+            return review
+
+        return await database_sync_to_async(_create_sync)()
+
 
     @strawberry.mutation
     async def add_review_to_song(self, info: Info, song_id: strawberry.ID, data: ReviewDataInput) -> types.Review:
         user = info.context.request.user
         if not user.is_authenticated:
             raise Exception("Authentication required.")
-        song = await database_sync_to_async(models.Song.objects.get)(pk=song_id)
-        review = await database_sync_to_async(models.Review.objects.create)(user=user, stars=data.stars, text=data.text,
-                                                                            content_object=song)
-        return review
+
+        def _create_sync():
+            with transaction.atomic():
+                song = models.Song.objects.get(pk=song_id)
+
+                models.Review.objects.filter(
+                    user=user,
+                    object_id=song.id,
+                    content_type__model='song',
+                    is_latest=True
+                ).update(is_latest=False)
+
+                old_reviews_count = song.reviews_count
+                old_star_total = song.star_average * old_reviews_count
+
+                review = models.Review.objects.create(
+                    user=user,
+                    stars=data.stars,
+                    text=data.text,
+                    content_object=song
+                )
+
+                new_reviews_count = old_reviews_count + 1
+                new_star_total = old_star_total + float(data.stars)
+                new_average = new_star_total / new_reviews_count if new_reviews_count > 0 else 0.0
+
+                song.reviews_count = new_reviews_count
+                song.star_average = new_average
+                song.save(update_fields=['reviews_count', 'star_average'])
+
+            return review
+
+        return await database_sync_to_async(_create_sync)()
+
 
     @strawberry.mutation
     async def add_review_to_outfit(self, info: Info, outfit_id: strawberry.ID, data: ReviewDataInput) -> types.Review:
         user = info.context.request.user
         if not user.is_authenticated:
             raise Exception("Authentication required.")
-        outfit = await database_sync_to_async(models.Outfit.objects.get)(pk=outfit_id)
-        review = await database_sync_to_async(models.Review.objects.create)(user=user, stars=data.stars, text=data.text,
-                                                                            content_object=outfit)
-        return review
+
+        def _create_sync():
+            with transaction.atomic():
+                outfit = models.Outfit.objects.get(pk=outfit_id)
+
+                models.Review.objects.filter(
+                    user=user,
+                    object_id=outfit.id,
+                    content_type__model='outfit',
+                    is_latest=True
+                ).update(is_latest=False)
+
+                old_reviews_count = outfit.reviews_count
+                old_star_total = outfit.star_average * old_reviews_count
+
+                review = models.Review.objects.create(
+                    user=user,
+                    stars=data.stars,
+                    text=data.text,
+                    content_object=outfit
+                )
+
+                new_reviews_count = old_reviews_count + 1
+                new_star_total = old_star_total + float(data.stars)
+                new_average = new_star_total / new_reviews_count if new_reviews_count > 0 else 0.0
+
+                outfit.reviews_count = new_reviews_count
+                outfit.star_average = new_average
+                outfit.save(update_fields=['reviews_count', 'star_average'])
+
+            return review
+
+        return await database_sync_to_async(_create_sync)()
+
 
     @strawberry.mutation
     async def add_review_to_podcast(self, info: Info, podcast_id: strawberry.ID, data: ReviewDataInput) -> types.Review:
         user = info.context.request.user
         if not user.is_authenticated:
             raise Exception("Authentication required.")
-        podcast = await database_sync_to_async(models.Podcast.objects.get)(pk=podcast_id)
-        review = await database_sync_to_async(models.Review.objects.create)(user=user, stars=data.stars, text=data.text,
-                                                                            content_object=podcast)
-        return review
+
+        def _create_sync():
+            with transaction.atomic():
+                podcast = models.Outfit.objects.get(pk=podcast_id)
+
+                models.Review.objects.filter(
+                    user=user,
+                    object_id=podcast.id,
+                    content_type__model='podcast',
+                    is_latest=True
+                ).update(is_latest=False)
+
+                old_reviews_count = podcast.reviews_count
+                old_star_total = podcast.star_average * old_reviews_count
+
+                review = models.Review.objects.create(
+                    user=user,
+                    stars=data.stars,
+                    text=data.text,
+                    content_object=podcast
+                )
+
+                new_reviews_count = old_reviews_count + 1
+                new_star_total = old_star_total + float(data.stars)
+                new_average = new_star_total / new_reviews_count if new_reviews_count > 0 else 0.0
+
+                podcast.reviews_count = new_reviews_count
+                podcast.star_average = new_average
+                podcast.save(update_fields=['reviews_count', 'star_average'])
+
+            return review
+
+        return await database_sync_to_async(_create_sync)()
+
 
     @strawberry.mutation
     async def add_review_to_music_video(self, info: Info, music_video_id: strawberry.ID,
@@ -692,38 +865,101 @@ class Mutation:
         user = info.context.request.user
         if not user.is_authenticated:
             raise Exception("Authentication required.")
-        music_video = await database_sync_to_async(models.MusicVideo.objects.get)(pk=music_video_id)
-        review = await database_sync_to_async(models.Review.objects.create)(user=user, stars=data.stars, text=data.text,
-                                                                            content_object=music_video)
-        return review
+
+        def _create_sync():
+            with transaction.atomic():
+                music_video = models.Outfit.objects.get(pk=music_video_id)
+
+                models.Review.objects.filter(
+                    user=user,
+                    object_id=music_video.id,
+                    content_type__model='music_video',
+                    is_latest=True
+                ).update(is_latest=False)
+
+                old_reviews_count = music_video.reviews_count
+                old_star_total = music_video.star_average * old_reviews_count
+
+                review = models.Review.objects.create(
+                    user=user,
+                    stars=data.stars,
+                    text=data.text,
+                    content_object=music_video
+                )
+
+                new_reviews_count = old_reviews_count + 1
+                new_star_total = old_star_total + float(data.stars)
+                new_average = new_star_total / new_reviews_count if new_reviews_count > 0 else 0.0
+
+                music_video.reviews_count = new_reviews_count
+                music_video.star_average = new_average
+                music_video.save(update_fields=['reviews_count', 'star_average'])
+
+            return review
+
+        return await database_sync_to_async(_create_sync)()
+
 
     @strawberry.mutation
     async def add_review_to_cover(self, info: Info, cover_id: strawberry.ID, data: ReviewDataInput) -> types.Review:
         user = info.context.request.user
         if not user.is_authenticated:
             raise Exception("Authentication required.")
-        cover = await database_sync_to_async(models.Cover.objects.get)(pk=cover_id)
-        review = await database_sync_to_async(models.Review.objects.create)(user=user, stars=data.stars, text=data.text,
-                                                                            content_object=cover)
-        return review
+
+        def _create_sync():
+            with transaction.atomic():
+                cover = models.Outfit.objects.get(pk=cover_id)
+
+                models.Review.objects.filter(
+                    user=user,
+                    object_id=cover.id,
+                    content_type__model='cover',
+                    is_latest=True
+                ).update(is_latest=False)
+
+                old_reviews_count = cover.reviews_count
+                old_star_total = cover.star_average * old_reviews_count
+
+                review = models.Review.objects.create(
+                    user=user,
+                    stars=data.stars,
+                    text=data.text,
+                    content_object=cover
+                )
+
+                new_reviews_count = old_reviews_count + 1
+                new_star_total = old_star_total + float(data.stars)
+                new_average = new_star_total / new_reviews_count if new_reviews_count > 0 else 0.0
+
+                cover.reviews_count = new_reviews_count
+                cover.star_average = new_average
+                cover.save(update_fields=['reviews_count', 'star_average'])
+
+            return review
+
+        return await database_sync_to_async(_create_sync)()
+
 
     @strawberry.mutation
     async def add_sub_review_to_review(self, info: Info, review_id: strawberry.ID,
                                        data: SubReviewDataInput) -> types.SubReview:
-        review = await database_sync_to_async(models.Review.objects.get)(pk=review_id)
-        sub_review = await database_sync_to_async(models.SubReview.objects.create)(
-            review=review,
-            topic=data.topic,
-            text=data.text,
-            stars=data.stars
-        )
-        return sub_review
+        def _create_sync():
 
+            review = models.Review.objects.get(pk=review_id)
+            sub_review = models.SubReview.objects.create(
+                review=review,
+                topic=data.topic,
+                text=data.text,
+                stars=data.stars
+            )
+            return sub_review
+
+        return await database_sync_to_async(_create_sync)()
+
+
+    """
     @strawberry.mutation
     async def create_conversation(self, info: Info, data: ConversationCreateInput) -> types.Conversation:
-        """
-        Creates a new conversation with a given list of participants.
-        """
         # Get the request from the context, which is safe to do here.
         request = info.context.request
 
@@ -760,7 +996,9 @@ class Mutation:
 
         # Now, call the synchronous function from our async context
         return await database_sync_to_async(_create_conversation_sync)()
+    """
 
+    """
     @strawberry.mutation
     async def add_message_to_conversation(self, info: Info, conversation_id: strawberry.ID,
                                           data: MessageDataInput) -> types.Message:
@@ -799,7 +1037,9 @@ class Mutation:
 
         # Call the synchronous function safely from our async context
         return await database_sync_to_async(_add_message_sync)()
+    """
 
+    """
     @strawberry.mutation
     async def delete_message(self, info: Info, id: strawberry.ID) -> SuccessMessage:
         user = info.context.request.user
@@ -815,7 +1055,9 @@ class Mutation:
 
         await database_sync_to_async(message.delete)()
         return SuccessMessage(message="Message deleted successfully.")
+    """
 
+    """
     @strawberry.mutation
     async def like_message(self, info: Info, id: strawberry.ID) -> types.Message:
         user = info.context.request.user
@@ -836,7 +1078,9 @@ class Mutation:
             await database_sync_to_async(message.liked_by.add)(user)
 
         return message
+    """
 
+    """
     @strawberry.mutation
     async def mark_message_as_read(self, info: Info, id: strawberry.ID) -> types.Message:
         user = info.context.request.user
@@ -855,7 +1099,9 @@ class Mutation:
         message.is_read = True
         await database_sync_to_async(message.save)(update_fields=['is_read'])
         return message
+    """
 
+    """
     @strawberry.mutation
     async def add_artist_to_song(self, info: Info, song_id: strawberry.ID, artist_id: strawberry.ID,
                                  position: int) -> types.SongArtist:
@@ -864,7 +1110,9 @@ class Mutation:
         song_artist = await database_sync_to_async(models.SongArtist.objects.create)(song=song, artist=artist,
                                                                                      position=position)
         return song_artist
+    """
 
+    """
     @strawberry.mutation
     async def add_artist_to_project(self, info: Info, project_id: strawberry.ID, artist_id: strawberry.ID,
                                     position: int) -> types.ProjectArtist:
@@ -874,7 +1122,9 @@ class Mutation:
                                                                                            artist=artist,
                                                                                            position=position)
         return project_artist
+    """
 
+    """
     @strawberry.mutation
     async def add_song_to_project(self, info: Info, project_id: strawberry.ID, song_id: strawberry.ID,
                                   position: int) -> types.ProjectSong:
@@ -883,13 +1133,17 @@ class Mutation:
         project_song = await database_sync_to_async(models.ProjectSong.objects.create)(project=project, song=song,
                                                                                        position=position)
         return project_song
+    """
 
+    """
     @strawberry.mutation
     async def add_cover_to_project(self, info: Info, project_id: strawberry.ID, data: CoverDataInput) -> types.Cover:
         project = await database_sync_to_async(models.Project.objects.get)(pk=project_id)
         cover = await database_sync_to_async(models.Cover.objects.create)(image=data.image_url, content_object=project)
         return cover
+    """
 
+    """
     @strawberry.mutation
     async def follow_user(self, info: Info, follower_id: strawberry.ID, followed_id: strawberry.ID) -> types.Profile:
         # Note: This is insecure, should use authenticated user
@@ -908,7 +1162,9 @@ class Mutation:
         await database_sync_to_async(follower_profile.save)()
         await database_sync_to_async(followed_profile.save)()
         return followed_profile
+    """
 
+    """
     @strawberry.mutation
     async def change_my_password(self, info: Info, old_password: str, new_password: str) -> SuccessMessage:
         user: User = info.context.request.user
@@ -924,7 +1180,9 @@ class Mutation:
         await database_sync_to_async(user.set_password)(new_password)
         await database_sync_to_async(user.save)()
         return SuccessMessage(message="Your password has been successfully changed.")
+    """
 
+    """
     @strawberry.mutation
     async def delete_my_account(self, info: Info, password: str) -> SuccessMessage:
         user: User = info.context.request.user
@@ -937,7 +1195,9 @@ class Mutation:
 
         await database_sync_to_async(user.delete)()
         return SuccessMessage(message="Your account has been successfully deleted.")
+    """
 
+    """
     @strawberry.mutation
     async def login_with_google(self, info: Info, access_token: str) -> types.User:
         request = info.context.request
@@ -950,7 +1210,9 @@ class Mutation:
         if not user.is_authenticated:
             raise Exception("Google authentication failed.")
         return user
+    """
 
+    """
     @strawberry.mutation
     async def login_with_apple(self, info: Info, access_token: str, id_token: str) -> types.User:
         request = info.context.request
@@ -965,3 +1227,4 @@ class Mutation:
         if not user.is_authenticated:
             raise Exception("Apple authentication failed.")
         return user
+    """
