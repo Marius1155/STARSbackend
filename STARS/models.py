@@ -131,7 +131,7 @@ class MusicVideo(models.Model):
     number_of_songs = models.IntegerField()
     songs = models.ManyToManyField('Song', related_name='music_videos')
     release_date = models.DateField(db_index=True)
-    youtube = models.URLField(max_length=500)
+    youtube = models.URLField(max_length=500, unique=True)
     thumbnail = models.URLField(max_length=500)
     reviews_count = models.IntegerField(default=0)
     reviews = GenericRelation('Review')
