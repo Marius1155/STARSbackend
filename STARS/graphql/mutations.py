@@ -181,27 +181,32 @@ def clean_youtube_url(url: str) -> str:
         raise ValueError("Cannot extract video ID from URL")
 
 def extract_youtube_id(url: str) -> str:
-    patterns = [
-        r"(?:v=|\/)([0-9A-Za-z_-]{11})",  # stops at 11-char video ID
-        r"(?:youtu\.be\/)([0-9A-Za-z_-]{11})"
-    ]
-    for pattern in patterns:
-        match = re.search(pattern, url)
-        if match:
-            return match.group(1)
-    raise ValueError("Invalid YouTube URL")
+    """
+    Extract the 11-character YouTube video ID from any standard YouTube URL.
+    Works with URLs like:
+    - https://www.youtube.com/watch?v=XXXXXXXXXXX
+    - https://youtu.be/XXXXXXXXXXX
+    - https://www.youtube.com/watch?v=XXXXXXXXXXX&list=...
+    """
+    # Try standard v= query parameter
+    parsed = urlparse(url)
+    query = parse_qs(parsed.query)
+    if 'v' in query:
+        video_id = query['v'][0]
+        if len(video_id) == 11:
+            return video_id
 
+    # Try youtu.be short URL
+    match = re.search(r'youtu\.be/([0-9A-Za-z_-]{11})', url)
+    if match:
+        return match.group(1)
 
-def extract_youtube_id(url: str) -> str:
-    patterns = [
-        r"(?:v=|\/)([0-9A-Za-z_-]{11}).*",
-        r"(?:youtu\.be\/)([0-9A-Za-z_-]{11})"
-    ]
-    for pattern in patterns:
-        match = re.match(pattern, url)
-        if match:
-            return match.group(1)
-    raise ValueError("Invalid YouTube URL")
+    # Try /embed/ style URLs
+    match = re.search(r'/embed/([0-9A-Za-z_-]{11})', url)
+    if match:
+        return match.group(1)
+
+    raise ValueError(f"Invalid YouTube URL: {url}")
 
 
 def fetch_youtube_metadata(video_url: str):
