@@ -1253,7 +1253,7 @@ class Mutation:
     @strawberry.mutation
     async def add_cover_to_project(self, info, project_id: strawberry.ID, data: CoverDataInput) -> types.Cover:
 
-        async def _sync():
+        def _sync():
 
             with transaction.atomic():
                 project = models.Project.objects.get(pk=project_id)
@@ -1297,7 +1297,7 @@ class Mutation:
     @strawberry.mutation
     async def add_cover_to_podcast(self, info, podcast_id: strawberry.ID, data: CoverDataInput) -> types.Cover:
 
-        async def _sync():
+        def _sync():
 
             with transaction.atomic():
                 podcast = models.Podcast.objects.get(pk=podcast_id)
