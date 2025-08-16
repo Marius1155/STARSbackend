@@ -348,11 +348,13 @@ class ProjectSongCreateInput:
 @strawberry.input
 class MessageDataInput:
     text: str
+    replying_to_messsage_id: Optional[strawberry.ID] = None
 
 
 @strawberry.input
 class CoverDataInput:
     image_url: str
+    position: auto
 
 
 @strawberry.input
@@ -400,7 +402,6 @@ class Mutation:
     delete_event: types.Event = strawberry_django.mutations.delete(strawberry.ID)
 
     update_review: types.Review = strawberry_django.mutations.update(ReviewUpdateInput)
-    delete_review: types.Review = strawberry_django.mutations.delete(strawberry.ID)
     update_subreview: types.SubReview = strawberry_django.mutations.update(SubReviewUpdateInput)
     delete_subreview: types.SubReview = strawberry_django.mutations.delete(strawberry.ID)
 
@@ -423,33 +424,37 @@ class Mutation:
     async def create_event(self, info: Info, data: EventCreateInput) -> types.Event:
 
         def _create_sync():
-            if data.is_one_time:
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
 
-                event = models.Event.objects.create(
-                    name=data.name,
-                    date=data.date,
-                    location=data.location,
-                    is_one_time=data.is_one_time,
-                    event_series=None,
-                    is_featured=data.is_featured,
-                    featured_message=data.featured_message
-                )
+            with transaction.atomic():
+                if data.is_one_time:
 
-            else:
-                event_series = models.EventSeries.objects.get(pk=data.series_id)
+                    event = models.Event.objects.create(
+                        name=data.name,
+                        date=data.date,
+                        location=data.location,
+                        is_one_time=data.is_one_time,
+                        event_series=None,
+                        is_featured=data.is_featured,
+                        featured_message=data.featured_message
+                    )
 
-                event = models.Event.objects.create(
-                    name = data.name,
-                    date = data.date,
-                    location = data.location,
-                    is_one_time = data.is_one_time,
-                    event_series = event_series,
-                    is_featured = data.is_featured,
-                    featured_message = data.featured_message
-                )
+                else:
+                    event_series = models.EventSeries.objects.get(pk=data.series_id)
 
+                    event = models.Event.objects.create(
+                        name = data.name,
+                        date = data.date,
+                        location = data.location,
+                        is_one_time = data.is_one_time,
+                        event_series = event_series,
+                        is_featured = data.is_featured,
+                        featured_message = data.featured_message
+                    )
 
-            return event
+                return event
 
         return await database_sync_to_async(_create_sync)()
 
@@ -524,82 +529,118 @@ class Mutation:
 
     @strawberry.mutation
     async def create_comment(self, info: Info, data: CommentCreateInput) -> types.Comment:
-        user = info.context.request.user
-        if not user.is_authenticated:
-            raise Exception("Authentication required.")
 
         def _create_sync():
-            review = models.Review.objects.get(pk=data.review_id)
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
 
-            comment = models.Comment.objects.create(
-                review=review,
-                user=user,
-                text=data.text
-            )
-            return comment
+            with transaction.atomic():
+                review = models.Review.objects.get(pk=data.review_id)
+
+                comment = models.Comment.objects.create(
+                    review=review,
+                    user=user,
+                    text=data.text
+                )
+                return comment
 
         return await database_sync_to_async(_create_sync)()
 
-    """
+
     @strawberry.mutation
     async def like_dislike_comment(self, info: Info, comment_id: strawberry.ID, action: LikeAction) -> types.Comment:
-        user = info.context.request.user
-        if not user.is_authenticated:
-            raise Exception("Authentication required.")
 
         def _update_sync():
-            comment = models.Comment.objects.get(pk=comment_id)
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
 
-            # Logic to handle likes and dislikes
-            if action == LikeAction.LIKE:
-                comment.liked_by.add(user)
-                comment.disliked_by.remove(user)
-            elif action == LikeAction.UNLIKE:
-                comment.liked_by.remove(user)
-            elif action == LikeAction.DISLIKE:
-                comment.disliked_by.add(user)
-                comment.liked_by.remove(user)
-            elif action == LikeAction.UNDISLIKE:
-                comment.disliked_by.remove(user)
+            with transaction.atomic():
+                comment = (
+                    models.Comment.objects
+                    .select_for_update()
+                    .get(pk=comment_id)
+                )
 
-            # Update counts and save
-            comment.likes_count = comment.liked_by.count()
-            comment.dislikes_count = comment.disliked_by.count()
-            comment.save()
-            return comment
+                if action == LikeAction.LIKE:
+                    if not comment.liked_by.filter(pk=user.pk).exists():
+                        comment.liked_by.add(user)
+                        comment.likes_count += 1
+                    if comment.disliked_by.filter(pk=user.pk).exists():
+                        comment.disliked_by.remove(user)
+                        comment.dislikes_count -= 1
+
+                elif action == LikeAction.UNLIKE:
+                    if comment.liked_by.filter(pk=user.pk).exists():
+                        comment.liked_by.remove(user)
+                        comment.likes_count -= 1
+
+                elif action == LikeAction.DISLIKE:
+                    if not comment.disliked_by.filter(pk=user.pk).exists():
+                        comment.disliked_by.add(user)
+                        comment.dislikes_count += 1
+                    if comment.liked_by.filter(pk=user.pk).exists():
+                        comment.liked_by.remove(user)
+                        comment.likes_count -= 1
+
+                elif action == LikeAction.UNDISLIKE:
+                    if comment.disliked_by.filter(pk=user.pk).exists():
+                        comment.disliked_by.remove(user)
+                        comment.dislikes_count -= 1
+
+                comment.save(update_fields=["likes_count", "dislikes_count"])
+                return comment
 
         return await database_sync_to_async(_update_sync)()
-    """
 
-    """
+
     @strawberry.mutation
     async def like_dislike_review(self, info: Info, review_id: strawberry.ID, action: LikeAction) -> types.Review:
-        user = info.context.request.user
-        if not user.is_authenticated:
-            raise Exception("Authentication required.")
 
         def _update_sync():
-            review = models.Review.objects.get(pk=review_id)
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
 
-            if action == LikeAction.LIKE:
-                review.liked_by.add(user)
-                review.disliked_by.remove(user)
-            elif action == LikeAction.UNLIKE:
-                review.liked_by.remove(user)
-            elif action == LikeAction.DISLIKE:
-                review.disliked_by.add(user)
-                review.liked_by.remove(user)
-            elif action == LikeAction.UNDISLIKE:
-                review.disliked_by.remove(user)
+            with transaction.atomic():
+                review = (
+                    models.Review.objects
+                    .select_for_update()
+                    .get(pk=review_id)
+                )
 
-            review.likes_count = review.liked_by.count()
-            review.dislikes_count = review.disliked_by.count()
-            review.save()
-            return review
+                if action == LikeAction.LIKE:
+                    if not review.liked_by.filter(pk=user.pk).exists():
+                        review.liked_by.add(user)
+                        review.likes_count += 1
+                    if review.disliked_by.filter(pk=user.pk).exists():
+                        review.disliked_by.remove(user)
+                        review.dislikes_count -= 1
+
+                elif action == LikeAction.UNLIKE:
+                    if review.liked_by.filter(pk=user.pk).exists():
+                        review.liked_by.remove(user)
+                        review.likes_count -= 1
+
+                elif action == LikeAction.DISLIKE:
+                    if not review.disliked_by.filter(pk=user.pk).exists():
+                        review.disliked_by.add(user)
+                        review.dislikes_count += 1
+                    if review.liked_by.filter(pk=user.pk).exists():
+                        review.liked_by.remove(user)
+                        review.likes_count -= 1
+
+                elif action == LikeAction.UNDISLIKE:
+                    if review.disliked_by.filter(pk=user.pk).exists():
+                        review.disliked_by.remove(user)
+                        review.dislikes_count -= 1
+
+                review.save(update_fields=["likes_count", "dislikes_count"])
+                return review
 
         return await database_sync_to_async(_update_sync)()
 
-    """
 
     """
     @strawberry.mutation
@@ -664,44 +705,50 @@ class Mutation:
         message = await database_sync_to_async(_logout_sync)()
         return SuccessMessage(message=message)
 
-    """
+
     @strawberry.mutation
     async def signup(self, data: SignupInput) -> types.User:
-        if data.password != data.password_confirmation:
-            raise Exception("Passwords do not match.")
 
-        user_exists = await database_sync_to_async(User.objects.filter(email=data.email).exists)()
-        if user_exists:
-            raise Exception("A user with this email already exists.")
+        def _signup_sync():
+            if data.password != data.password_confirmation:
+                raise Exception("Passwords do not match.")
 
-        username_exists = await database_sync_to_async(User.objects.filter(username=data.username).exists)()
-        if username_exists:
-            raise Exception("A user with this username already exists.")
+            user_exists = User.objects.filter(email__iexact=data.email).exists()
+            if user_exists:
+                raise Exception("A user with this email already exists.")
 
-        try:
-            await sync_to_async(password_validation.validate_password)(data.password)
-        except ValidationError as e:
-            raise Exception(f"Invalid password: {', '.join(e.messages)}")
+            username_exists = User.objects.filter(email__iexact=data.email).exists()
+            if username_exists:
+                raise Exception("A user with this username already exists.")
 
-        user = await database_sync_to_async(User.objects.create_user)(
-            username=data.username,
-            email=data.email,
-            password=data.password,
-            first_name=data.first_name or "",
-            last_name=data.last_name or ""
-        )
-        await database_sync_to_async(models.Profile.objects.create)(user=user)
-        return user
+            try:
+                password_validation.validate_password(data.password)
+            except ValidationError as e:
+                raise Exception(f"Invalid password: {', '.join(e.messages)}")
 
-    """
+            with transaction.atomic():
+                user = User.objects.create_user(
+                    username=data.username,
+                    email=data.email,
+                    password=data.password,
+                    first_name=data.first_name or "",
+                    last_name=data.last_name or ""
+                )
+                models.Profile.objects.create(user=user)
+
+            return user
+
+        return await database_sync_to_async(_signup_sync)()
+
 
     @strawberry.mutation
     async def add_review_to_project(self, info: Info, project_id: strawberry.ID, data: ReviewDataInput) -> types.Review:
-        user = info.context.request.user
-        if not user.is_authenticated:
-            raise Exception("Authentication required.")
 
         def _create_sync():
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
+
             with transaction.atomic():
                 project = models.Project.objects.select_for_update().get(pk=project_id)
 
@@ -737,11 +784,12 @@ class Mutation:
 
     @strawberry.mutation
     async def add_review_to_song(self, info: Info, song_id: strawberry.ID, data: ReviewDataInput) -> types.Review:
-        user = info.context.request.user
-        if not user.is_authenticated:
-            raise Exception("Authentication required.")
 
         def _create_sync():
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
+
             with transaction.atomic():
                 song = models.Song.objects.select_for_update().get(pk=song_id)
 
@@ -777,11 +825,12 @@ class Mutation:
 
     @strawberry.mutation
     async def add_review_to_outfit(self, info: Info, outfit_id: strawberry.ID, data: ReviewDataInput) -> types.Review:
-        user = info.context.request.user
-        if not user.is_authenticated:
-            raise Exception("Authentication required.")
 
         def _create_sync():
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
+
             with transaction.atomic():
                 outfit = models.Outfit.objects.select_for_update().get(pk=outfit_id)
 
@@ -817,11 +866,12 @@ class Mutation:
 
     @strawberry.mutation
     async def add_review_to_podcast(self, info: Info, podcast_id: strawberry.ID, data: ReviewDataInput) -> types.Review:
-        user = info.context.request.user
-        if not user.is_authenticated:
-            raise Exception("Authentication required.")
 
         def _create_sync():
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
+
             with transaction.atomic():
                 podcast = models.Outfit.objects.select_for_update().get(pk=podcast_id)
 
@@ -858,11 +908,12 @@ class Mutation:
     @strawberry.mutation
     async def add_review_to_music_video(self, info: Info, music_video_id: strawberry.ID,
                                         data: ReviewDataInput) -> types.Review:
-        user = info.context.request.user
-        if not user.is_authenticated:
-            raise Exception("Authentication required.")
 
         def _create_sync():
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
+
             with transaction.atomic():
                 music_video = models.Outfit.objects.select_for_update().get(pk=music_video_id)
 
@@ -898,11 +949,12 @@ class Mutation:
 
     @strawberry.mutation
     async def add_review_to_cover(self, info: Info, cover_id: strawberry.ID, data: ReviewDataInput) -> types.Review:
-        user = info.context.request.user
-        if not user.is_authenticated:
-            raise Exception("Authentication required.")
 
         def _create_sync():
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
+
             with transaction.atomic():
                 cover = models.Outfit.objects.select_for_update().get(pk=cover_id)
 
@@ -940,162 +992,226 @@ class Mutation:
     async def add_sub_review_to_review(self, info: Info, review_id: strawberry.ID,
                                        data: SubReviewDataInput) -> types.SubReview:
         def _create_sync():
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
 
-            review = models.Review.objects.get(pk=review_id)
-            sub_review = models.SubReview.objects.create(
-                review=review,
-                topic=data.topic,
-                text=data.text,
-                stars=data.stars
-            )
-            return sub_review
+            with transaction.atomic():
+                review = models.Review.objects.get(pk=review_id)
+                sub_review = models.SubReview.objects.create(
+                    review=review,
+                    topic=data.topic,
+                    text=data.text,
+                    stars=data.stars
+                )
+                return sub_review
 
         return await database_sync_to_async(_create_sync)()
 
 
-    """
     @strawberry.mutation
-    async def create_conversation(self, info: Info, data: ConversationCreateInput) -> types.Conversation:
-        # Get the request from the context, which is safe to do here.
-        request = info.context.request
-
-        # Define a synchronous inner function to handle all database logic.
-        def _create_conversation_sync():
-            user = request.user
+    async def delete_review(self, info: Info, review_id: strawberry.ID) -> types.Review:
+        def _delete_sync():
+            user = info.context.request.user
             if not user.is_authenticated:
                 raise Exception("Authentication required.")
 
-            # Ensure the current user is always a participant
-            participant_ids = set(data.participant_ids)
-            participant_ids.add(str(user.id))
+            with transaction.atomic():
+                review = models.Review.objects.filter(pk=review_id).first()
+                if not review:
+                    raise Exception("Review not found.")
 
-            if len(participant_ids) < 2:
-                raise Exception("A conversation requires at least two participants.")
+                if review.user != user:
+                    raise Exception("You can only delete your own reviews.")
 
-            # Check if a conversation with these exact participants already exists
-            # This is all synchronous code now, so we don't need await.
-            existing_conversation = (
-                models.Conversation.objects.annotate(p_count=Count('participants'))
-                .filter(p_count=len(participant_ids))
-                .filter(participants__in=participant_ids)
-                .first()
-            )
+                # Store object info for later
+                review_object = review.content_object
 
-            if existing_conversation:
-                return existing_conversation
+                # Delete the review
+                review.delete()
 
-            # If no conversation exists, create a new one
-            new_conversation = models.Conversation.objects.create()
-            participants = list(User.objects.filter(id__in=participant_ids))
-            new_conversation.participants.set(participants)
-            return new_conversation
+                # Find the newest review by this user on the same object
+                latest_review = (
+                    models.Review.objects.select_for_update().filter(
+                        user=user,
+                        content_type=review.content_type,
+                        object_id=review_object.id,
+                    )
+                    .order_by('-created_at')
+                    .first()
+                )
+                if latest_review:
+                    latest_review.is_latest = True
+                    latest_review.save(update_fields=['is_latest'])
 
-        # Now, call the synchronous function from our async context
+                return review
+
+        return await database_sync_to_async(_delete_sync)()
+
+
+    @strawberry.mutation
+    async def create_conversation(self, info: Info, data: ConversationCreateInput) -> types.Conversation:
+
+        def _create_conversation_sync():
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
+
+            with transaction.atomic():
+                # Ensure the current user is always a participant
+                participant_ids = set(data.participant_ids)
+                participant_ids.add(str(user.id))
+
+                if len(participant_ids) < 2:
+                    raise Exception("A conversation requires at least two participants.")
+
+                # Check if a conversation with these exact participants already exists
+                existing_conversation = (
+                    models.Conversation.objects.annotate(p_count=Count('participants'))
+                    .filter(p_count=len(participant_ids))
+                    .filter(participants__in=participant_ids)
+                    .first()
+                )
+
+                if existing_conversation:
+                    return existing_conversation
+
+                # If no conversation exists, create a new one
+                new_conversation = models.Conversation.objects.create()
+                participants = list(User.objects.filter(id__in=participant_ids))
+                new_conversation.participants.set(participants)
+                return new_conversation
+
         return await database_sync_to_async(_create_conversation_sync)()
-    """
 
-    """
+
     @strawberry.mutation
     async def add_message_to_conversation(self, info: Info, conversation_id: strawberry.ID,
                                           data: MessageDataInput) -> types.Message:
-        # First, get the request from the info object in the async scope.
         request = info.context.request
 
-        # Define a synchronous inner function to handle all database logic.
         def _add_message_sync():
             user = request.user
             if not user.is_authenticated:
                 raise Exception("Authentication required.")
 
-            conversation = models.Conversation.objects.get(pk=conversation_id)
+            with transaction.atomic():
+                conversation = models.Conversation.objects.select_for_update().get(pk=conversation_id)
 
-            # Verify user is a participant
-            if not conversation.participants.filter(id=user.id).exists():
-                raise Exception("You are not a participant in this conversation.")
+                if not conversation.participants.filter(id=user.id).exists():
+                    raise Exception("You are not a participant in this conversation.")
 
-            # Create the message
-            message = models.Message.objects.create(
-                conversation=conversation,
-                sender=user,
-                text=data.text
-            )
+                message_to_reply_to = None
+                if data.replying_to_messsage_id:
+                    try:
+                        message_to_reply_to = models.Message.objects.get(
+                            pk=data.replying_to_messsage_id,
+                            conversation=conversation
+                        )
+                    except models.Message.DoesNotExist:
+                        raise Exception("The message you are trying to reply to does not exist.")
 
-            # Update the conversation's latest message details
-            conversation.latest_message = message
-            conversation.latest_message_text = message.text
-            conversation.latest_message_time = message.time
-            conversation.latest_message_sender = user
-            conversation.save(
-                update_fields=['latest_message', 'latest_message_text', 'latest_message_time', 'latest_message_sender']
-            )
+                message = models.Message.objects.create(
+                    conversation=conversation,
+                    sender=user,
+                    text=data.text,
+                    replying_to=message_to_reply_to
+                )
 
-            return message
+                conversation.latest_message = message
+                conversation.latest_message_text = message.text
+                conversation.latest_message_time = message.time
+                conversation.latest_message_sender = user
+                conversation.save(update_fields=['latest_message', 'latest_message_text', 'latest_message_time','latest_message_sender'])
 
-        # Call the synchronous function safely from our async context
+                return message
+
         return await database_sync_to_async(_add_message_sync)()
-    """
 
-    """
     @strawberry.mutation
     async def delete_message(self, info: Info, id: strawberry.ID) -> SuccessMessage:
-        user = info.context.request.user
-        if not user.is_authenticated:
-            raise Exception("Authentication required.")
+        def _delete_message_sync():
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
 
-        message = await database_sync_to_async(models.Message.objects.filter(pk=id).first)()
-        if not message:
-            raise Exception("Message not found.")
+            with transaction.atomic():
+                try:
+                    message = models.Message.objects.get(pk=id)
+                except models.Message.DoesNotExist:
+                    raise Exception("Message not found.")
 
-        if message.sender != user:
-            raise Exception("You can only delete your own messages.")
+                if message.sender != user:
+                    raise Exception("You can only delete your own messages.")
 
-        await database_sync_to_async(message.delete)()
-        return SuccessMessage(message="Message deleted successfully.")
-    """
+                message.delete()
+                return SuccessMessage(message="Message deleted successfully.")
 
-    """
+        return await database_sync_to_async(_delete_message_sync)()
+
     @strawberry.mutation
     async def like_message(self, info: Info, id: strawberry.ID) -> types.Message:
-        user = info.context.request.user
-        if not user.is_authenticated:
-            raise Exception("Authentication required.")
+        def _like_message_sync():
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
 
-        message = await database_sync_to_async(models.Message.objects.get)(pk=id)
+            with transaction.atomic():
+                message = models.Message.objects.select_for_update().get(pk=id)
 
-        is_participant = await database_sync_to_async(message.conversation.participants.filter(id=user.id).exists)()
-        if not is_participant:
-            raise Exception("You must be in the conversation to like a message.")
+                is_participant = message.conversation.participants.filter(id=user.id).exists()
+                if not is_participant:
+                    raise Exception("You must be in the conversation to like a message.")
 
-        is_liked = await database_sync_to_async(message.liked_by.filter(id=user.id).exists)()
+                is_liked = message.liked_by.filter(id=user.id).exists()
 
-        if is_liked:
-            await database_sync_to_async(message.liked_by.remove)(user)
-        else:
-            await database_sync_to_async(message.liked_by.add)(user)
+                if is_liked:
+                    message.liked_by.remove(user)
+                else:
+                    message.liked_by.add(user)
 
-        return message
-    """
+                return message
 
-    """
+        return await database_sync_to_async(_like_message_sync)()
+
     @strawberry.mutation
-    async def mark_message_as_read(self, info: Info, id: strawberry.ID) -> types.Message:
-        user = info.context.request.user
-        if not user.is_authenticated:
-            raise Exception("Authentication required.")
+    async def mark_messages_as_read(self, info, conversation_id: strawberry.ID) -> SuccessMessage:
+        """Mark all messages from other users in the conversation as read"""
+        def _sync():
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
 
-        message = await database_sync_to_async(models.Message.objects.get)(pk=id)
+            with transaction.atomic():
+                messages = models.Message.objects.filter(
+                    conversation_id=conversation_id
+                ).exclude(sender=user).filter(is_read=False)
+                messages.update(is_read=True)
+            return SuccessMessage(message=f"Marked {messages.count()} messages as read.")
 
-        is_participant = await database_sync_to_async(message.conversation.participants.filter(id=user.id).exists)()
-        if not is_participant:
-            raise Exception("You are not a participant in this conversation.")
+        return await database_sync_to_async(_sync)()
 
-        if message.sender == user:
-            return message
+    @strawberry.mutation
+    async def mark_message_as_delivered(self, info, message_id: strawberry.ID) -> SuccessMessage:
+        """Mark a single message as delivered"""
 
-        message.is_read = True
-        await database_sync_to_async(message.save)(update_fields=['is_read'])
-        return message
-    """
+        def _sync():
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
+
+            with transaction.atomic():
+                message = models.Message.objects.select_for_update().filter(pk=message_id).first()
+                if not message:
+                    raise Exception("Message not found.")
+                if message.sender == user:
+                    raise Exception("Cannot mark your own message as delivered.")
+                message.is_delivered = True
+                message.save(update_fields=["is_delivered"])
+            return SuccessMessage(message="Message marked as delivered.")
+
+        return await database_sync_to_async(_sync)()
+
 
     """
     @strawberry.mutation
@@ -1139,59 +1255,128 @@ class Mutation:
         return cover
     """
 
-    """
     @strawberry.mutation
-    async def follow_user(self, info: Info, follower_id: strawberry.ID, followed_id: strawberry.ID) -> types.Profile:
-        # Note: This is insecure, should use authenticated user
-        user = info.context.request.user
-        if not user.is_authenticated or str(user.id) != str(follower_id):
-            raise Exception("Permission denied.")
+    async def follow_or_unfollow_user(self, info: Info, follower_id: strawberry.ID, followed_id: strawberry.ID) -> types.Profile:
+        def _sync():
+            user = info.context.request.user
+            if not user.is_authenticated or str(user.id) != str(follower_id):
+                raise Exception("Permission denied.")
 
-        follower_profile = await database_sync_to_async(models.Profile.objects.get)(user__pk=follower_id)
-        followed_profile = await database_sync_to_async(models.Profile.objects.get)(user__pk=followed_id)
+            with transaction.atomic():
+                follower_profile = models.Profile.objects.select_for_update().get(user__pk=follower_id)
+                followed_profile = models.Profile.objects.select_for_update().get(user__pk=followed_id)
 
-        await database_sync_to_async(follower_profile.following.add)(followed_profile)
+                # Toggle follow/unfollow
+                if followed_profile in follower_profile.following.all():
+                    follower_profile.following.remove(followed_profile)
+                    follower_profile.following_count = max(0, follower_profile.following_count - 1)
+                    followed_profile.followers_count = max(0, followed_profile.followers_count - 1)
+                else:
+                    follower_profile.following.add(followed_profile)
+                    follower_profile.following_count += 1
+                    followed_profile.followers_count += 1
 
-        follower_profile.following_count = await database_sync_to_async(follower_profile.following.count)()
-        followed_profile.followers_count = await database_sync_to_async(followed_profile.followers.count)()
+                follower_profile.save(update_fields=["following_count"])
+                followed_profile.save(update_fields=["followers_count"])
 
-        await database_sync_to_async(follower_profile.save)()
-        await database_sync_to_async(followed_profile.save)()
-        return followed_profile
-    """
+                return followed_profile
 
-    """
+        return await database_sync_to_async(_sync)()
+
     @strawberry.mutation
     async def change_my_password(self, info: Info, old_password: str, new_password: str) -> SuccessMessage:
-        user: User = info.context.request.user
-        if not user.is_authenticated:
-            raise Exception("You must be logged in to change your password.")
 
-        is_password_correct = await sync_to_async(user.check_password)(old_password)
-        if not is_password_correct:
-            raise Exception("Incorrect old password.")
+        def _sync_change_password():
+            user: User = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("You must be logged in to change your password.")
 
-        await sync_to_async(password_validation.validate_password)(new_password, user)
+            # Check the old password
+            if not user.check_password(old_password):
+                raise Exception("Incorrect old password.")
 
-        await database_sync_to_async(user.set_password)(new_password)
-        await database_sync_to_async(user.save)()
-        return SuccessMessage(message="Your password has been successfully changed.")
-    """
+            # Validate the new password
+            password_validation.validate_password(new_password, user)
 
-    """
+            # Update password and save
+            user.set_password(new_password)
+            user.save()
+
+            return SuccessMessage(message="Your password has been successfully changed.")
+
+        return await database_sync_to_async(_sync_change_password)()
+
+    @strawberry.mutation
+    async def change_my_display_name(self, info: Info, new_display_name: str) -> SuccessMessage:
+
+        def _sync_change_display_name():
+            user: User = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("You must be logged in to change your first name.")
+
+            user.first_name = new_display_name
+            user.save(update_fields=["first_name"])
+
+            return SuccessMessage(message="Your first name has been updated.")
+
+        return await database_sync_to_async(_sync_change_display_name)()
+
+    @strawberry.mutation
+    async def change_my_username(self, info: Info, new_username: str) -> SuccessMessage:
+
+        def _sync_change_username():
+            user: User = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("You must be logged in to change your username.")
+
+            if User.objects.filter(username__iexact=new_username).exclude(pk=user.pk).exists():
+                raise Exception("This username is already taken.")
+
+            user.username = new_username
+            user.save(update_fields=["username"])
+
+            return SuccessMessage(message="Your username has been updated.")
+
+        return await database_sync_to_async(_sync_change_username)()
+
+
+    @strawberry.mutation
+    async def set_profile_premium(self, info: Info, has_premium: bool) -> SuccessMessage:
+
+        def _sync_set_profile_premium():
+            user: User = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("You must be logged in to update your profile.")
+
+            with transaction.atomic():
+                profile = models.Profile.objects.select_for_update().get(user=user)
+                profile.has_premium = has_premium
+                profile.save(update_fields=["has_premium"])
+
+                return SuccessMessage(message=f"Premium status set to {has_premium}.")
+
+        return await database_sync_to_async(_sync_set_profile_premium)()
+
+
     @strawberry.mutation
     async def delete_my_account(self, info: Info, password: str) -> SuccessMessage:
-        user: User = info.context.request.user
-        if not user.is_authenticated:
-            raise Exception("You must be logged in to delete your account.")
 
-        is_password_correct = await sync_to_async(user.check_password)(password)
-        if not is_password_correct:
-            raise Exception("Incorrect password.")
+        def _sync_delete_account():
+            user: User = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("You must be logged in to delete your account.")
 
-        await database_sync_to_async(user.delete)()
-        return SuccessMessage(message="Your account has been successfully deleted.")
-    """
+            # Check password
+            if not user.check_password(password):
+                raise Exception("Incorrect password.")
+
+            # Delete the user
+            user.delete()
+
+            return SuccessMessage(message="Your account has been successfully deleted.")
+
+        return await database_sync_to_async(_sync_delete_account)()
+
 
     """
     @strawberry.mutation

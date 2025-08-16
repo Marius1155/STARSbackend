@@ -63,6 +63,7 @@ class SubReviewFilter:
 @strawberry_django.filter(models.Cover, lookups=True)
 class CoverFilter:
     id: auto
+    position: auto
     is_featured: auto
 
 @strawberry_django.filter(models.MusicVideo, lookups=True)
@@ -128,6 +129,7 @@ class MessageFilter:
     id: auto
     sender: Optional["UserFilter"]
     is_read: auto
+    is_delivered: auto
 
 @strawberry_django.filter(models.Profile, lookups=True)
 class ProfileFilter:

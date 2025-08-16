@@ -109,12 +109,15 @@ class Cover(models.Model):
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')
+    position = models.PositiveIntegerField(default=1)
     reviews_count = models.IntegerField(default=0)
     reviews = GenericRelation('Review')
     star_average = models.FloatField(default=0)
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
 
+    class Meta:
+        ordering = ['position']
 
     def __str__(self):
         return f"Cover for {self.content_object} ({self.image})"
@@ -288,11 +291,13 @@ class Message(models.Model):
     sender = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='sent_messages', null=True)
     text = models.TextField()
     time = models.DateTimeField(auto_now_add=True)
-    is_pending = models.BooleanField(default=True)
     is_delivered = models.BooleanField(default=False)
     is_read = models.BooleanField(default=False)
     liked_by = models.ManyToManyField(User, blank=True, related_name='liked_messages')
     replying_to = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='replies')
+
+    class Meta:
+        ordering = ['-time']
 
     def __str__(self):
         return f"Message #{self.pk} from {self.sender.username} at {self.time}"
