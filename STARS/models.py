@@ -116,6 +116,9 @@ class Cover(models.Model):
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
 
+    primary_color = models.CharField(max_length=7, blank=True)  # e.g., "#FF5733"
+    secondary_color = models.CharField(max_length=7, blank=True)  # e.g., "#33A1FF"
+
     class Meta:
         ordering = ['position']
 

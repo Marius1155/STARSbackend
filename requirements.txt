@@ -19,3 +19,4 @@ channels
 channels-redis
 redis
 daphne
+cloudinary

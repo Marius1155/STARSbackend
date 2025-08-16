@@ -10,6 +10,10 @@ from strawberry.types import Info
 from django.contrib.auth import password_validation, login, authenticate, logout
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.contrib.contenttypes.models import ContentType
+import cloudinary.uploader
+import base64
+import tempfile
 import enum
 
 
@@ -353,8 +357,7 @@ class MessageDataInput:
 
 @strawberry.input
 class CoverDataInput:
-    image_url: str
-    position: auto
+    image_file: str
 
 
 @strawberry.input
@@ -1247,13 +1250,89 @@ class Mutation:
         return project_song
     """
 
-    """
     @strawberry.mutation
-    async def add_cover_to_project(self, info: Info, project_id: strawberry.ID, data: CoverDataInput) -> types.Cover:
-        project = await database_sync_to_async(models.Project.objects.get)(pk=project_id)
-        cover = await database_sync_to_async(models.Cover.objects.create)(image=data.image_url, content_object=project)
-        return cover
-    """
+    async def add_cover_to_project(self, info, project_id: strawberry.ID, data: CoverDataInput) -> types.Cover:
+
+        async def _sync():
+
+            with transaction.atomic():
+                project = models.Project.objects.get(pk=project_id)
+
+                # Determine position
+                existing_count = models.Cover.objects.filter(
+                    content_type=ContentType.objects.get_for_model(project),
+                    object_id=project.id
+                ).count()
+                position = existing_count + 1
+
+                # Decode and upload base64 image
+                image_data = base64.b64decode(data.image_file)
+                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+                temp_file.write(image_data)
+                temp_file.flush()
+
+                # Upload to Cloudinary and request colors
+                upload_result = cloudinary.uploader.upload(
+                    temp_file.name,
+                    colors=True,  # This tells Cloudinary to extract the dominant colors
+                )
+                uploaded_url = upload_result["secure_url"]
+                colors = upload_result.get("colors", [])
+                primary_color = colors[0][0] if len(colors) > 0 else None
+                secondary_color = colors[1][0] if len(colors) > 1 else None
+
+                # Create Cover
+                cover = models.Cover.objects.create(
+                    image=uploaded_url,
+                    content_object=project,
+                    position=position,
+                    primary_color=primary_color,
+                    secondary_color=secondary_color
+                )
+                return cover
+
+        return await database_sync_to_async(_sync)()
+
+
+    @strawberry.mutation
+    async def add_cover_to_podcast(self, info, podcast_id: strawberry.ID, data: CoverDataInput) -> types.Cover:
+
+        async def _sync():
+
+            with transaction.atomic():
+                podcast = models.Podcast.objects.get(pk=podcast_id)
+
+                existing_count = models.Cover.objects.filter(
+                    content_type=ContentType.objects.get_for_model(podcast),
+                    object_id=podcast.id
+                ).count()
+                position = existing_count + 1
+
+                image_data = base64.b64decode(data.image_file)
+                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+                temp_file.write(image_data)
+                temp_file.flush()
+
+                upload_result = cloudinary.uploader.upload(
+                    temp_file.name,
+                    colors=True
+                )
+                uploaded_url = upload_result["secure_url"]
+                colors = upload_result.get("colors", [])
+                primary_color = colors[0][0] if len(colors) > 0 else None
+                secondary_color = colors[1][0] if len(colors) > 1 else None
+
+                cover = models.Cover.objects.create(
+                    image=uploaded_url,
+                    content_object=podcast,
+                    position=position,
+                    primary_color=primary_color,
+                    secondary_color=secondary_color
+                )
+                return cover
+
+        return await database_sync_to_async(_sync)()
+
 
     @strawberry.mutation
     async def follow_or_unfollow_user(self, info: Info, follower_id: strawberry.ID, followed_id: strawberry.ID) -> types.Profile:
