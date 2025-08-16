@@ -18,6 +18,7 @@ import cloudinary.uploader
 import base64
 import tempfile
 import enum
+from datetime import datetime
 
 
 # --- IMPORTS FOR SOCIAL LOGIN ---
@@ -223,7 +224,8 @@ def fetch_youtube_metadata(video_url: str):
 
     snippet = data["items"][0]["snippet"]
     title = snippet["title"]
-    published_at = snippet["publishedAt"][:10]  # YYYY-MM-DD
+    published_at_str = snippet["publishedAt"][:10]  # "YYYY-MM-DD"
+    published_at = datetime.strptime(published_at_str, "%Y-%m-%d").date()
     thumbnail = snippet["thumbnails"]["high"]["url"]
 
     return title, published_at, thumbnail
@@ -1416,7 +1418,10 @@ class Mutation:
 
             upload_result = cloudinary.uploader.upload(
                 temp_file.name,
-                colors=True
+                colors=True,
+                transformation=[
+                    {"width": 1280, "height": 720, "crop": "fill", "gravity": "center"}
+                ]
             )
             uploaded_url = upload_result["secure_url"]
             colors = upload_result.get("colors", [])
