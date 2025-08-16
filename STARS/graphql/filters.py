@@ -69,6 +69,7 @@ class CoverFilter:
 @strawberry_django.filter(models.MusicVideo, lookups=True)
 class MusicVideoFilter:
     id: auto
+    number_of_songs: auto
     title: auto
     release_date: auto
     is_featured: auto

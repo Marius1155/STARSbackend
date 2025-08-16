@@ -128,6 +128,7 @@ class Cover(models.Model):
 
 class MusicVideo(models.Model):
     title = models.CharField(max_length=500, db_index=True)
+    number_of_songs = models.IntegerField()
     songs = models.ManyToManyField('Song', related_name='music_videos')
     release_date = models.DateField(db_index=True)
     youtube = models.URLField(max_length=500)
@@ -138,6 +139,8 @@ class MusicVideo(models.Model):
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
 
+    primary_color = models.CharField(max_length=7, blank=True)  # e.g., "#FF5733"
+    secondary_color = models.CharField(max_length=7, blank=True)  # e.g., "#33A1FF"
 
     def __str__(self):
         return self.title

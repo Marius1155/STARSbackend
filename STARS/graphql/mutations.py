@@ -1,5 +1,8 @@
 import strawberry
 import strawberry_django
+import re
+import os
+import requests
 from strawberry import auto
 from typing import List, Optional
 from django.contrib.auth.models import User
@@ -163,13 +166,53 @@ class SubReviewUpdateInput:
     stars: Optional[float] = strawberry.UNSET
 
 
-@strawberry_django.input(models.MusicVideo)
-class MusicVideoCreateInput:
-    title: auto
-    release_date: auto
-    youtube: auto
-    thumbnail: auto
-    is_featured: Optional[bool] = False
+YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
+
+def extract_video_id(url: str) -> str:
+    """Extracts video ID from YouTube URL."""
+    pattern = r"(?:v=|youtu\.be/)([a-zA-Z0-9_-]{11})"
+    match = re.search(pattern, url)
+    if not match:
+        raise ValueError("Invalid YouTube URL")
+    return match.group(1)
+
+
+def extract_youtube_id(url: str) -> str:
+    patterns = [
+        r"(?:v=|\/)([0-9A-Za-z_-]{11}).*",
+        r"(?:youtu\.be\/)([0-9A-Za-z_-]{11})"
+    ]
+    for pattern in patterns:
+        match = re.match(pattern, url)
+        if match:
+            return match.group(1)
+    raise ValueError("Invalid YouTube URL")
+
+
+def fetch_youtube_metadata(video_url: str):
+    video_id = extract_youtube_id(video_url)
+    api_url = (
+        f"https://www.googleapis.com/youtube/v3/videos"
+        f"?part=snippet&id={video_id}&key={YOUTUBE_API_KEY}"
+    )
+    response = requests.get(api_url)
+    data = response.json()
+
+    if "items" not in data or not data["items"]:
+        raise ValueError("Video not found or API limit reached.")
+
+    snippet = data["items"][0]["snippet"]
+    title = snippet["title"]
+    published_at = snippet["publishedAt"][:10]  # YYYY-MM-DD
+    thumbnail = snippet["thumbnails"]["high"]["url"]
+
+    return title, published_at, thumbnail
+
+
+@strawberry.input
+class MusicVideoInput:
+    youtube_url: str
+    song_ids: list[strawberry.ID]
 
 
 @strawberry.input
@@ -408,7 +451,6 @@ class Mutation:
     update_subreview: types.SubReview = strawberry_django.mutations.update(SubReviewUpdateInput)
     delete_subreview: types.SubReview = strawberry_django.mutations.delete(strawberry.ID)
 
-    create_music_video: types.MusicVideo = strawberry_django.mutations.create(MusicVideoCreateInput)
     update_music_video: types.MusicVideo = strawberry_django.mutations.update(MusicVideoUpdateInput)
     delete_music_video: types.MusicVideo = strawberry_django.mutations.delete(strawberry.ID)
     update_podcast: types.Podcast = strawberry_django.mutations.update(PodcastUpdateInput)
@@ -1330,6 +1372,51 @@ class Mutation:
                     secondary_color=secondary_color
                 )
                 return cover
+
+        return await database_sync_to_async(_sync)()
+
+
+    @strawberry.mutation
+    async def add_music_video(self, info, data: MusicVideoInput) -> types.MusicVideo:
+
+        def _sync():
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
+
+            title, published_at, thumbnail_url = fetch_youtube_metadata(data.youtube_url)
+
+            import urllib.request
+            import tempfile
+            image_data = urllib.request.urlopen(thumbnail_url).read()
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+            temp_file.write(image_data)
+            temp_file.flush()
+
+            upload_result = cloudinary.uploader.upload(
+                temp_file.name,
+                colors=True
+            )
+            uploaded_url = upload_result["secure_url"]
+            colors = upload_result.get("colors", [])
+            primary_color = colors[0][0] if len(colors) > 0 else None
+            secondary_color = colors[1][0] if len(colors) > 1 else None
+
+            with transaction.atomic():
+                mv = models.MusicVideo.objects.create(
+                    title=title,
+                    release_date=published_at,
+                    youtube=data.youtube_url,
+                    thumbnail=uploaded_url,
+                    primary_color=primary_color,
+                    secondary_color=secondary_color,
+                    number_of_songs=len(data.song_ids)
+                )
+
+                songs = list(models.Song.objects.filter(pk__in=data.song_ids))
+                mv.songs.set(songs)
+
+            return mv
 
         return await database_sync_to_async(_sync)()
 
