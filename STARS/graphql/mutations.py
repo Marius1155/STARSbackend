@@ -168,13 +168,28 @@ class SubReviewUpdateInput:
 
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
 
-def extract_video_id(url: str) -> str:
-    """Extracts video ID from YouTube URL."""
-    pattern = r"(?:v=|youtu\.be/)([a-zA-Z0-9_-]{11})"
-    match = re.search(pattern, url)
-    if not match:
-        raise ValueError("Invalid YouTube URL")
-    return match.group(1)
+from urllib.parse import urlparse, parse_qs
+
+def clean_youtube_url(url: str) -> str:
+    parsed = urlparse(url)
+    query = parse_qs(parsed.query)
+    if 'v' in query:
+        return f"https://www.youtube.com/watch?v={query['v'][0]}"
+    elif parsed.netloc.endswith("youtu.be"):
+        return url  # already short URL
+    else:
+        raise ValueError("Cannot extract video ID from URL")
+
+def extract_youtube_id(url: str) -> str:
+    patterns = [
+        r"(?:v=|\/)([0-9A-Za-z_-]{11})",  # stops at 11-char video ID
+        r"(?:youtu\.be\/)([0-9A-Za-z_-]{11})"
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, url)
+        if match:
+            return match.group(1)
+    raise ValueError("Invalid YouTube URL")
 
 
 def extract_youtube_id(url: str) -> str:
@@ -1384,7 +1399,8 @@ class Mutation:
             if not user.is_authenticated:
                 raise Exception("Authentication required.")
 
-            title, published_at, thumbnail_url = fetch_youtube_metadata(data.youtube_url)
+            clean_url = clean_youtube_url(data.youtube_url)
+            title, published_at, thumbnail_url = fetch_youtube_metadata(clean_url)
 
             import urllib.request
             import tempfile
