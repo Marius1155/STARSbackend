@@ -226,7 +226,7 @@ def fetch_youtube_metadata(video_url: str):
     title = snippet["title"]
     published_at_str = snippet["publishedAt"][:10]  # "YYYY-MM-DD"
     published_at = datetime.strptime(published_at_str, "%Y-%m-%d").date()
-    thumbnail = snippet.get("maxres", snippet.get("medium", snippet.get("high")))["url"]
+    thumbnail = snippet["thumbnails"]["high"]["url"]
 
     return title, published_at, thumbnail
 
@@ -1418,11 +1418,10 @@ class Mutation:
 
             upload_result = cloudinary.uploader.upload(
                 temp_file.name,
-                colors=True
-                #,
-                #transformation=[
-                #    {"width": 1280, "height": 720, "crop": "fill", "gravity": "center"}
-                #]
+                colors=True,
+                transformation=[
+                    {"width": 1280, "height": 720, "crop": "fill", "gravity": "center"}
+                ]
             )
             uploaded_url = upload_result["secure_url"]
             colors = upload_result.get("colors", [])
