@@ -8,7 +8,7 @@ from typing import List, Optional
 from django.contrib.auth.models import User
 from asgiref.sync import sync_to_async
 from channels.db import database_sync_to_async
-from django.db.models import Count
+from django.db.models import Count, Q
 from strawberry.types import Info
 from django.contrib.auth import password_validation, login, authenticate, logout
 from django.core.exceptions import ValidationError
@@ -354,23 +354,26 @@ class PodcastUpdateInput:
 class OutfitCreateInput:
     artist_id: strawberry.ID
     date: auto
-    preview_picture: auto
     instagram_post: auto
     description: Optional[str] = None
     is_featured: Optional[bool] = False
+    cover_ids: Optional[list[strawberry.ID]] = strawberry.UNSET
+    music_video_ids: Optional[list[strawberry.ID]] = strawberry.UNSET
+    event_ids: Optional[list[strawberry.ID]] = strawberry.UNSET
+    match_ids: Optional[list[strawberry.ID]] = strawberry.UNSET
 
 
-@strawberry.input
+@strawberry_django.input(models.Outfit)
 class OutfitUpdateInput:
-    id: strawberry.ID
-    artist_id: Optional[strawberry.ID] = strawberry.UNSET
-    description: Optional[str] = strawberry.UNSET
-    date: Optional[str] = strawberry.UNSET
-    preview_picture: Optional[str] = strawberry.UNSET
-    instagram_post: Optional[str] = strawberry.UNSET
-    is_featured: Optional[bool] = strawberry.UNSET
-    featured_message: Optional[str] = strawberry.UNSET
-
+    artist_id: strawberry.ID
+    date: str  # ISO format, e.g., "2025-08-16"
+    instagram_post: str
+    description: Optional[str] = None
+    is_featured: Optional[bool] = False
+    cover_ids: Optional[list[strawberry.ID]] = strawberry.UNSET
+    music_video_ids: Optional[list[strawberry.ID]] = strawberry.UNSET
+    event_ids: Optional[list[strawberry.ID]] = strawberry.UNSET
+    match_ids: Optional[list[strawberry.ID]] = strawberry.UNSET
 
 
 @strawberry.input
@@ -477,7 +480,7 @@ class Mutation:
     delete_music_video: types.MusicVideo = strawberry_django.mutations.delete(strawberry.ID)
     update_podcast: types.Podcast = strawberry_django.mutations.update(PodcastUpdateInput)
     delete_podcast: types.Podcast = strawberry_django.mutations.delete(strawberry.ID)
-    create_outfit: types.Outfit = strawberry_django.mutations.create(OutfitCreateInput)
+
     update_outfit: types.Outfit = strawberry_django.mutations.update(OutfitUpdateInput)
     delete_outfit: types.Outfit = strawberry_django.mutations.delete(strawberry.ID)
 
@@ -1134,9 +1137,16 @@ class Mutation:
 
                 # Check if a conversation with these exact participants already exists
                 existing_conversation = (
-                    models.Conversation.objects.annotate(p_count=Count('participants'))
-                    .filter(p_count=len(participant_ids))
-                    .filter(participants__in=participant_ids)
+                    models.Conversation.objects
+                    .annotate(
+                        total=Count('participants', distinct=True),
+                        matched=Count(
+                            'participants',
+                            filter=Q(participants__id__in=participant_ids),
+                            distinct=True
+                        ),
+                    )
+                    .filter(total=len(participant_ids), matched=len(participant_ids))
                     .first()
                 )
 
