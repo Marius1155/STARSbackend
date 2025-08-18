@@ -20,7 +20,7 @@ import base64
 import tempfile
 import enum
 from datetime import datetime
-from .subscriptions import broadcast_conversation_update
+from .subscriptions import broadcast_conversation_update, broadcast_message_event
 import asyncio
 
 
