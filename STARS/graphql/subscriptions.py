@@ -34,79 +34,70 @@ class ConversationEventPayload:
 class Subscription:
     @strawberry.subscription
     async def message_events(self, info, conversation_id: int) -> AsyncGenerator[MessageEventPayload, None]:
-        # --- TEMPORARY DEBUGGING CODE ---
-        # This bypasses real authentication to test the subscription pipeline.
+        # TEMPORARY: fallback user
         user = info.context.get("user")
         if not user or not user.is_authenticated:
-            print("!!! WARNING: Authentication failed. Using fallback user ID=1 for debugging. !!!")
-            # Replace '1' with a real user ID from your database for the test.
             try:
                 user = await database_sync_to_async(models.User.objects.get)(id=1)
             except models.User.DoesNotExist:
-                raise ValueError("Fallback user with ID=1 not found. Please update the ID.")
-        # --- END TEMPORARY CODE ---
+                raise ValueError("Fallback user with ID=1 not found.")
 
-        has_access = await database_sync_to_async(
-            models.Conversation.objects.filter(id=conversation_id, participants=user).exists
-        )()
+        # Check access safely
+        def check_access():
+            return models.Conversation.objects.filter(id=conversation_id, participants=user).exists()
+        has_access = await database_sync_to_async(check_access)()
         if not has_access:
             raise ValueError("Access denied or conversation not found.")
 
         channel_layer = get_channel_layer()
         group_name = f"conversation_{conversation_id}"
-        # Create a unique channel name for this specific subscriber
         channel_name = await channel_layer.new_channel()
-
         await channel_layer.group_add(group_name, channel_name)
+
         try:
-            # Listen for messages on the unique channel
             while True:
                 event = await channel_layer.receive(channel_name)
                 event_type = event["data"]["event_type"]
                 message_id = event["data"]["id"]
 
-                message_obj = await database_sync_to_async(
-                    models.Message.objects.filter(id=message_id).first
-                )()
+                # Safe DB access
+                def get_message():
+                    return models.Message.objects.filter(id=message_id).first()
+                message_obj = await database_sync_to_async(get_message)()
 
                 if message_obj:
                     yield MessageEventPayload(event_type=event_type, message=message_obj)
         finally:
-            # Clean up and remove the channel from the group when the client disconnects
             await channel_layer.group_discard(group_name, channel_name)
 
     @strawberry.subscription
     async def conversation_updates(self, info) -> AsyncGenerator[ConversationEventPayload, None]:
-        # --- TEMPORARY DEBUGGING CODE ---
-        # This bypasses real authentication to test the subscription pipeline.
         user = info.context.get("user")
         if not user or not user.is_authenticated:
-            print("!!! WARNING: Authentication failed. Using fallback user ID=1 for debugging. !!!")
-            # Replace '1' with a real user ID from your database for the test.
             try:
                 user = await database_sync_to_async(models.User.objects.get)(id=1)
             except models.User.DoesNotExist:
-                raise ValueError("Fallback user with ID=1 not found. Please update the ID.")
-        # --- END TEMPORARY CODE ---
+                raise ValueError("Fallback user with ID=1 not found.")
 
         channel_layer = get_channel_layer()
         group_name = f"user_{user.id}_conversations"
         channel_name = await channel_layer.new_channel()
-
         await channel_layer.group_add(group_name, channel_name)
+
         try:
             while True:
                 event = await channel_layer.receive(channel_name)
                 conversation_id = event["data"]["id"]
-                conversation_obj = await database_sync_to_async(
-                    models.Conversation.objects.get
-                )(id=conversation_id)
+
+                def get_conversation():
+                    return models.Conversation.objects.get(id=conversation_id)
+                conversation_obj = await database_sync_to_async(get_conversation)()
+
                 yield ConversationEventPayload(conversation=conversation_obj)
         finally:
             await channel_layer.group_discard(group_name, channel_name)
 
 
-# ... (The rest of your signals and broadcast functions are correct and do not need to be changed) ...
 # -----------------------------------------------------------------------------
 # Signal Handlers & Broadcast Functions
 # -----------------------------------------------------------------------------
@@ -133,11 +124,13 @@ def handle_message_delete(sender, instance, **kwargs):
 async def broadcast_message_event(message: models.Message, event_type: str):
     channel_layer = get_channel_layer()
     group_name = f"conversation_{message.conversation_id}"
-    # Note: The 'type' here can be anything, as the resolver doesn't check it.
-    # The important data is nested inside our own 'data' key.
+
+    def create_payload():
+        return {"id": message.id, "event_type": event_type}
+
     await channel_layer.group_send(
         group_name,
-        {"type": "subscription.event", "data": {"id": message.id, "event_type": event_type}},
+        {"type": "subscription.event", "data": await database_sync_to_async(create_payload)()},
     )
 
 
@@ -149,7 +142,11 @@ def handle_conversation_save(sender, instance, created, update_fields, **kwargs)
 
 async def broadcast_conversation_update(conversation: models.Conversation):
     channel_layer = get_channel_layer()
-    participant_ids = await database_sync_to_async(list)(conversation.participants.values_list('id', flat=True))
+
+    def get_participant_ids():
+        return list(conversation.participants.values_list('id', flat=True))
+
+    participant_ids = await database_sync_to_async(get_participant_ids)()
 
     for user_id in participant_ids:
         group_name = f"user_{user_id}_conversations"
