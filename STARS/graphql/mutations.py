@@ -1211,6 +1211,10 @@ class Mutation:
                 ])
 
                 transaction.on_commit(lambda: asyncio.create_task(
+                    broadcast_message_event(message, "created")
+                ))
+
+                transaction.on_commit(lambda: asyncio.create_task(
                     broadcast_conversation_update(conversation)
                 ))
 

@@ -101,7 +101,7 @@ class Subscription:
 # -----------------------------------------------------------------------------
 # Signal Handlers & Broadcast Functions
 # -----------------------------------------------------------------------------
-
+"""
 @receiver(post_save, sender=models.Message)
 def handle_message_save(sender, instance, created, update_fields, **kwargs):
     if created:
@@ -119,7 +119,7 @@ def handle_message_like(sender, instance, action, **kwargs):
 @receiver(post_delete, sender=models.Message)
 def handle_message_delete(sender, instance, **kwargs):
     async_to_sync(broadcast_message_event)(instance, "deleted")
-
+"""
 
 async def broadcast_message_event(message: models.Message, event_type: str):
     channel_layer = get_channel_layer()
