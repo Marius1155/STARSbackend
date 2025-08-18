@@ -1210,13 +1210,10 @@ class Mutation:
                     'latest_message_sender'
                 ])
 
-                transaction.on_commit(lambda: asyncio.create_task(
-                    broadcast_message_event(message, "created")
-                ))
+                from asgiref.sync import async_to_sync
 
-                transaction.on_commit(lambda: asyncio.create_task(
-                    broadcast_conversation_update(conversation)
-                ))
+                transaction.on_commit(lambda: async_to_sync(broadcast_message_event)(message, "created"))
+                transaction.on_commit(lambda: async_to_sync(broadcast_conversation_update)(conversation))
 
                 return message
 
