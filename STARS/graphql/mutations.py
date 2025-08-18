@@ -8,6 +8,7 @@ from typing import List, Optional
 from django.contrib.auth.models import User
 from asgiref.sync import sync_to_async
 from channels.db import database_sync_to_async
+from asgiref.sync import async_to_sync
 from django.db.models import Count, Q
 from strawberry.types import Info
 from django.contrib.auth import password_validation, login, authenticate, logout
@@ -19,6 +20,8 @@ import base64
 import tempfile
 import enum
 from datetime import datetime
+from .subscriptions import broadcast_conversation_update
+
 
 
 # --- IMPORTS FOR SOCIAL LOGIN ---
