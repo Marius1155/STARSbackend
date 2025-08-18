@@ -21,6 +21,7 @@ import tempfile
 import enum
 from datetime import datetime
 from .subscriptions import broadcast_conversation_update
+import asyncio
 
 
 
@@ -1209,8 +1210,9 @@ class Mutation:
                     'latest_message_sender'
                 ])
 
-                # Broadcast AFTER transaction commits
-                transaction.on_commit(lambda: async_to_sync(broadcast_conversation_update)(conversation))
+                transaction.on_commit(lambda: asyncio.create_task(
+                    broadcast_conversation_update(conversation)
+                ))
 
                 return message
 
