@@ -1161,10 +1161,10 @@ class Mutation:
 
         return await database_sync_to_async(_create_conversation_sync)()
 
-
     @strawberry.mutation
-    async def add_message_to_conversation(self, info: Info, conversation_id: strawberry.ID,
-                                          data: MessageDataInput) -> types.Message:
+    async def add_message_to_conversation(
+            self, info: Info, conversation_id: strawberry.ID, data: MessageDataInput
+    ) -> types.Message:
         request = info.context.request
 
         def _add_message_sync():
@@ -1199,7 +1199,15 @@ class Mutation:
                 conversation.latest_message_text = message.text
                 conversation.latest_message_time = message.time
                 conversation.latest_message_sender = user
-                conversation.save(update_fields=['latest_message', 'latest_message_text', 'latest_message_time','latest_message_sender'])
+                conversation.save(update_fields=[
+                    'latest_message',
+                    'latest_message_text',
+                    'latest_message_time',
+                    'latest_message_sender'
+                ])
+
+                # Broadcast AFTER transaction commits
+                transaction.on_commit(lambda: async_to_sync(broadcast_conversation_update)(conversation))
 
                 return message
 
