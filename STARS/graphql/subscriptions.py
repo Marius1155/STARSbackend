@@ -133,12 +133,12 @@ async def broadcast_message_event(message: models.Message, event_type: str):
         {"type": "subscription.event", "data": await database_sync_to_async(create_payload)()},
     )
 
-
+"""
 @receiver(post_save, sender=models.Conversation)
 def handle_conversation_save(sender, instance, created, update_fields, **kwargs):
     if not created and update_fields and 'latest_message' in update_fields:
         async_to_sync(broadcast_conversation_update)(instance)
-
+"""
 
 async def broadcast_conversation_update(conversation: models.Conversation):
     channel_layer = get_channel_layer()
