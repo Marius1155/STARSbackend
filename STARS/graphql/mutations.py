@@ -1241,7 +1241,7 @@ class Mutation:
         return await database_sync_to_async(_delete_message_sync)()
 
     @strawberry.mutation
-    async def like_message(self, info: Info, id: strawberry.ID) -> types.Message:
+    async def like_message(self, info: Info, id: strawberry.ID) -> SuccessMessage:
         def _like_message_sync():
             user = info.context.request.user
             if not user.is_authenticated:
@@ -1261,7 +1261,7 @@ class Mutation:
                 else:
                     message.liked_by.add(user)
 
-                return message
+                return SuccessMessage(message="Message liked successfully.")
 
         return await database_sync_to_async(_like_message_sync)()
 
