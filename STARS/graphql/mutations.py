@@ -1236,6 +1236,9 @@ class Mutation:
                     raise Exception("You can only delete your own messages.")
 
                 message.delete()
+
+                transaction.on_commit(lambda: async_to_sync(broadcast_message_event)(message, "deleted"))
+
                 return SuccessMessage(message="Message deleted successfully.")
 
         return await database_sync_to_async(_delete_message_sync)()
@@ -1261,6 +1264,8 @@ class Mutation:
                 else:
                     message.liked_by.add(user)
 
+                transaction.on_commit(lambda: async_to_sync(broadcast_message_event)(message, "updated"))
+
                 return SuccessMessage(message="Message liked successfully.")
 
         return await database_sync_to_async(_like_message_sync)()
@@ -1278,6 +1283,11 @@ class Mutation:
                     conversation_id=conversation_id
                 ).exclude(sender=user).filter(is_read=False)
                 messages.update(is_read=True)
+
+                for m in updated_messages:
+                    m.is_read = True
+                    transaction.on_commit(lambda m=m: async_to_sync(broadcast_message_event)(m, "updated"))
+
             return SuccessMessage(message=f"Marked {messages.count()} messages as read.")
 
         return await database_sync_to_async(_sync)()
@@ -1299,6 +1309,9 @@ class Mutation:
                     raise Exception("Cannot mark your own message as delivered.")
                 message.is_delivered = True
                 message.save(update_fields=["is_delivered"])
+
+                transaction.on_commit(lambda: async_to_sync(broadcast_message_event)(message, "updated"))
+
             return SuccessMessage(message="Message marked as delivered.")
 
         return await database_sync_to_async(_sync)()
