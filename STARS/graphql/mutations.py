@@ -1239,8 +1239,8 @@ class Mutation:
                 message_data = {
                     "id": message.id,
                     "text": message.text,
-                    "conversation_id": message.conversation_id,
-                    "sender_id": message.sender_id,
+                    "conversation": message.conversation,
+                    "sender": message.sender,
                 }
 
                 message.delete()
