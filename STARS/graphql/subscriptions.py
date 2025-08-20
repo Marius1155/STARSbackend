@@ -1,6 +1,6 @@
 import strawberry
 import asyncio
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional
 from asgiref.sync import async_to_sync
 from channels.db import database_sync_to_async
 from channels.layers import get_channel_layer
@@ -18,7 +18,7 @@ from . import types
 @strawberry.type
 class MessageEventPayload:
     event_type: str
-    message: types.Message
+    message: Optional[types.Message]
 
 
 @strawberry.type
@@ -67,6 +67,8 @@ class Subscription:
 
                 if message_obj:
                     yield MessageEventPayload(event_type=event_type, message=message_obj)
+                elif event_type == "deleted":
+                    yield MessageEventPayload(event_type=event_type, message=None)
         finally:
             await channel_layer.group_discard(group_name, channel_name)
 
