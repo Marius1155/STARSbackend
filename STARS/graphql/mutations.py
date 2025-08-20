@@ -1228,7 +1228,7 @@ class Mutation:
 
             with transaction.atomic():
                 try:
-                    message = models.Message.objects.get(pk=id)
+                    message = models.Message.objects.get(pk=int(id))
                 except models.Message.DoesNotExist:
                     raise Exception("Message not found.")
 
