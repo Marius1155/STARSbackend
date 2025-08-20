@@ -1235,9 +1235,9 @@ class Mutation:
                 if message.sender != user:
                     raise Exception("You can only delete your own messages.")
 
-                message.delete()
-
                 transaction.on_commit(lambda: async_to_sync(broadcast_message_event)(message, "deleted"))
+
+                message.delete()
 
                 return SuccessMessage(message="Message deleted successfully.")
 
@@ -1273,22 +1273,30 @@ class Mutation:
     @strawberry.mutation
     async def mark_messages_as_read(self, info, conversation_id: strawberry.ID) -> SuccessMessage:
         """Mark all messages from other users in the conversation as read"""
+
         def _sync():
             user = info.context.request.user
             if not user.is_authenticated:
                 raise Exception("Authentication required.")
 
             with transaction.atomic():
-                messages = models.Message.objects.filter(
-                    conversation_id=conversation_id
-                ).exclude(sender=user).filter(is_read=False)
-                messages.update(is_read=True)
+                # Fetch unread messages first
+                unread_messages = list(
+                    models.Message.objects
+                    .filter(conversation_id=conversation_id)
+                    .exclude(sender=user)
+                    .filter(is_read=False)
+                )
 
-                for m in updated_messages:
-                    m.is_read = True
+                # Bulk update in DB
+                models.Message.objects.filter(id__in=[m.id for m in unread_messages]).update(is_read=True)
+
+                # Broadcast individually after commit
+                for m in unread_messages:
+                    m.is_read = True  # update instance in memory
                     transaction.on_commit(lambda m=m: async_to_sync(broadcast_message_event)(m, "updated"))
 
-            return SuccessMessage(message=f"Marked {messages.count()} messages as read.")
+            return SuccessMessage(message=f"Marked {len(unread_messages)} messages as read.")
 
         return await database_sync_to_async(_sync)()
 
