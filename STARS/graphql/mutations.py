@@ -1228,16 +1228,26 @@ class Mutation:
 
             with transaction.atomic():
                 try:
-                    message = models.Message.objects.get(pk=int(id))
+                    message = models.Message.objects.get(pk=id)
                 except models.Message.DoesNotExist:
                     raise Exception("Message not found.")
 
                 if message.sender != user:
                     raise Exception("You can only delete your own messages.")
 
-                transaction.on_commit(lambda: async_to_sync(broadcast_message_event)(message, "deleted"))
+                # Save minimal data before deletion
+                message_data = {
+                    "id": message.id,
+                    "text": message.text,
+                    "conversation_id": message.conversation_id,
+                    "sender_id": message.sender_id,
+                }
 
                 message.delete()
+
+                transaction.on_commit(
+                    lambda: async_to_sync(broadcast_message_event)(message_data, "deleted")
+                )
 
                 return SuccessMessage(message="Message deleted successfully.")
 
