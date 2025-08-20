@@ -121,12 +121,12 @@ def handle_message_delete(sender, instance, **kwargs):
     async_to_sync(broadcast_message_event)(instance, "deleted")
 """
 
-async def broadcast_message_event(message: models.Message, event_type: str):
+async def broadcast_message_event(message_id: strawberry.ID, conversation_id: strawberry.ID, event_type: str):
     channel_layer = get_channel_layer()
-    group_name = f"conversation_{message.conversation_id}"
+    group_name = f"conversation_{conversation_id}"
 
     def create_payload():
-        return {"id": message.id, "event_type": event_type}
+        return {"id": message_id, "event_type": event_type}
 
     await channel_layer.group_send(
         group_name,

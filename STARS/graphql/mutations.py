@@ -1212,7 +1212,7 @@ class Mutation:
 
                 from asgiref.sync import async_to_sync
 
-                transaction.on_commit(lambda: async_to_sync(broadcast_message_event)(message, "created"))
+                transaction.on_commit(lambda: async_to_sync(broadcast_message_event)(message.id, message.conversation_id, "created"))
                 transaction.on_commit(lambda: async_to_sync(broadcast_conversation_update)(conversation))
 
                 return message
@@ -1228,25 +1228,20 @@ class Mutation:
 
             with transaction.atomic():
                 try:
-                    message = models.Message.objects.get(pk=id)
-                except models.Message.DoesNotExist:
+                    message = models.Message.objects.select_related('conversation').get(pk=id)
+                except (models.Message.DoesNotExist, ValueError):
                     raise Exception("Message not found.")
 
                 if message.sender != user:
                     raise Exception("You can only delete your own messages.")
 
-                # Save minimal data before deletion
-                message_data = {
-                    "id": message.id,
-                    "text": message.text,
-                    "conversation": message.conversation,
-                    "sender": message.sender,
-                }
+                rememeber_message_id = message.id
+                remmeber_conversation_id = message.conversation_id
 
                 message.delete()
 
                 transaction.on_commit(
-                    lambda: async_to_sync(broadcast_message_event)(message_data, "deleted")
+                    lambda: async_to_sync(broadcast_message_event)(rememeber_message_id, remmeber_conversation_id, "deleted")
                 )
 
                 return SuccessMessage(message="Message deleted successfully.")
@@ -1274,7 +1269,7 @@ class Mutation:
                 else:
                     message.liked_by.add(user)
 
-                transaction.on_commit(lambda: async_to_sync(broadcast_message_event)(message, "updated"))
+                transaction.on_commit(lambda: async_to_sync(broadcast_message_event)(message.id, message.conversation_id, "updated"))
 
                 return SuccessMessage(message="Message liked successfully.")
 
@@ -1304,7 +1299,7 @@ class Mutation:
                 # Broadcast individually after commit
                 for m in unread_messages:
                     m.is_read = True  # update instance in memory
-                    transaction.on_commit(lambda m=m: async_to_sync(broadcast_message_event)(m, "updated"))
+                    transaction.on_commit(lambda m=m: async_to_sync(broadcast_message_event)(m.id, m.conversation_id, "updated"))
 
             return SuccessMessage(message=f"Marked {len(unread_messages)} messages as read.")
 
@@ -1328,7 +1323,7 @@ class Mutation:
                 message.is_delivered = True
                 message.save(update_fields=["is_delivered"])
 
-                transaction.on_commit(lambda: async_to_sync(broadcast_message_event)(message, "updated"))
+                transaction.on_commit(lambda: async_to_sync(broadcast_message_event)(message.id, message.conversation_id, "updated"))
 
             return SuccessMessage(message="Message marked as delivered.")
 
