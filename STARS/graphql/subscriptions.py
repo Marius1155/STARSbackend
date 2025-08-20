@@ -16,9 +16,16 @@ from . import types
 # -----------------------------------------------------------------------------
 
 @strawberry.type
-class MessageEventPayload:
+class MessagePayload:
     event_type: str
-    message: Optional[types.Message]
+    message: types.Message
+
+@strawberry.type
+class MessageDeletedPayload:
+    event_type: str
+    id: strawberry.ID
+
+MessageEventUnion = strawberry.union("MessageEventUnion", (MessagePayload, MessageDeletedPayload))
 
 
 @strawberry.type
@@ -33,7 +40,7 @@ class ConversationEventPayload:
 @strawberry.type
 class Subscription:
     @strawberry.subscription
-    async def message_events(self, info, conversation_id: int) -> AsyncGenerator[MessageEventPayload, None]:
+    async def message_events(self, info, conversation_id: int) -> AsyncGenerator[MessageEventUnion, None]:
         # TEMPORARY: fallback user
         user = info.context.get("user")
         if not user or not user.is_authenticated:
@@ -66,9 +73,10 @@ class Subscription:
                 message_obj = await database_sync_to_async(get_message)()
 
                 if message_obj:
-                    yield MessageEventPayload(event_type=event_type, message=message_obj)
+                    yield MessagePayload(event_type=event_type, message=message_obj)
                 elif event_type == "deleted":
-                    yield MessageEventPayload(event_type=event_type, message=None)
+                    yield MessageDeletedPayload(event_type=event_type, id=message_id)
+
         finally:
             await channel_layer.group_discard(group_name, channel_name)
 
