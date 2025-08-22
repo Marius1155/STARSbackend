@@ -1,31 +1,28 @@
 import strawberry
 import strawberry_django
 from strawberry_django.optimizer import DjangoOptimizerExtension
+from strawberry import relay
 
-from . import types
-from . import filters
-from . import mutations
-from . import subscriptions
+from . import types, filters, mutations, subscriptions
 
 
 @strawberry.type
 class Query:
-    # All list fields are now wrapped in OffsetPaginated
-    artists: list[types.Artist] = strawberry_django.field(filters=filters.ArtistFilter)
-    projects: list[types.Project] = strawberry_django.field(filters=filters.ProjectFilter)
-    songs: list[types.Song] = strawberry_django.field(filters=filters.SongFilter)
-    podcasts: list[types.Podcast] = strawberry_django.field(filters=filters.PodcastFilter)
-    outfits: list[types.Outfit] = strawberry_django.field(filters=filters.OutfitFilter)
-    comments: list[types.Comment] = strawberry_django.field(filters=filters.CommentFilter)
-    reviews: list[types.Review] = strawberry_django.field(filters=filters.ReviewFilter)
-    messages: list[types.Message] = strawberry_django.field(filters=filters.MessageFilter)
-    conversations: list[types.Conversation] = strawberry_django.field(filters=filters.ConversationFilter)
-    events: list[types.Event] = strawberry_django.field(filters=filters.EventFilter)
-    event_series: list[types.EventSeries] = strawberry_django.field(filters=filters.EventSeriesFilter)
-    music_videos: list[types.MusicVideo] = strawberry_django.field(filters=filters.MusicVideoFilter)
-    users: list[types.User] = strawberry_django.field(filters=filters.UserFilter)
+    artists: relay.Connection[types.Artist] = strawberry_django.connection(filters=filters.ArtistFilter)
+    projects: relay.Connection[types.Project] = strawberry_django.connection(filters=filters.ProjectFilter)
+    songs: relay.Connection[types.Song] = strawberry_django.connection(filters=filters.SongFilter)
+    podcasts: relay.Connection[types.Podcast] = strawberry_django.connection(filters=filters.PodcastFilter)
+    outfits: relay.Connection[types.Outfit] = strawberry_django.connection(filters=filters.OutfitFilter)
+    comments: relay.Connection[types.Comment] = strawberry_django.connection(filters=filters.CommentFilter)
+    reviews: relay.Connection[types.Review] = strawberry_django.connection(filters=filters.ReviewFilter)
+    messages: relay.Connection[types.Message] = strawberry_django.connection(filters=filters.MessageFilter)
+    conversations: relay.Connection[types.Conversation] = strawberry_django.connection(filters=filters.ConversationFilter)
+    events: relay.Connection[types.Event] = strawberry_django.connection(filters=filters.EventFilter)
+    event_series: relay.Connection[types.EventSeries] = strawberry_django.connection(filters=filters.EventSeriesFilter)
+    music_videos: relay.Connection[types.MusicVideo] = strawberry_django.connection(filters=filters.MusicVideoFilter)
+    users: relay.Connection[types.User] = strawberry_django.connection(filters=filters.UserFilter)
 
-    # These fields are simple lists and do not need pagination
+    # These are not paginated
     project_songs: list[types.ProjectSong] = strawberry_django.field(filters=filters.ProjectSongFilter)
     project_artists: list[types.ProjectArtist] = strawberry_django.field(filters=filters.ProjectArtistFilter)
     song_artists: list[types.SongArtist] = strawberry_django.field(filters=filters.SongArtistFilter)
@@ -38,7 +35,5 @@ schema = strawberry.Schema(
     query=Query,
     mutation=mutations.Mutation,
     subscription=subscriptions.Subscription,
-    extensions=[
-        DjangoOptimizerExtension,
-    ]
+    extensions=[DjangoOptimizerExtension],
 )
