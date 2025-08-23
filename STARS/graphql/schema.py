@@ -23,12 +23,12 @@ class Query:
     users: DjangoCursorConnection[types.User] = strawberry_django.connection(filters=filters.UserFilter)
 
     # These are not paginated
-    project_songs: list[types.ProjectSong] = strawberry_django.field(filters=filters.ProjectSongFilter)
-    project_artists: list[types.ProjectArtist] = strawberry_django.field(filters=filters.ProjectArtistFilter)
-    song_artists: list[types.SongArtist] = strawberry_django.field(filters=filters.SongArtistFilter)
-    sub_reviews: list[types.SubReview] = strawberry_django.field(filters=filters.SubReviewFilter)
-    profiles: list[types.Profile] = strawberry_django.field(filters=filters.ProfileFilter)
-    covers: list[types.Cover] = strawberry_django.field(filters=filters.CoverFilter)
+    project_songs: DjangoCursorConnection[types.ProjectSong] = strawberry_django.connection(filters=filters.ProjectSongFilter)
+    project_artists: DjangoCursorConnection[types.ProjectArtist] = strawberry_django.connection(filters=filters.ProjectArtistFilter)
+    song_artists: DjangoCursorConnection[types.SongArtist] = strawberry_django.connection(filters=filters.SongArtistFilter)
+    sub_reviews: DjangoCursorConnection[types.SubReview] = strawberry_django.connection(filters=filters.SubReviewFilter)
+    profiles: DjangoCursorConnection[types.Profile] = strawberry_django.connection(filters=filters.ProfileFilter)
+    covers: DjangoCursorConnection[types.Cover] = strawberry_django.connection(filters=filters.CoverFilter)
 
 schema = strawberry.Schema(
     query=Query,
