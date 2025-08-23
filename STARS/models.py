@@ -29,6 +29,9 @@ class Artist(models.Model):
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
 
+    primary_color = models.CharField(max_length=7, blank=True)  # e.g., "#FF5733"
+    secondary_color = models.CharField(max_length=7, blank=True)  # e.g., "#33A1FF"
+
     def __str__(self):
         return self.name
 
@@ -36,8 +39,12 @@ class Artist(models.Model):
 class EventSeries(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
+    picture = models.URLField(max_length=500, null=True, blank=True)
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
+
+    primary_color = models.CharField(max_length=7, blank=True)  # e.g., "#FF5733"
+    secondary_color = models.CharField(max_length=7, blank=True)  # e.g., "#33A1FF"
 
     def __str__(self):
         return self.name
@@ -47,6 +54,7 @@ class Event(models.Model):
     series = models.ForeignKey('EventSeries', on_delete=models.SET_NULL, null=True, blank=True, related_name='events')
     name = models.CharField(max_length=255)
     date = models.DateField()
+    picture = models.URLField(max_length=500, null=True, blank=True)
     location = models.CharField(max_length=255, blank=True)
     is_one_time = models.BooleanField(default=False)
     reviews_count = models.IntegerField(default=0)
@@ -55,6 +63,11 @@ class Event(models.Model):
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
 
+    primary_color = models.CharField(max_length=7, blank=True)  # e.g., "#FF5733"
+    secondary_color = models.CharField(max_length=7, blank=True)  # e.g., "#33A1FF"
+
+    class Meta:
+        ordering = ['-date']
 
     def __str__(self):
         return f"{self.name} ({self.date})"
@@ -70,6 +83,9 @@ class Comment (models.Model):
     dislikes_count = models.IntegerField(default=0)
     liked_by = models.ManyToManyField(User, blank=True, related_name='liked_comments')
     disliked_by = models.ManyToManyField(User, blank=True, related_name='disliked_comments')
+
+    class Meta:
+        ordering = ['-date_created']
 
     def __str__(self):
         f"Comment from {self.user.username} saying {self.text}"
@@ -90,6 +106,9 @@ class Review(models.Model):
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')
 
+    class Meta:
+        ordering = ['-date_created']
+
     def __str__(self):
         return f"Review by {self.user.username} on {self.content_object}"
 
@@ -99,6 +118,10 @@ class SubReview(models.Model):
     topic = models.CharField(max_length=255)
     text = models.TextField(blank=True)
     stars = models.DecimalField(max_digits=3, decimal_places=2)
+    position = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        ordering = ['position']
 
     def __str__(self):
         return f"Subreview of {self.review} – {self.topic}"
@@ -132,7 +155,7 @@ class MusicVideo(models.Model):
     songs = models.ManyToManyField('Song', related_name='music_videos')
     release_date = models.DateField(db_index=True)
     youtube = models.URLField(max_length=500, unique=True)
-    thumbnail = models.URLField(max_length=500)
+    thumbnail = models.URLField(max_length=500, null=True, blank=True)
     reviews_count = models.IntegerField(default=0)
     reviews = GenericRelation('Review')
     star_average = models.FloatField(default=0)
@@ -141,6 +164,9 @@ class MusicVideo(models.Model):
 
     primary_color = models.CharField(max_length=7, blank=True)  # e.g., "#FF5733"
     secondary_color = models.CharField(max_length=7, blank=True)  # e.g., "#33A1FF"
+
+    class Meta:
+        ordering = ['-release_date']
 
     def __str__(self):
         return self.title
@@ -158,6 +184,8 @@ class Song(models.Model):
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
 
+    class Meta:
+        ordering = ['-release_date']
 
     def __str__(self):
         return f"{self.title} - {self.release_date}"
@@ -203,6 +231,8 @@ class Project(models.Model):
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
 
+    class Meta:
+        ordering = ['-release_date']
 
     def __str__(self):
         return f"{self.title} - {self.release_date}"
@@ -251,6 +281,8 @@ class Podcast(models.Model):
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
 
+    class Meta:
+        ordering = ['-since']
 
     def __str__(self):
         hosts_names = ', '.join(host.name for host in self.hosts.all())
@@ -273,6 +305,11 @@ class Outfit(models.Model):
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
 
+    primary_color = models.CharField(max_length=7, blank=True)  # e.g., "#FF5733"
+    secondary_color = models.CharField(max_length=7, blank=True)  # e.g., "#33A1FF"
+
+    class Meta:
+        ordering = ['-date']
 
     def __str__(self):
         artist_name = self.artist.name if self.artist else "Unknown Artist"
@@ -286,6 +323,11 @@ class Conversation(models.Model):
     latest_message_text = models.TextField(blank=True)
     latest_message_time = models.DateTimeField(null=True, blank=True)
     latest_message_sender = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='latest_sent_conversations')
+
+    color = models.CharField(max_length=7, blank=True)  # e.g., "#FF5733"
+
+    class Meta:
+        ordering = ['-latest_message_time']
 
     def __str__(self):
         users = ', '.join(user.username for user in self.participants.all())
@@ -316,7 +358,6 @@ class Profile(models.Model):
     profile_picture = models.URLField(max_length=500, blank=True, null=True)
     bio = models.TextField(blank=True)
     pronouns = models.CharField(max_length=100, blank=True)
-    accent_color_hex = models.CharField(max_length=7, blank=True)
     followers_count = models.IntegerField(default=0)
     following_count = models.IntegerField(default=0)
     followers = models.ManyToManyField('self', symmetrical=False, related_name='following', blank=True)
@@ -327,6 +368,13 @@ class Profile(models.Model):
     cover_reviews_count = models.IntegerField(default=0)
     podcast_reviews_count = models.IntegerField(default=0)
     outfit_reviews_count = models.IntegerField(default=0)
+
+    custom_primary_color = models.CharField(max_length=7, blank=True)  # e.g., "#FF5733"
+    custom_secondary_color = models.CharField(max_length=7, blank=True)  # e.g., "#33A1FF"
+    profile_picture_primary_color = models.CharField(max_length=7, blank=True)  # e.g., "#FF5733"
+    profile_picture_secondary_color = models.CharField(max_length=7, blank=True)  # e.g., "#33A1FF"
+    banner_picture_primary_color = models.CharField(max_length=7, blank=True)  # e.g., "#FF5733"
+    banner_picture_secondary_color = models.CharField(max_length=7, blank=True)  # e.g., "#33A1FF"
 
     def __str__(self):
         return f"Profile of {self.user.username}"

@@ -58,6 +58,7 @@ class ReviewFilter:
 class SubReviewFilter:
     id: auto
     topic: auto
+    position: auto
     stars: auto
 
 @strawberry_django.filter(models.Cover, lookups=True)
@@ -84,6 +85,7 @@ class SongFilter:
 @strawberry_django.filter(models.SongArtist, lookups=True)
 class SongArtistFilter:
     id: auto
+    position: auto
     song: Optional["SongFilter"]
     artist: Optional["ArtistFilter"]
 
@@ -98,12 +100,14 @@ class ProjectFilter:
 @strawberry_django.filter(models.ProjectArtist, lookups=True)
 class ProjectArtistFilter:
     id: auto
+    position: auto
     project: Optional["ProjectFilter"]
     artist: Optional["ArtistFilter"]
 
 @strawberry_django.filter(models.ProjectSong, lookups=True)
 class ProjectSongFilter:
     id: auto
+    position: auto
     project: Optional["ProjectFilter"]
     song: Optional["SongFilter"]
 

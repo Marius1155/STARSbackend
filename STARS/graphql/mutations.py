@@ -143,20 +143,6 @@ class CommentUpdateInput:
 
 
 @strawberry.input
-class ReviewDataInput:
-    stars: float
-    text: Optional[str] = None
-
-
-@strawberry.input
-class ReviewUpdateInput:
-    id: strawberry.ID
-    stars: Optional[float] = strawberry.UNSET
-    text: Optional[str] = strawberry.UNSET
-    is_latest: Optional[bool] = strawberry.UNSET
-
-
-@strawberry.input
 class SubReviewDataInput:
     topic: str
     stars: float
@@ -169,6 +155,21 @@ class SubReviewUpdateInput:
     topic: Optional[str] = strawberry.UNSET
     text: Optional[str] = strawberry.UNSET
     stars: Optional[float] = strawberry.UNSET
+
+
+@strawberry.input
+class ReviewDataInput:
+    stars: float
+    text: Optional[str] = None
+    subreviews: Optional[List[SubReviewDataInput]] = None
+
+
+@strawberry.input
+class ReviewUpdateInput:
+    id: strawberry.ID
+    stars: Optional[float] = strawberry.UNSET
+    text: Optional[str] = strawberry.UNSET
+    is_latest: Optional[bool] = strawberry.UNSET
 
 
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
@@ -843,6 +844,16 @@ class Mutation:
                     content_object=project
                 )
 
+                if data.subreviews:
+                    for i, sub in enumerate(data.subreviews, start=1):
+                        models.SubReview.objects.create(
+                            review=review,
+                            topic=sub.topic,
+                            text=sub.text or "",
+                            stars=sub.stars,
+                            position=i
+                        )
+
                 new_reviews_count = old_reviews_count + 1
                 new_star_total = old_star_total + float(data.stars)
                 new_average = new_star_total / new_reviews_count if new_reviews_count > 0 else 0.0
@@ -883,6 +894,16 @@ class Mutation:
                     text=data.text,
                     content_object=song
                 )
+
+                if data.subreviews:
+                    for i, sub in enumerate(data.subreviews, start=1):
+                        models.SubReview.objects.create(
+                            review=review,
+                            topic=sub.topic,
+                            text=sub.text or "",
+                            stars=sub.stars,
+                            position=i
+                        )
 
                 new_reviews_count = old_reviews_count + 1
                 new_star_total = old_star_total + float(data.stars)
@@ -925,6 +946,16 @@ class Mutation:
                     content_object=outfit
                 )
 
+                if data.subreviews:
+                    for i, sub in enumerate(data.subreviews, start=1):
+                        models.SubReview.objects.create(
+                            review=review,
+                            topic=sub.topic,
+                            text=sub.text or "",
+                            stars=sub.stars,
+                            position=i
+                        )
+
                 new_reviews_count = old_reviews_count + 1
                 new_star_total = old_star_total + float(data.stars)
                 new_average = new_star_total / new_reviews_count if new_reviews_count > 0 else 0.0
@@ -965,6 +996,16 @@ class Mutation:
                     text=data.text,
                     content_object=podcast
                 )
+
+                if data.subreviews:
+                    for i, sub in enumerate(data.subreviews, start=1):
+                        models.SubReview.objects.create(
+                            review=review,
+                            topic=sub.topic,
+                            text=sub.text or "",
+                            stars=sub.stars,
+                            position=i
+                        )
 
                 new_reviews_count = old_reviews_count + 1
                 new_star_total = old_star_total + float(data.stars)
@@ -1008,6 +1049,16 @@ class Mutation:
                     content_object=music_video
                 )
 
+                if data.subreviews:
+                    for i, sub in enumerate(data.subreviews, start=1):
+                        models.SubReview.objects.create(
+                            review=review,
+                            topic=sub.topic,
+                            text=sub.text or "",
+                            stars=sub.stars,
+                            position=i
+                        )
+
                 new_reviews_count = old_reviews_count + 1
                 new_star_total = old_star_total + float(data.stars)
                 new_average = new_star_total / new_reviews_count if new_reviews_count > 0 else 0.0
@@ -1049,6 +1100,16 @@ class Mutation:
                     content_object=cover
                 )
 
+                if data.subreviews:
+                    for i, sub in enumerate(data.subreviews, start=1):
+                        models.SubReview.objects.create(
+                            review=review,
+                            topic=sub.topic,
+                            text=sub.text or "",
+                            stars=sub.stars,
+                            position=i
+                        )
+
                 new_reviews_count = old_reviews_count + 1
                 new_star_total = old_star_total + float(data.stars)
                 new_average = new_star_total / new_reviews_count if new_reviews_count > 0 else 0.0
@@ -1071,12 +1132,17 @@ class Mutation:
                 raise Exception("Authentication required.")
 
             with transaction.atomic():
-                review = models.Review.objects.get(pk=review_id)
+                review = models.Review.objects.select_for_update().get(pk=review_id)
+
+                current_count = review.subreviews.count()
+                new_position = current_count + 1
+
                 sub_review = models.SubReview.objects.create(
                     review=review,
                     topic=data.topic,
                     text=data.text,
-                    stars=data.stars
+                    stars=data.stars,
+                    position = new_position
                 )
                 return sub_review
 
