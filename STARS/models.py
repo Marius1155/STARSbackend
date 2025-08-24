@@ -345,7 +345,7 @@ class Message(models.Model):
     replying_to = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='replies')
 
     class Meta:
-        ordering = ['-time']
+        ordering = ['time']
 
     def __str__(self):
         return f"Message #{self.pk} from {self.sender.username} at {self.time}"
