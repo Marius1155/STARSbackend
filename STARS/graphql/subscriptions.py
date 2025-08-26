@@ -83,14 +83,12 @@ class Subscription:
     @strawberry.subscription
     async def conversation_updates(self, info) -> AsyncGenerator[ConversationEventPayload, None]:
         user = info.context.get("user")
-        print(f"the id from the context: {user.id}")
+
         if not user or not user.is_authenticated:
             try:
                 user = await database_sync_to_async(models.User.objects.get)(id=1)
             except models.User.DoesNotExist:
                 raise ValueError("Fallback user with ID=1 not found.")
-
-        print(f"the id actually used: {user.id}")
 
         channel_layer = get_channel_layer()
         group_name = f"user_{user.id}_conversations"
