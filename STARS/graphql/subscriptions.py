@@ -181,6 +181,9 @@ async def broadcast_conversation_update(conversation_id: int):
     participant_ids = await database_sync_to_async(get_participant_ids)()
 
     for user_id in participant_ids:
+        print("smth is happening")
+        print(user_id)
+        print("done")
         group_name = f"user_{user_id}_conversations"
         await channel_layer.group_send(
             group_name,
