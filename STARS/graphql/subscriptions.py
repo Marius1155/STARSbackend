@@ -99,8 +99,25 @@ class Subscription:
                 event = await channel_layer.receive(channel_name)
                 conversation_id = event["data"]["id"]
 
+                # --- NEW SECURITY CHECK ---
+                def check_access():
+                    # Check if the current user is a participant of THIS conversation
+                    return models.Conversation.objects.filter(
+                        id=conversation_id,
+                        participants=user
+                    ).exists()
+
+                has_access = await database_sync_to_async(check_access)()
+                if not has_access:
+                    # If they're not a participant for any reason,
+                    # just skip sending this update.
+                    continue
+
+                # --- END NEW CHECK ---
+
                 def get_conversation():
                     return models.Conversation.objects.get(id=conversation_id)
+
                 conversation_obj = await database_sync_to_async(get_conversation)()
 
                 yield ConversationEventPayload(conversation=conversation_obj)
