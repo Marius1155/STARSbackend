@@ -1279,7 +1279,7 @@ class Mutation:
                 ])
 
                 transaction.on_commit(lambda: async_to_sync(broadcast_message_event)(message.id, message.conversation_id, "created"))
-                transaction.on_commit(lambda: async_to_sync(broadcast_conversation_update)(conversation))
+                transaction.on_commit(lambda: async_to_sync(broadcast_conversation_update)(conversation.id))
 
                 return message
 

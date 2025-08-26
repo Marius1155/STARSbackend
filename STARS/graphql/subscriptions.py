@@ -167,11 +167,16 @@ def handle_conversation_save(sender, instance, created, update_fields, **kwargs)
         async_to_sync(broadcast_conversation_update)(instance)
 """
 
-async def broadcast_conversation_update(conversation: models.Conversation):
+# In subscriptions.py
+async def broadcast_conversation_update(conversation_id: int):
     channel_layer = get_channel_layer()
 
     def get_participant_ids():
-        return list(conversation.participants.values_list('id', flat=True))
+        try:
+            conversation = models.Conversation.objects.get(id=conversation_id)
+            return list(conversation.participants.values_list('id', flat=True))
+        except models.Conversation.DoesNotExist:
+            return []
 
     participant_ids = await database_sync_to_async(get_participant_ids)()
 
@@ -179,5 +184,5 @@ async def broadcast_conversation_update(conversation: models.Conversation):
         group_name = f"user_{user_id}_conversations"
         await channel_layer.group_send(
             group_name,
-            {"type": "subscription.event", "data": {"id": conversation.id}},
+            {"type": "subscription.event", "data": {"id": conversation_id}},
         )
