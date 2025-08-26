@@ -36,6 +36,7 @@ class Event(strawberry.relay.Node):
 class User(strawberry.relay.Node):
     profile: "Profile"
     conversations: DjangoCursorConnection["Conversation"] = strawberry_django.connection(filters=filters.ConversationFilter, order=orders.ConversationOrder)
+    seen_conversations: DjangoCursorConnection["Conversation"] = strawberry_django.connection(filters=filters.ConversationFilter, order=orders.ConversationOrder)
     reviews: DjangoCursorConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
 
 
@@ -133,6 +134,7 @@ class Conversation(strawberry.relay.Node):
     latest_message_sender: Optional["User"]
     participants: DjangoCursorConnection["User"] = strawberry_django.connection(filters=filters.UserFilter, order=orders.UserOrder)
     messages: DjangoCursorConnection["Message"] = strawberry_django.connection(filters=filters.MessageFilter, order=orders.MessageOrder)
+    seen_by: DjangoCursorConnection["User"] = strawberry_django.connection(filters=filters.UserFilter, order=orders.UserOrder)
 
 
 @strawberry_django.type(models.Message, fields="__all__")

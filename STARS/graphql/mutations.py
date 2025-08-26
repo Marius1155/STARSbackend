@@ -1265,6 +1265,8 @@ class Mutation:
                     replying_to=message_to_reply_to
                 )
 
+                conversation.seen_by.clear()
+
                 conversation.latest_message = message
                 conversation.latest_message_text = message.text
                 conversation.latest_message_time = message.time
@@ -1276,14 +1278,37 @@ class Mutation:
                     'latest_message_sender'
                 ])
 
-                from asgiref.sync import async_to_sync
-
                 transaction.on_commit(lambda: async_to_sync(broadcast_message_event)(message.id, message.conversation_id, "created"))
                 transaction.on_commit(lambda: async_to_sync(broadcast_conversation_update)(conversation))
 
                 return message
 
         return await database_sync_to_async(_add_message_sync)()
+
+    @strawberry.mutation
+    async def mark_conversation_as_seen_by_user(self, info: Info, conversation_id: strawberry.ID) -> SuccessMessage:
+        request = info.context.request
+
+        def _mark_seen_sync():
+            user = request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
+
+            with transaction.atomic():
+                try:
+                    conversation = models.Conversation.objects.get(pk=conversation_id)
+                except models.Conversation.DoesNotExist:
+                    raise Exception("Conversation not found.")
+
+                is_participant = conversation.participants.filter(id=user.id).exists()
+                if not is_participant:
+                    raise Exception("You are not a participant in this conversation.")
+
+                conversation.seen_by.add(user)
+
+            return SuccessMessage(message="Conversation marked as seen.")
+
+        return await database_sync_to_async(_mark_seen_sync)()
 
     @strawberry.mutation
     async def delete_message(self, info: Info, id: strawberry.ID) -> SuccessMessage:

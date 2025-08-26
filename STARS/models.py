@@ -323,6 +323,7 @@ class Conversation(models.Model):
     latest_message_text = models.TextField(blank=True)
     latest_message_time = models.DateTimeField(null=True, blank=True)
     latest_message_sender = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='latest_sent_conversations')
+    seen_by = models.ManyToManyField(User, blank=True, related_name='seen_conversations')
 
     color = models.CharField(max_length=7, blank=True)  # e.g., "#FF5733"
 
