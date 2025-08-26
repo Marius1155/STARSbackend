@@ -1266,6 +1266,7 @@ class Mutation:
                 )
 
                 conversation.seen_by.clear()
+                conversation.seen_by.add(user)
 
                 conversation.latest_message = message
                 conversation.latest_message_text = message.text
