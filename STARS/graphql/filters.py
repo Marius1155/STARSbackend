@@ -8,6 +8,7 @@ from typing import Optional
 # Import all the models you want to create filters for
 from STARS import models
 from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
 
 # For Relay Nodes, the `id` filter should accept a simple integer,
 # which the resolver will then use to find the object.
@@ -44,6 +45,10 @@ class CommentFilter:
     dislikes_count: auto
     date_created: auto
 
+@strawberry_django.filter(ContentType, lookups=True)
+class ContentTypeFilter:
+    model: auto
+
 @strawberry_django.filter(models.Review, lookups=True)
 class ReviewFilter:
     id: auto
@@ -53,6 +58,8 @@ class ReviewFilter:
     dislikes_count: auto
     date_created: auto
     is_latest: auto
+    object_id: auto
+    content_type: Optional["ContentTypeFilter"]
 
 @strawberry_django.filter(models.SubReview, lookups=True)
 class SubReviewFilter:
@@ -149,3 +156,4 @@ class UserFilter:
     email: auto
     first_name: auto
     last_name: auto
+    reviews: Optional["ReviewFilter"]
