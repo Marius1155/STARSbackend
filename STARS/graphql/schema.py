@@ -18,14 +18,15 @@ class Query:
     reviews: DjangoCursorConnection[types.Review] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
 
     def resolve_reviews(self, info, **kwargs):
-        current_user = info.context["user"]
+        current_user = info.context.get("user")
         if not current_user or not current_user.is_authenticated:
-            return models.User.objects.none()
+            return models.Review.objects.none()
 
         followed_subquery = models.Profile.objects.filter(
-            user=OuterRef('pk'),
+            user=OuterRef('user_id'),  # Review.user_id points to the User
             followers=current_user
         )
+
         return models.Review.objects.annotate(
             user_followed_by_current_user=Exists(followed_subquery)
         )
