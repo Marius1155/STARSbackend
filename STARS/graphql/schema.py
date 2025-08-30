@@ -4,7 +4,8 @@ from strawberry_django.optimizer import DjangoOptimizerExtension
 from strawberry_django.relay import DjangoCursorConnection
 
 from . import types, filters, mutations, subscriptions, orders
-
+from django.db.models import OuterRef, Subquery, Exists
+from STARS import models
 
 @strawberry.type
 class Query:
@@ -21,6 +22,19 @@ class Query:
     event_series: DjangoCursorConnection[types.EventSeries] = strawberry_django.connection(filters=filters.EventSeriesFilter, order=orders.EventSeriesOrder)
     music_videos: DjangoCursorConnection[types.MusicVideo] = strawberry_django.connection(filters=filters.MusicVideoFilter, order=orders.MusicVideoOrder)
     users: DjangoCursorConnection[types.User] = strawberry_django.connection(filters=filters.UserFilter, order=orders.UserOrder)
+
+    def resolve_users(self, info, **kwargs):
+        current_user = info.context["user"]
+        if not current_user or not current_user.is_authenticated:
+            return models.User.objects.none()
+
+        followed_subquery = models.Profile.objects.filter(
+            user=OuterRef('pk'),
+            followers=current_user
+        )
+        return models.User.objects.annotate(
+            followed_by_current_user=Exists(followed_subquery)
+        )
 
     # These are not paginated
     project_songs: DjangoCursorConnection[types.ProjectSong] = strawberry_django.connection(filters=filters.ProjectSongFilter, order=orders.ProjectSongOrder)
