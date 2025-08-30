@@ -16,6 +16,20 @@ class Query:
     outfits: DjangoCursorConnection[types.Outfit] = strawberry_django.connection(filters=filters.OutfitFilter, order=orders.OutfitOrder)
     comments: DjangoCursorConnection[types.Comment] = strawberry_django.connection(filters=filters.CommentFilter, order=orders.CommentOrder)
     reviews: DjangoCursorConnection[types.Review] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
+
+    def resolve_reviews(self, info, **kwargs):
+        current_user = info.context["user"]
+        if not current_user or not current_user.is_authenticated:
+            return models.User.objects.none()
+
+        followed_subquery = models.Profile.objects.filter(
+            user=OuterRef('pk'),
+            followers=current_user
+        )
+        return models.Review.objects.annotate(
+            user_followed_by_current_user=Exists(followed_subquery)
+        )
+
     messages: DjangoCursorConnection[types.Message] = strawberry_django.connection(filters=filters.MessageFilter, order=orders.MessageOrder)
     conversations: DjangoCursorConnection[types.Conversation] = strawberry_django.connection(filters=filters.ConversationFilter, order=orders.ConversationOrder)
     events: DjangoCursorConnection[types.Event] = strawberry_django.connection(filters=filters.EventFilter, order=orders.EventOrder)

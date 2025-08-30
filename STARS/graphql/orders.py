@@ -48,6 +48,7 @@ class ReviewOrder:
     likes_count : auto
     dislikes_count : auto
     is_latest : auto
+    user_followed_by_current_user: auto
 
 @strawberry_django.order_type(models.SubReview)
 class SubReviewOrder:
