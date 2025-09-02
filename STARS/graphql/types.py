@@ -4,6 +4,7 @@ from typing import Optional
 from strawberry_django.relay import DjangoCursorConnection
 from STARS import models
 from django.contrib.auth.models import User as DjangoUser
+from asgiref.sync import sync_to_async
 
 # Import your filters to use them in the fields
 from . import filters, orders
@@ -97,6 +98,10 @@ class Project(strawberry.relay.Node):
     project_songs: DjangoCursorConnection["ProjectSong"] = strawberry_django.connection(filters=filters.ProjectSongFilter, order=orders.ProjectSongOrder)
     project_artists: DjangoCursorConnection["ProjectArtist"] = strawberry_django.connection(filters=filters.ProjectArtistFilter, order=orders.ProjectArtistOrder)
     reviews: DjangoCursorConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
+
+    @strawberry_django.field
+    async def covers(self, info) -> list["Cover"]:
+        return await sync_to_async(list)(self.covers.all())
 
 
 @strawberry_django.type(models.ProjectArtist, fields="__all__")
