@@ -101,7 +101,7 @@ class Project(strawberry.relay.Node):
 
     @strawberry_django.field
     async def covers(self, info) -> list["Cover"]:
-        return await sync_to_async(list)(self.covers.all())
+        return await sync_to_async(lambda: self.covers.all())()
 
 
 @strawberry_django.type(models.ProjectArtist, fields="__all__")
