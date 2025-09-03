@@ -116,7 +116,7 @@ def get_project_reviews(project: models.Project) -> Iterable[models.Review]:
 
 @strawberry_django.type(models.Project, fields="__all__")
 class Project(relay.Node):
-    # Using field annotation approach to preserve filters and ordering
+    # Field annotations with resolver methods
     covers: relay.Connection["Cover"] = strawberry_django.connection(
         filters=filters.CoverFilter,
         order=orders.CoverOrder
@@ -136,6 +136,19 @@ class Project(relay.Node):
         filters=filters.ReviewFilter,
         order=orders.ReviewOrder
     )
+
+    # Resolver methods
+    async def covers(self, info: Info) -> Iterable["Cover"]:
+        return await get_project_covers(self)
+
+    async def project_songs(self, info: Info) -> Iterable["ProjectSong"]:
+        return await get_project_songs(self)
+
+    async def project_artists(self, info: Info) -> Iterable["ProjectArtist"]:
+        return await get_project_artists(self)
+
+    async def reviews(self, info: Info) -> Iterable["Review"]:
+        return await get_project_reviews(self)
 
 
 @strawberry_django.type(models.ProjectArtist, fields="__all__")
