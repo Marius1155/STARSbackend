@@ -116,37 +116,38 @@ def get_project_reviews(project: models.Project) -> Iterable[models.Review]:
 
 @strawberry_django.type(models.Project, fields="__all__")
 class Project(relay.Node):
-    # Field annotations with resolver methods
-    covers: relay.Connection["Cover"] = strawberry_django.connection(
+    # Field annotations
+    covers: relay.Connection["Cover"]
+    project_songs: relay.Connection["ProjectSong"]
+    project_artists: relay.Connection["ProjectArtist"]
+    reviews: relay.Connection["Review"]
+
+    # Resolver methods with decorators
+    @strawberry_django.connection(
         filters=filters.CoverFilter,
         order=orders.CoverOrder
     )
-
-    project_songs: relay.Connection["ProjectSong"] = strawberry_django.connection(
-        filters=filters.ProjectSongFilter,
-        order=orders.ProjectSongOrder
-    )
-
-    project_artists: relay.Connection["ProjectArtist"] = strawberry_django.connection(
-        filters=filters.ProjectArtistFilter,
-        order=orders.ProjectArtistOrder
-    )
-
-    reviews: relay.Connection["Review"] = strawberry_django.connection(
-        filters=filters.ReviewFilter,
-        order=orders.ReviewOrder
-    )
-
-    # Resolver methods
     async def covers(self, info: Info) -> Iterable["Cover"]:
         return await get_project_covers(self)
 
+    @strawberry_django.connection(
+        filters=filters.ProjectSongFilter,
+        order=orders.ProjectSongOrder
+    )
     async def project_songs(self, info: Info) -> Iterable["ProjectSong"]:
         return await get_project_songs(self)
 
+    @strawberry_django.connection(
+        filters=filters.ProjectArtistFilter,
+        order=orders.ProjectArtistOrder
+    )
     async def project_artists(self, info: Info) -> Iterable["ProjectArtist"]:
         return await get_project_artists(self)
 
+    @strawberry_django.connection(
+        filters=filters.ReviewFilter,
+        order=orders.ReviewOrder
+    )
     async def reviews(self, info: Info) -> Iterable["Review"]:
         return await get_project_reviews(self)
 
