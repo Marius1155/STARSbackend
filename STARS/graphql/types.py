@@ -99,10 +99,6 @@ class Project(strawberry.relay.Node):
     project_artists: DjangoCursorConnection["ProjectArtist"] = strawberry_django.connection(filters=filters.ProjectArtistFilter, order=orders.ProjectArtistOrder)
     reviews: DjangoCursorConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
 
-    @strawberry_django.field
-    async def covers(self, info) -> list["Cover"]:
-        return await sync_to_async(lambda: self.covers.all())()
-
 
 @strawberry_django.type(models.ProjectArtist, fields="__all__")
 class ProjectArtist(strawberry.relay.Node):
