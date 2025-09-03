@@ -1,6 +1,7 @@
 import strawberry
 import strawberry_django
-from typing import Optional
+from strawberry.types import Info
+from typing import Optional, Iterable
 from strawberry_django.relay import DjangoCursorConnection
 from STARS import models
 from django.contrib.auth.models import User as DjangoUser
@@ -90,25 +91,42 @@ class SongArtist(strawberry.relay.Node):
     song: "Song"
     artist: "Artist"
 
+@sync_to_async
+def get_project_covers(project: models.Project) -> Iterable[models.Cover]:
+    return project.covers.all()
+
+@sync_to_async
+def get_project_songs(project: models.Project) -> Iterable[models.ProjectSong]:
+    return project.project_songs.all()
+
+@sync_to_async
+def get_project_artists(project: models.Project) -> Iterable[models.ProjectArtist]:
+    return project.project_artists.all()
+
+@sync_to_async
+def get_project_reviews(project: models.Project) -> Iterable[models.Review]:
+    return project.reviews.all()
+
+
+# --- Final Project type with the corrected resolver annotations ---
 
 @strawberry_django.type(models.Project, fields="__all__")
 class Project(relay.Node):
-    covers: DjangoCursorConnection["Cover"] = strawberry_django.connection(
-        filters=filters.CoverFilter,
-        order=orders.CoverOrder
-    )
-    project_songs: DjangoCursorConnection["ProjectSong"] = strawberry_django.connection(
-        filters=filters.ProjectSongFilter,
-        order=orders.ProjectSongOrder
-    )
-    project_artists: DjangoCursorConnection["ProjectArtist"] = strawberry_django.connection(
-        filters=filters.ProjectArtistFilter,
-        order=orders.ProjectArtistOrder
-    )
-    reviews: DjangoCursorConnection["Review"] = strawberry_django.connection(
-        filters=filters.ReviewFilter,
-        order=orders.ReviewOrder
-    )
+    @relay.connection(relay.Connection["Cover"])
+    async def covers(self, info: Info) -> Iterable["Cover"]:
+        return await get_project_covers(self)
+
+    @relay.connection(relay.Connection["ProjectSong"])
+    async def project_songs(self, info: Info) -> Iterable["ProjectSong"]:
+        return await get_project_songs(self)
+
+    @relay.connection(relay.Connection["ProjectArtist"])
+    async def project_artists(self, info: Info) -> Iterable["ProjectArtist"]:
+        return await get_project_artists(self)
+
+    @relay.connection(relay.Connection["Review"])
+    async def reviews(self, info: Info) -> Iterable["Review"]:
+        return await get_project_reviews(self)
 
 @strawberry_django.type(models.ProjectArtist, fields="__all__")
 class ProjectArtist(strawberry.relay.Node):
