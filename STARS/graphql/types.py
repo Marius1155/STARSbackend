@@ -91,17 +91,21 @@ class SongArtist(strawberry.relay.Node):
     song: "Song"
     artist: "Artist"
 
+
 @sync_to_async
 def get_project_covers(project: models.Project) -> Iterable[models.Cover]:
     return project.covers.all()
+
 
 @sync_to_async
 def get_project_songs(project: models.Project) -> Iterable[models.ProjectSong]:
     return project.project_songs.all()
 
+
 @sync_to_async
 def get_project_artists(project: models.Project) -> Iterable[models.ProjectArtist]:
     return project.project_artists.all()
+
 
 @sync_to_async
 def get_project_reviews(project: models.Project) -> Iterable[models.Review]:
@@ -112,21 +116,27 @@ def get_project_reviews(project: models.Project) -> Iterable[models.Review]:
 
 @strawberry_django.type(models.Project, fields="__all__")
 class Project(relay.Node):
-    @relay.connection(relay.Connection["Cover"])
-    async def covers(self, info: Info) -> Iterable["Cover"]:
-        return await get_project_covers(self)
+    # Using field annotation approach to preserve filters and ordering
+    covers: relay.Connection["Cover"] = strawberry_django.connection(
+        filters=filters.CoverFilter,
+        order=orders.CoverOrder
+    )
 
-    @relay.connection(relay.Connection["ProjectSong"])
-    async def project_songs(self, info: Info) -> Iterable["ProjectSong"]:
-        return await get_project_songs(self)
+    project_songs: relay.Connection["ProjectSong"] = strawberry_django.connection(
+        filters=filters.ProjectSongFilter,
+        order=orders.ProjectSongOrder
+    )
 
-    @relay.connection(relay.Connection["ProjectArtist"])
-    async def project_artists(self, info: Info) -> Iterable["ProjectArtist"]:
-        return await get_project_artists(self)
+    project_artists: relay.Connection["ProjectArtist"] = strawberry_django.connection(
+        filters=filters.ProjectArtistFilter,
+        order=orders.ProjectArtistOrder
+    )
 
-    @relay.connection(relay.Connection["Review"])
-    async def reviews(self, info: Info) -> Iterable["Review"]:
-        return await get_project_reviews(self)
+    reviews: relay.Connection["Review"] = strawberry_django.connection(
+        filters=filters.ReviewFilter,
+        order=orders.ReviewOrder
+    )
+
 
 @strawberry_django.type(models.ProjectArtist, fields="__all__")
 class ProjectArtist(strawberry.relay.Node):
