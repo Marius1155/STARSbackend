@@ -96,12 +96,12 @@ class Project(strawberry.relay.Node):
     async def covers(
         self,
         info,
-        filter: Optional[filters.CoverFilter] = None,
+        filters: Optional[filters.CoverFilter] = None,
         order: Optional[orders.CoverOrder] = None,
     ) -> list["Cover"]:
         qs = self.covers.all()
         if filter:
-            qs = filter.filter(qs, info)
+            qs = (filters.filter(qs, info))
         if order:
             qs = order.order(qs, info)
         return await sync_to_async(list)(qs)
@@ -110,12 +110,12 @@ class Project(strawberry.relay.Node):
     async def alternative_versions(
         self,
         info,
-        filter: Optional[filters.ProjectFilter] = None,
+        filters: Optional[filters.ProjectFilter] = None,
         order: Optional[orders.ProjectOrder] = None,
     ) -> list["Project"]:
         qs = self.alternative_versions.all()
         if filter:
-            qs = filter.filter(qs, info)
+            qs = filters.filter(qs, info)
         if order:
             qs = order.order(qs, info)
         return await sync_to_async(list)(qs)
@@ -124,12 +124,12 @@ class Project(strawberry.relay.Node):
     async def project_songs(
         self,
         info,
-        filter: Optional[filters.ProjectSongFilter] = None,
+        filters: Optional[filters.ProjectSongFilter] = None,
         order: Optional[orders.ProjectSongOrder] = None,
     ) -> list["ProjectSong"]:
         qs = self.project_songs.all()
         if filter:
-            qs = filter.filter(qs, info)
+            qs = filters.filter(qs, info)
         if order:
             qs = order.order(qs, info)
         return await sync_to_async(list)(qs)
@@ -138,12 +138,12 @@ class Project(strawberry.relay.Node):
     async def project_artists(
         self,
         info,
-        filter: Optional[filters.ProjectArtistFilter] = None,
+        filters: Optional[filters.ProjectArtistFilter] = None,
         order: Optional[orders.ProjectArtistOrder] = None,
     ) -> list["ProjectArtist"]:
         qs = self.project_artists.all()
         if filter:
-            qs = filter.filter(qs, info)
+            qs = filters.filter(qs, info)
         if order:
             qs = order.order(qs, info)
         return await sync_to_async(list)(qs)
@@ -152,12 +152,12 @@ class Project(strawberry.relay.Node):
     async def reviews(
         self,
         info,
-        filter: Optional[filters.ReviewFilter] = None,
+        filters: Optional[filters.ReviewFilter] = None,
         order: Optional[orders.ReviewOrder] = None,
     ) -> list["Review"]:
         qs = self.reviews.all()
         if filter:
-            qs = filter.filter(qs, info)
+            qs = filters.filter(qs, info)
         if order:
             qs = order.order(qs, info)
         return await sync_to_async(list)(qs)
