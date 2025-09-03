@@ -5,6 +5,7 @@ from strawberry_django.relay import DjangoCursorConnection
 from STARS import models
 from django.contrib.auth.models import User as DjangoUser
 from asgiref.sync import sync_to_async
+from strawberry import relay
 
 # Import your filters to use them in the fields
 from . import filters, orders
@@ -91,77 +92,23 @@ class SongArtist(strawberry.relay.Node):
 
 
 @strawberry_django.type(models.Project, fields="__all__")
-class Project(strawberry.relay.Node):
-    @strawberry.field
-    async def covers(
-        self,
-        info,
-        filters: Optional[filters.CoverFilter] = None,
-        order: Optional[orders.CoverOrder] = None,
-    ) -> list["Cover"]:
-        qs = self.covers.all()
-        if filter:
-            qs = (filters.filter(qs, info))
-        if order:
-            qs = order.order(qs, info)
-        return await sync_to_async(list)(qs)
-
-    @strawberry.field
-    async def alternative_versions(
-        self,
-        info,
-        filters: Optional[filters.ProjectFilter] = None,
-        order: Optional[orders.ProjectOrder] = None,
-    ) -> list["Project"]:
-        qs = self.alternative_versions.all()
-        if filter:
-            qs = filters.filter(qs, info)
-        if order:
-            qs = order.order(qs, info)
-        return await sync_to_async(list)(qs)
-
-    @strawberry.field
-    async def project_songs(
-        self,
-        info,
-        filters: Optional[filters.ProjectSongFilter] = None,
-        order: Optional[orders.ProjectSongOrder] = None,
-    ) -> list["ProjectSong"]:
-        qs = self.project_songs.all()
-        if filter:
-            qs = filters.filter(qs, info)
-        if order:
-            qs = order.order(qs, info)
-        return await sync_to_async(list)(qs)
-
-    @strawberry.field
-    async def project_artists(
-        self,
-        info,
-        filters: Optional[filters.ProjectArtistFilter] = None,
-        order: Optional[orders.ProjectArtistOrder] = None,
-    ) -> list["ProjectArtist"]:
-        qs = self.project_artists.all()
-        if filter:
-            qs = filters.filter(qs, info)
-        if order:
-            qs = order.order(qs, info)
-        return await sync_to_async(list)(qs)
-
-    @strawberry.field
-    async def reviews(
-        self,
-        info,
-        filters: Optional[filters.ReviewFilter] = None,
-        order: Optional[orders.ReviewOrder] = None,
-    ) -> list["Review"]:
-        qs = self.reviews.all()
-        if filter:
-            qs = filters.filter(qs, info)
-        if order:
-            qs = order.order(qs, info)
-        return await sync_to_async(list)(qs)
-
+class Project(relay.Node):
+    covers: DjangoCursorConnection["Cover"] = strawberry_django.connection(
+        filters=filters.CoverFilter,
+        order=orders.CoverOrder
+    )
+    project_songs: DjangoCursorConnection["ProjectSong"] = strawberry_django.connection(
+        filters=filters.ProjectSongFilter,
+        order=orders.ProjectSongOrder
+    )
+    project_artists: DjangoCursorConnection["ProjectArtist"] = strawberry_django.connection(
+        filters=filters.ProjectArtistFilter,
+        order=orders.ProjectArtistOrder
+    )
+    reviews: DjangoCursorConnection["Review"] = strawberry_django.connection(
+        filters=filters.ReviewFilter,
+        order=orders.ReviewOrder
+    )
 
 @strawberry_django.type(models.ProjectArtist, fields="__all__")
 class ProjectArtist(strawberry.relay.Node):
