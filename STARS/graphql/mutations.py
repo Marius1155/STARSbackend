@@ -452,9 +452,7 @@ class SuccessMessage:
 @strawberry.enum
 class LikeAction(enum.Enum):
     LIKE = "like"
-    UNLIKE = "unlike"
     DISLIKE = "dislike"
-    UNDISLIKE = "undislike"
 
 
 @strawberry.type
@@ -622,10 +620,10 @@ class Mutation:
 
         return await database_sync_to_async(_create_sync)()
 
-
     @strawberry.mutation
-    async def like_dislike_comment(self, info: Info, comment_id: strawberry.ID, action: LikeAction) -> types.Comment:
-
+    async def like_dislike_comment(
+            self, info: Info, comment_id: strawberry.ID, action: LikeAction
+    ) -> types.Comment:
         def _update_sync():
             user = info.context.request.user
             if not user.is_authenticated:
@@ -639,40 +637,40 @@ class Mutation:
                 )
 
                 if action == LikeAction.LIKE:
-                    if not comment.liked_by.filter(pk=user.pk).exists():
+                    if comment.liked_by.filter(pk=user.pk).exists():
+                        # already liked → unlike
+                        comment.liked_by.remove(user)
+                        comment.likes_count -= 1
+                    else:
+                        # not liked → like, and remove dislike if present
                         comment.liked_by.add(user)
                         comment.likes_count += 1
-                    if comment.disliked_by.filter(pk=user.pk).exists():
-                        comment.disliked_by.remove(user)
-                        comment.dislikes_count -= 1
-
-                elif action == LikeAction.UNLIKE:
-                    if comment.liked_by.filter(pk=user.pk).exists():
-                        comment.liked_by.remove(user)
-                        comment.likes_count -= 1
+                        if comment.disliked_by.filter(pk=user.pk).exists():
+                            comment.disliked_by.remove(user)
+                            comment.dislikes_count -= 1
 
                 elif action == LikeAction.DISLIKE:
-                    if not comment.disliked_by.filter(pk=user.pk).exists():
-                        comment.disliked_by.add(user)
-                        comment.dislikes_count += 1
-                    if comment.liked_by.filter(pk=user.pk).exists():
-                        comment.liked_by.remove(user)
-                        comment.likes_count -= 1
-
-                elif action == LikeAction.UNDISLIKE:
                     if comment.disliked_by.filter(pk=user.pk).exists():
+                        # already disliked → undislike
                         comment.disliked_by.remove(user)
                         comment.dislikes_count -= 1
+                    else:
+                        # not disliked → dislike, and remove like if present
+                        comment.disliked_by.add(user)
+                        comment.dislikes_count += 1
+                        if comment.liked_by.filter(pk=user.pk).exists():
+                            comment.liked_by.remove(user)
+                            comment.likes_count -= 1
 
                 comment.save(update_fields=["likes_count", "dislikes_count"])
                 return comment
 
         return await database_sync_to_async(_update_sync)()
 
-
     @strawberry.mutation
-    async def like_dislike_review(self, info: Info, review_id: strawberry.ID, action: LikeAction) -> types.Review:
-
+    async def like_dislike_review(
+            self, info: Info, review_id: strawberry.ID, action: LikeAction
+    ) -> types.Review:
         def _update_sync():
             user = info.context.request.user
             if not user.is_authenticated:
@@ -686,30 +684,30 @@ class Mutation:
                 )
 
                 if action == LikeAction.LIKE:
-                    if not review.liked_by.filter(pk=user.pk).exists():
+                    if review.liked_by.filter(pk=user.pk).exists():
+                        # already liked → unlike
+                        review.liked_by.remove(user)
+                        review.likes_count -= 1
+                    else:
+                        # not liked → like, and remove dislike if present
                         review.liked_by.add(user)
                         review.likes_count += 1
-                    if review.disliked_by.filter(pk=user.pk).exists():
-                        review.disliked_by.remove(user)
-                        review.dislikes_count -= 1
-
-                elif action == LikeAction.UNLIKE:
-                    if review.liked_by.filter(pk=user.pk).exists():
-                        review.liked_by.remove(user)
-                        review.likes_count -= 1
+                        if review.disliked_by.filter(pk=user.pk).exists():
+                            review.disliked_by.remove(user)
+                            review.dislikes_count -= 1
 
                 elif action == LikeAction.DISLIKE:
-                    if not review.disliked_by.filter(pk=user.pk).exists():
-                        review.disliked_by.add(user)
-                        review.dislikes_count += 1
-                    if review.liked_by.filter(pk=user.pk).exists():
-                        review.liked_by.remove(user)
-                        review.likes_count -= 1
-
-                elif action == LikeAction.UNDISLIKE:
                     if review.disliked_by.filter(pk=user.pk).exists():
+                        # already disliked → undislike
                         review.disliked_by.remove(user)
                         review.dislikes_count -= 1
+                    else:
+                        # not disliked → dislike, and remove like if present
+                        review.disliked_by.add(user)
+                        review.dislikes_count += 1
+                        if review.liked_by.filter(pk=user.pk).exists():
+                            review.liked_by.remove(user)
+                            review.likes_count -= 1
 
                 review.save(update_fields=["likes_count", "dislikes_count"])
                 return review
