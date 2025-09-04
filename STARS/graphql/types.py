@@ -1,12 +1,13 @@
 import strawberry
 import strawberry_django
 from strawberry.types import Info
-from typing import Optional, Iterable
+from typing import Optional, Iterable, Any, List
 from strawberry_django.relay import DjangoCursorConnection
 from STARS import models
 from django.contrib.auth.models import User as DjangoUser
 from asgiref.sync import sync_to_async
 from strawberry import relay
+from STARS import models
 
 # Import your filters to use them in the fields
 from . import filters, orders
@@ -92,64 +93,55 @@ class SongArtist(strawberry.relay.Node):
     artist: "Artist"
 
 
-@sync_to_async
-def get_project_covers(project: models.Project) -> Iterable[models.Cover]:
-    return project.covers.all()
-
-
-@sync_to_async
-def get_project_songs(project: models.Project) -> Iterable[models.ProjectSong]:
-    return project.project_songs.all()
-
-
-@sync_to_async
-def get_project_artists(project: models.Project) -> Iterable[models.ProjectArtist]:
-    return project.project_artists.all()
-
-
-@sync_to_async
-def get_project_reviews(project: models.Project) -> Iterable[models.Review]:
-    return project.reviews.all()
-
-
-# --- Final Project type with the corrected resolver annotations ---
+# --- Final Project type with field annotations and connection values ---
 
 @strawberry_django.type(models.Project, fields="__all__")
 class Project(relay.Node):
-    # Field annotations
-    covers: relay.Connection["Cover"]
-    project_songs: relay.Connection["ProjectSong"]
-    project_artists: relay.Connection["ProjectArtist"]
-    reviews: relay.Connection["Review"]
-
-    # Resolver methods with decorators
-    @strawberry_django.connection(
+    # Field annotations with connection field values
+    covers: relay.ListConnection["Cover"] = strawberry_django.connection(
         filters=filters.CoverFilter,
         order=orders.CoverOrder
     )
-    async def covers(self, info: Info) -> Iterable["Cover"]:
-        return await get_project_covers(self)
 
-    @strawberry_django.connection(
+    project_songs: relay.ListConnection["ProjectSong"] = strawberry_django.connection(
         filters=filters.ProjectSongFilter,
         order=orders.ProjectSongOrder
     )
-    async def project_songs(self, info: Info) -> Iterable["ProjectSong"]:
-        return await get_project_songs(self)
 
-    @strawberry_django.connection(
+    project_artists: relay.ListConnection["ProjectArtist"] = strawberry_django.connection(
         filters=filters.ProjectArtistFilter,
         order=orders.ProjectArtistOrder
     )
-    async def project_artists(self, info: Info) -> Iterable["ProjectArtist"]:
-        return await get_project_artists(self)
 
-    @strawberry_django.connection(
+    reviews: relay.ListConnection["Review"] = strawberry_django.connection(
         filters=filters.ReviewFilter,
         order=orders.ReviewOrder
     )
-    async def reviews(self, info: Info) -> Iterable["Review"]:
-        return await get_project_reviews(self)
+
+    alternative_versions: relay.ListConnection["Project"] = strawberry_django.connection(
+        filters=filters.ProjectFilter,
+        order=orders.ProjectOrder
+    )
+
+    @sync_to_async
+    def get_project_covers(self) -> List[models.Cover]:
+        return self.covers.all()
+
+    @sync_to_async
+    def get_project_songs(self) -> List[models.ProjectSong]:
+        return self.project_songs.all()
+
+    @sync_to_async
+    def get_project_artists(self) -> List[models.ProjectArtist]:
+        return self.project_artists.all()
+
+    @sync_to_async
+    def get_project_reviews(self) -> List[models.Review]:
+        return self.reviews.all()
+
+    @sync_to_async
+    def get_project_alternative_versions(self) -> List[models.Project]:
+        return self.alternative_versions.all()
 
 
 @strawberry_django.type(models.ProjectArtist, fields="__all__")
