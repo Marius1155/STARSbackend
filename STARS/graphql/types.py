@@ -108,18 +108,18 @@ class Review(strawberry.relay.Node):
     disliked_by: relay.ListConnection["User"] = strawberry_django.connection(filters=filters.UserFilter, order=orders.UserOrder)
 
     @strawberry.field
-    async def liked_by_current_user(self, info: Info) -> bool:
+    def liked_by_current_user(self, info: Info) -> bool:
         user = info.context.request.user
         if user.is_anonymous:
             return False
-        return await sync_to_async(self.liked_by.filter(pk=user.pk).exists())
+        return self.liked_by.filter(pk=user.pk).exists()
 
     @strawberry.field
-    async def disliked_by_current_user(self, info: Info) -> bool:
+    def disliked_by_current_user(self, info: Info) -> bool:
         user = info.context.request.user
         if user.is_anonymous:
             return False
-        return await sync_to_async(self.disliked_by.filter(pk=user.pk).exists())
+        return self.disliked_by.filter(pk=user.pk).exists()
 
     @sync_to_async
     def get_subreviews(self) -> List[models.SubReview]:
