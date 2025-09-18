@@ -160,6 +160,7 @@ class SubReviewUpdateInput:
 @strawberry.input
 class ReviewDataInput:
     stars: float
+    title: str
     text: Optional[str] = None
     subreviews: Optional[List[SubReviewDataInput]] = None
 
@@ -168,6 +169,7 @@ class ReviewDataInput:
 class ReviewUpdateInput:
     id: strawberry.ID
     stars: Optional[float] = strawberry.UNSET
+    title: Optional[str] = strawberry.UNSET
     text: Optional[str] = strawberry.UNSET
     is_latest: Optional[bool] = strawberry.UNSET
 
@@ -849,6 +851,7 @@ class Mutation:
 
                 review = models.Review.objects.create(
                     user=user,
+                    title=data.title,
                     stars=data.stars,
                     text=data.text,
                     content_object=project
@@ -918,6 +921,7 @@ class Mutation:
 
                 review = models.Review.objects.create(
                     user=user,
+                    title=data.title,
                     stars=data.stars,
                     text=data.text,
                     content_object=song
@@ -987,6 +991,7 @@ class Mutation:
 
                 review = models.Review.objects.create(
                     user=user,
+                    title=data.title,
                     stars=data.stars,
                     text=data.text,
                     content_object=outfit
@@ -1056,6 +1061,7 @@ class Mutation:
 
                 review = models.Review.objects.create(
                     user=user,
+                    title=data.title,
                     stars=data.stars,
                     text=data.text,
                     content_object=podcast
@@ -1126,6 +1132,7 @@ class Mutation:
 
                 review = models.Review.objects.create(
                     user=user,
+                    title=data.title,
                     stars=data.stars,
                     text=data.text,
                     content_object=music_video
@@ -1176,6 +1183,7 @@ class Mutation:
                     .select_for_update()
                     .filter(
                         user=user,
+                        title=data.title,
                         object_id=cover.id,
                         content_type__model='cover',
                         is_latest=True
