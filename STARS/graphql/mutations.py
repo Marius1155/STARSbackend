@@ -868,6 +868,12 @@ class Mutation:
                 new_star_total = old_star_total + float(data.stars)
                 new_average = new_star_total / new_reviews_count if new_reviews_count > 0 else 0.0
 
+                if new_average < 0.0:
+                    new_average = 0.0
+
+                if new_average > 5.0:
+                    new_average = 5.0
+
                 project.reviews_count = new_reviews_count
                 project.star_average = new_average
                 project.save(update_fields=['reviews_count', 'star_average'])
@@ -888,15 +894,27 @@ class Mutation:
             with transaction.atomic():
                 song = models.Song.objects.select_for_update().get(pk=song_id)
 
-                models.Review.objects.filter(
-                    user=user,
-                    object_id=song.id,
-                    content_type__model='song',
-                    is_latest=True
-                ).update(is_latest=False)
+                old_latest = (
+                    models.Review.objects
+                    .select_for_update()
+                    .filter(
+                        user=user,
+                        object_id=song.id,
+                        content_type__model='song',
+                        is_latest=True
+                    )
+                    .first()
+                )
 
                 old_reviews_count = song.reviews_count
                 old_star_total = song.star_average * old_reviews_count
+
+                if old_latest:
+                    old_latest.is_latest = False
+                    old_latest.save(update_fields=['is_latest'])
+
+                    old_reviews_count -= 1
+                    old_star_total -= float(old_latest.stars)
 
                 review = models.Review.objects.create(
                     user=user,
@@ -919,6 +937,12 @@ class Mutation:
                 new_star_total = old_star_total + float(data.stars)
                 new_average = new_star_total / new_reviews_count if new_reviews_count > 0 else 0.0
 
+                if new_average < 0.0:
+                    new_average = 0.0
+
+                if new_average > 5.0:
+                    new_average = 5.0
+
                 song.reviews_count = new_reviews_count
                 song.star_average = new_average
                 song.save(update_fields=['reviews_count', 'star_average'])
@@ -939,15 +963,27 @@ class Mutation:
             with transaction.atomic():
                 outfit = models.Outfit.objects.select_for_update().get(pk=outfit_id)
 
-                models.Review.objects.filter(
-                    user=user,
-                    object_id=outfit.id,
-                    content_type__model='outfit',
-                    is_latest=True
-                ).update(is_latest=False)
+                old_latest = (
+                    models.Review.objects
+                    .select_for_update()
+                    .filter(
+                        user=user,
+                        object_id=outfit.id,
+                        content_type__model='outfit',
+                        is_latest=True
+                    )
+                    .first()
+                )
 
                 old_reviews_count = outfit.reviews_count
                 old_star_total = outfit.star_average * old_reviews_count
+
+                if old_latest:
+                    old_latest.is_latest = False
+                    old_latest.save(update_fields=['is_latest'])
+
+                    old_reviews_count -= 1
+                    old_star_total -= float(old_latest.stars)
 
                 review = models.Review.objects.create(
                     user=user,
@@ -970,6 +1006,12 @@ class Mutation:
                 new_star_total = old_star_total + float(data.stars)
                 new_average = new_star_total / new_reviews_count if new_reviews_count > 0 else 0.0
 
+                if new_average < 0.0:
+                    new_average = 0.0
+
+                if new_average > 5.0:
+                    new_average = 5.0
+
                 outfit.reviews_count = new_reviews_count
                 outfit.star_average = new_average
                 outfit.save(update_fields=['reviews_count', 'star_average'])
@@ -990,15 +1032,27 @@ class Mutation:
             with transaction.atomic():
                 podcast = models.Outfit.objects.select_for_update().get(pk=podcast_id)
 
-                models.Review.objects.filter(
-                    user=user,
-                    object_id=podcast.id,
-                    content_type__model='podcast',
-                    is_latest=True
-                ).update(is_latest=False)
+                old_latest = (
+                    models.Review.objects
+                    .select_for_update()
+                    .filter(
+                        user=user,
+                        object_id=podcast.id,
+                        content_type__model='podcast',
+                        is_latest=True
+                    )
+                    .first()
+                )
 
                 old_reviews_count = podcast.reviews_count
                 old_star_total = podcast.star_average * old_reviews_count
+
+                if old_latest:
+                    old_latest.is_latest = False
+                    old_latest.save(update_fields=['is_latest'])
+
+                    old_reviews_count -= 1
+                    old_star_total -= float(old_latest.stars)
 
                 review = models.Review.objects.create(
                     user=user,
@@ -1021,6 +1075,12 @@ class Mutation:
                 new_star_total = old_star_total + float(data.stars)
                 new_average = new_star_total / new_reviews_count if new_reviews_count > 0 else 0.0
 
+                if new_average < 0.0:
+                    new_average = 0.0
+
+                if new_average > 5.0:
+                    new_average = 5.0
+
                 podcast.reviews_count = new_reviews_count
                 podcast.star_average = new_average
                 podcast.save(update_fields=['reviews_count', 'star_average'])
@@ -1042,15 +1102,27 @@ class Mutation:
             with transaction.atomic():
                 music_video = models.Outfit.objects.select_for_update().get(pk=music_video_id)
 
-                models.Review.objects.filter(
-                    user=user,
-                    object_id=music_video.id,
-                    content_type__model='music_video',
-                    is_latest=True
-                ).update(is_latest=False)
+                old_latest = (
+                    models.Review.objects
+                    .select_for_update()
+                    .filter(
+                        user=user,
+                        object_id=music_video.id,
+                        content_type__model='music_video',
+                        is_latest=True
+                    )
+                    .first()
+                )
 
                 old_reviews_count = music_video.reviews_count
                 old_star_total = music_video.star_average * old_reviews_count
+
+                if old_latest:
+                    old_latest.is_latest = False
+                    old_latest.save(update_fields=['is_latest'])
+
+                    old_reviews_count -= 1
+                    old_star_total -= float(old_latest.stars)
 
                 review = models.Review.objects.create(
                     user=user,
@@ -1073,6 +1145,12 @@ class Mutation:
                 new_star_total = old_star_total + float(data.stars)
                 new_average = new_star_total / new_reviews_count if new_reviews_count > 0 else 0.0
 
+                if new_average < 0.0:
+                    new_average = 0.0
+
+                if new_average > 5.0:
+                    new_average = 5.0
+
                 music_video.reviews_count = new_reviews_count
                 music_video.star_average = new_average
                 music_video.save(update_fields=['reviews_count', 'star_average'])
@@ -1093,15 +1171,27 @@ class Mutation:
             with transaction.atomic():
                 cover = models.Outfit.objects.select_for_update().get(pk=cover_id)
 
-                models.Review.objects.filter(
-                    user=user,
-                    object_id=cover.id,
-                    content_type__model='cover',
-                    is_latest=True
-                ).update(is_latest=False)
+                old_latest = (
+                    models.Review.objects
+                    .select_for_update()
+                    .filter(
+                        user=user,
+                        object_id=cover.id,
+                        content_type__model='cover',
+                        is_latest=True
+                    )
+                    .first()
+                )
 
                 old_reviews_count = cover.reviews_count
                 old_star_total = cover.star_average * old_reviews_count
+
+                if old_latest:
+                    old_latest.is_latest = False
+                    old_latest.save(update_fields=['is_latest'])
+
+                    old_reviews_count -= 1
+                    old_star_total -= float(old_latest.stars)
 
                 review = models.Review.objects.create(
                     user=user,
@@ -1123,6 +1213,12 @@ class Mutation:
                 new_reviews_count = old_reviews_count + 1
                 new_star_total = old_star_total + float(data.stars)
                 new_average = new_star_total / new_reviews_count if new_reviews_count > 0 else 0.0
+
+                if new_average < 0.0:
+                    new_average = 0.0
+
+                if new_average > 5.0:
+                    new_average = 5.0
 
                 cover.reviews_count = new_reviews_count
                 cover.star_average = new_average
