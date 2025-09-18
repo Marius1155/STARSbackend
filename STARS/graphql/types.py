@@ -125,6 +125,7 @@ class Review(strawberry.relay.Node):
     user: "User"
     content_object: "Reviewable"
     subreviews: relay.ListConnection["SubReview"] = strawberry_django.connection(filters=filters.SubReviewFilter, order=orders.SubReviewOrder)
+    comments: relay.ListConnection["Comment"] = strawberry_django.connection(filters=filters.CommentFilter, order=orders.CommentOrder)
     liked_by: relay.ListConnection["User"] = strawberry_django.connection(filters=filters.UserFilter, order=orders.UserOrder)
     disliked_by: relay.ListConnection["User"] = strawberry_django.connection(filters=filters.UserFilter, order=orders.UserOrder)
 
@@ -151,6 +152,10 @@ class Review(strawberry.relay.Node):
     @sync_to_async
     def get_subreviews(self) -> List[models.SubReview]:
         return self.subreviews.all()
+
+    @sync_to_async
+    def get_comments(self) -> List[models.Comment]:
+        return self.comments.all()
 
     @sync_to_async
     def get_liked_by(self) -> List[models.User]:
