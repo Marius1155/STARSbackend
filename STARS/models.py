@@ -77,6 +77,8 @@ class Comment (models.Model):
     review = models.ForeignKey('Review', on_delete=models.CASCADE, related_name='comments')
     text = models.TextField()
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='comments')
+    number_of_replies = models.IntegerField(default=0)
+    replying_to = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='replies')
     date_created = models.DateTimeField(auto_now_add=True)
     date_updated = models.DateTimeField(auto_now=True)
     likes_count = models.IntegerField(default=0)

@@ -135,6 +135,7 @@ class EventUpdateInput:
 class CommentCreateInput:
     review_id: strawberry.ID
     text: auto
+    replying_to_comment_id: Optional[strawberry.ID] = None
 
 @strawberry.input
 class CommentUpdateInput:
@@ -491,7 +492,6 @@ class Mutation:
 
     update_profile: types.Profile = strawberry_django.mutations.update(ProfileUpdateInput)
 
-    update_comment: types.Comment = strawberry_django.mutations.update(CommentUpdateInput)
     delete_comment: types.Comment = strawberry_django.mutations.delete(strawberry.ID)
 
 
@@ -613,10 +613,20 @@ class Mutation:
             with transaction.atomic():
                 review = models.Review.objects.get(pk=data.review_id)
 
+                comment_to_reply_to = None
+                if data.replying_to_comment_id:
+                    try:
+                        comment_to_reply_to = models.Comment.objects.get(
+                            pk=data.replying_to_comment_id
+                        )
+                    except models.Comment.DoesNotExist:
+                        raise Exception("The comment you are trying to reply to does not exist.")
+
                 comment = models.Comment.objects.create(
                     review=review,
                     user=user,
-                    text=data.text
+                    text=data.text,
+                    replying_to=comment_to_reply_to,
                 )
                 return comment
 

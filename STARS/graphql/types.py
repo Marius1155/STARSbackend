@@ -87,6 +87,7 @@ class User(strawberry.relay.Node):
 class Comment(strawberry.relay.Node):
     review: "Review"
     user: "User"
+    replying_to: "Comment"
     liked_by: relay.ListConnection["User"] = strawberry_django.connection(filters=filters.UserFilter, order=orders.UserOrder)
     disliked_by: relay.ListConnection["User"] = strawberry_django.connection(filters=filters.UserFilter, order=orders.UserOrder)
 
