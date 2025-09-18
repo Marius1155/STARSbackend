@@ -88,6 +88,7 @@ class Comment(strawberry.relay.Node):
     review: "Review"
     user: "User"
     replying_to: "Comment"
+    replies: relay.ListConnection["Comment"] = strawberry_django.connection(filters=filters.CommentFilter, order=orders.CommentOrder)
     liked_by: relay.ListConnection["User"] = strawberry_django.connection(filters=filters.UserFilter, order=orders.UserOrder)
     disliked_by: relay.ListConnection["User"] = strawberry_django.connection(filters=filters.UserFilter, order=orders.UserOrder)
 
@@ -110,6 +111,10 @@ class Comment(strawberry.relay.Node):
             return self.disliked_by.filter(pk=user.pk).exists()
 
         return await sync_to_async(check)()
+
+    @sync_to_async
+    def get_replies(self) -> List[models.Comment]:
+        return self.replies.all()
 
     @sync_to_async
     def get_liked_by(self) -> List[models.User]:
