@@ -825,15 +825,27 @@ class Mutation:
             with transaction.atomic():
                 project = models.Project.objects.select_for_update().get(pk=project_id)
 
-                models.Review.objects.filter(
-                    user=user,
-                    object_id=project.id,
-                    content_type__model='project',
-                    is_latest=True
-                ).update(is_latest=False)
+                old_latest = (
+                    models.Review.objects
+                    .select_for_update()
+                    .filter(
+                        user=user,
+                        object_id=project.id,
+                        content_type__model='project',
+                        is_latest=True
+                    )
+                    .first()
+                )
 
                 old_reviews_count = project.reviews_count
                 old_star_total = project.star_average * old_reviews_count
+
+                if old_latest:
+                    old_latest.is_latest = False
+                    old_latest.save(update_fields=['is_latest'])
+
+                    old_reviews_count -= 1
+                    old_star_total -= float(old_latest.stars)
 
                 review = models.Review.objects.create(
                     user=user,
