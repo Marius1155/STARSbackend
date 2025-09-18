@@ -101,6 +101,7 @@ class Review(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
     date_updated = models.DateTimeField(auto_now=True)
     is_latest = models.BooleanField(default=True)
+    comments_count = models.IntegerField(default=0)
     likes_count = models.IntegerField(default=0)
     dislikes_count = models.IntegerField(default=0)
     liked_by = models.ManyToManyField(User, blank=True, related_name='liked_reviews')

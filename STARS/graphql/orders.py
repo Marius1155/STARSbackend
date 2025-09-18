@@ -45,6 +45,7 @@ class CommentOrder:
 class ReviewOrder:
     date_created : auto
     stars : auto
+    comments_count : auto
     likes_count : auto
     dislikes_count : auto
     is_latest : auto

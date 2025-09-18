@@ -56,6 +56,7 @@ class ReviewFilter:
     id: auto
     stars: auto
     user: Optional["UserFilter"]
+    comments_count: auto
     likes_count: auto
     dislikes_count: auto
     date_created: auto

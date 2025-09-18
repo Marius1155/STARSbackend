@@ -478,7 +478,6 @@ class Mutation:
     update_event: types.Event = strawberry_django.mutations.update(EventUpdateInput)
     delete_event: types.Event = strawberry_django.mutations.delete(strawberry.ID)
 
-    update_review: types.Review = strawberry_django.mutations.update(ReviewUpdateInput)
     update_subreview: types.SubReview = strawberry_django.mutations.update(SubReviewUpdateInput)
     delete_subreview: types.SubReview = strawberry_django.mutations.delete(strawberry.ID)
 
@@ -491,9 +490,6 @@ class Mutation:
     delete_outfit: types.Outfit = strawberry_django.mutations.delete(strawberry.ID)
 
     update_profile: types.Profile = strawberry_django.mutations.update(ProfileUpdateInput)
-
-    delete_comment: types.Comment = strawberry_django.mutations.delete(strawberry.ID)
-
 
     @strawberry.mutation
     async def create_event(self, info: Info, data: EventCreateInput) -> types.Event:
@@ -611,7 +607,13 @@ class Mutation:
                 raise Exception("Authentication required.")
 
             with transaction.atomic():
-                review = models.Review.objects.get(pk=data.review_id)
+                review = models.Review.objects.select_for_update().get(pk=data.review_id)
+
+                new_comments_count = review.comments_count + 1
+
+                review.comments_count = new_comments_count
+
+                review.save(update_fields=["comments_count"])
 
                 comment_to_reply_to = None
                 if data.replying_to_comment_id:
@@ -631,6 +633,35 @@ class Mutation:
                 return comment
 
         return await database_sync_to_async(_create_sync)()
+
+    @strawberry.mutation
+    async def delete_comment(self, info: Info, comment_id: strawberry.ID) -> types.Comment:
+        def _delete_sync():
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
+
+            with transaction.atomic():
+                comment = models.Comment.objects.filter(pk=comment_id).first()
+                if not comment:
+                    raise Exception("Comment not found.")
+
+                if comment.user != user:
+                    raise Exception("You can only delete your own comments.")
+
+                review = models.Review.objects.select_for_update().get(pk=comment.review_id)
+
+                comment.delete()
+
+                if review:
+                    new_comments_count = review.comments_count - 1
+                    review.comments_count = new_comments_count
+                    review.save(update_fields=["comments_count"])
+
+                return comment
+
+        return await database_sync_to_async(_delete_sync)()
+
 
     @strawberry.mutation
     async def like_dislike_comment(
@@ -1291,6 +1322,8 @@ class Mutation:
                 # Store object info for later
                 review_object = review.content_object
 
+                stars_to_remove = float(review.stars)
+
                 # Delete the review
                 review.delete()
 
@@ -1308,9 +1341,108 @@ class Mutation:
                     latest_review.is_latest = True
                     latest_review.save(update_fields=['is_latest'])
 
+                if isinstance(review_object, models.Project):
+                    obj = review_object
+                elif isinstance(review_object, models.Song):
+                    obj = review_object
+                elif isinstance(review_object, models.Cover):
+                    obj = review_object
+                elif isinstance(review_object, models.MusicVideo):
+                    obj = review_object
+                elif isinstance(review_object, models.Podcast):
+                    obj = review_object
+                elif isinstance(review_object, models.Outfit):
+                    obj = review_object
+                elif isinstance(review_object, models.Event):
+                    obj = review_object
+                else:
+                    obj = None
+
+                if obj:
+                    if latest_review:
+                        # replace stars (subtract old, add new)
+                        old_total = obj.star_average * obj.reviews_count
+                        new_total = old_total - stars_to_remove + float(latest_review.stars)
+                        obj.star_average = new_total / obj.reviews_count if obj.reviews_count > 0 else 0.0
+                    else:
+                        # no latest → user has no more reviews on this object
+                        obj.reviews_count = obj.reviews_count - 1 if obj.reviews_count > 0 else 0
+                        if obj.reviews_count == 0:
+                            obj.star_average = 0.0
+                        else:
+                            new_total = obj.star_average * (obj.reviews_count + 1) - stars_to_remove
+                            obj.star_average = new_total / obj.reviews_count
+
+                    obj.save(update_fields=['reviews_count', 'star_average'])
+
                 return review
 
         return await database_sync_to_async(_delete_sync)()
+
+    @strawberry.mutation
+    async def edit_review(self, info: Info, data: ReviewUpdateInput) -> types.Review:
+        def _edit_sync():
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
+
+            with transaction.atomic():
+                review = models.Review.objects.select_for_update().filter(pk=data.id).first()
+                if not review:
+                    raise Exception("Review not found.")
+
+                if review.user != user:
+                    raise Exception("You can only edit your own reviews.")
+
+                review_object = review.content_object
+                old_stars = float(review.stars)
+
+                # Track if we need to update star average
+                update_star_average = False
+                if data.stars is not strawberry.UNSET and review.is_latest and old_stars != float(data.stars):
+                    update_star_average = True
+
+                # Update review fields
+                if data.stars is not strawberry.UNSET:
+                    review.stars = float(data.stars)
+                if data.text is not strawberry.UNSET:
+                    review.text = data.text
+                if data.title is not strawberry.UNSET:
+                    review.title = data.title
+                if data.is_latest is not strawberry.UNSET:
+                    review.is_latest = data.is_latest
+
+                review.save(update_fields=['stars', 'text', 'title', 'is_latest'])
+
+                # Only update object star_average if necessary
+                if update_star_average:
+                    if isinstance(review_object, models.Project):
+                        obj = review_object
+                    elif isinstance(review_object, models.Song):
+                        obj = review_object
+                    elif isinstance(review_object, models.Cover):
+                        obj = review_object
+                    elif isinstance(review_object, models.MusicVideo):
+                        obj = review_object
+                    elif isinstance(review_object, models.Podcast):
+                        obj = review_object
+                    elif isinstance(review_object, models.Outfit):
+                        obj = review_object
+                    elif isinstance(review_object, models.Event):
+                        obj = review_object
+                    else:
+                        obj = None
+
+                    if obj:
+                        # adjust star_average
+                        total_stars = obj.star_average * obj.reviews_count
+                        total_stars = total_stars - old_stars + float(review.stars)
+                        obj.star_average = total_stars / obj.reviews_count if obj.reviews_count > 0 else 0
+                        obj.save(update_fields=['star_average'])
+
+                return review
+
+        return await database_sync_to_async(_edit_sync)()
 
 
     @strawberry.mutation
