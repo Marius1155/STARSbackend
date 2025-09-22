@@ -1,0 +1,2977 @@
+directive @oneOf on INPUT_OBJECT
+
+type Artist implements Node {
+  id: ID!
+  songArtists(
+    filters: SongArtistFilter
+    order: SongArtistOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): SongArtistConnection!
+  projectArtists(
+    filters: ProjectArtistFilter
+    order: ProjectArtistOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): ProjectArtistConnection!
+  outfits(
+    filters: OutfitFilter
+    order: OutfitOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): OutfitConnection!
+  podcasts(
+    filters: PodcastFilter
+    order: PodcastOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): PodcastConnection!
+  name: String!
+  picture: String!
+  bio: String!
+  wikipedia: String
+  pronouns: String!
+  birthdate: Date
+  origin: String!
+  website: String
+  facebook: String
+  instagram: String
+  twitter: String
+  youtubeChannel: String
+  spotify: String
+  appleMusic: String
+  youtubeMusic: String
+  tidal: String
+  deezer: String
+  soundcloud: String
+  bandcamp: String
+  isFeatured: Boolean!
+  featuredMessage: String!
+  primaryColor: String!
+  secondaryColor: String!
+}
+
+"""A connection to a list of items."""
+type ArtistConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [ArtistEdge!]!
+}
+
+input ArtistCreateInput {
+  name: String!
+  picture: String!
+  bio: String = null
+  wikipedia: String = null
+  pronouns: String = null
+  birthdate: String = null
+  origin: String = null
+  website: String = null
+  facebook: String = null
+  instagram: String = null
+  twitter: String = null
+  youtubeChannel: String = null
+  spotify: String = null
+  appleMusic: String = null
+  youtubeMusic: String = null
+  tidal: String = null
+  deezer: String = null
+  soundcloud: String = null
+  bandcamp: String = null
+  isFeatured: Boolean = false
+  featuredMessage: String = null
+}
+
+"""A connection to a list of items."""
+type ArtistCursorConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [ArtistCursorEdge!]!
+
+  """Total quantity of existing nodes."""
+  totalCount: Int!
+}
+
+"""An edge in a connection."""
+type ArtistCursorEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: Artist!
+}
+
+"""An edge in a connection."""
+type ArtistEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: Artist!
+}
+
+input ArtistFilter {
+  id: IDBaseFilterLookup
+  name: StrFilterLookup
+  origin: StrFilterLookup
+  isFeatured: BoolBaseFilterLookup
+  AND: ArtistFilter
+  OR: ArtistFilter
+  NOT: ArtistFilter
+  DISTINCT: Boolean
+}
+
+input ArtistOrder @oneOf {
+  name: Ordering
+  birthdate: Ordering
+  isFeatured: Ordering
+}
+
+input ArtistUpdateInput {
+  id: ID!
+  name: String
+  picture: String
+  bio: String
+  wikipedia: String
+  pronouns: String
+  birthdate: String
+  origin: String
+  website: String
+  facebook: String
+  instagram: String
+  twitter: String
+  youtubeChannel: String
+  spotify: String
+  appleMusic: String
+  youtubeMusic: String
+  tidal: String
+  deezer: String
+  soundcloud: String
+  bandcamp: String
+  isFeatured: Boolean
+  featuredMessage: String
+}
+
+input BoolBaseFilterLookup {
+  """Exact match. Filter will be skipped on `null` value"""
+  exact: Boolean
+
+  """Assignment test. Filter will be skipped on `null` value"""
+  isNull: Boolean
+
+  """
+  Exact match of items in a given list. Filter will be skipped on `null` value
+  """
+  inList: [Boolean!]
+}
+
+type Comment implements Node {
+  id: ID!
+  review: Review!
+  user: User!
+  replyingTo: Comment!
+  replies(
+    filters: CommentFilter
+    order: CommentOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): CommentConnection!
+  likedBy(
+    filters: UserFilter
+    order: UserOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): UserConnection!
+  dislikedBy(
+    filters: UserFilter
+    order: UserOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): UserConnection!
+  text: String!
+  numberOfReplies: Int!
+  dateCreated: DateTime!
+  dateUpdated: DateTime!
+  likesCount: Int!
+  dislikesCount: Int!
+  likedByCurrentUser: Boolean!
+  dislikedByCurrentUser: Boolean!
+}
+
+"""A connection to a list of items."""
+type CommentConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [CommentEdge!]!
+}
+
+input CommentCreateInput {
+  reviewId: ID!
+  text: String!
+  replyingToCommentId: ID = null
+}
+
+"""A connection to a list of items."""
+type CommentCursorConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [CommentCursorEdge!]!
+
+  """Total quantity of existing nodes."""
+  totalCount: Int!
+}
+
+"""An edge in a connection."""
+type CommentCursorEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: Comment!
+}
+
+"""An edge in a connection."""
+type CommentEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: Comment!
+}
+
+input CommentFilter {
+  id: IDBaseFilterLookup
+  numberOfReplies: IntComparisonFilterLookup
+  replyingTo: CommentFilter
+  review: ReviewFilter
+  user: UserFilter
+  likesCount: IntComparisonFilterLookup
+  dislikesCount: IntComparisonFilterLookup
+  dateCreated: DatetimeDatetimeFilterLookup
+  AND: CommentFilter
+  OR: CommentFilter
+  NOT: CommentFilter
+  DISTINCT: Boolean
+}
+
+input CommentOrder @oneOf {
+  dateCreated: Ordering
+  likesCount: Ordering
+  dislikesCount: Ordering
+}
+
+input ContentTypeFilter {
+  model: StrFilterLookup
+  AND: ContentTypeFilter
+  OR: ContentTypeFilter
+  NOT: ContentTypeFilter
+  DISTINCT: Boolean
+}
+
+type Conversation implements Node {
+  id: ID!
+  latestMessage: Message
+  latestMessageSender: User
+  participants(
+    filters: UserFilter
+    order: UserOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): UserConnection!
+  messages(
+    filters: MessageFilter
+    order: MessageOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): MessageConnection!
+  seenBy(
+    filters: UserFilter
+    order: UserOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): UserConnection!
+  latestMessageText: String!
+  latestMessageTime: DateTime
+  color: String!
+}
+
+"""A connection to a list of items."""
+type ConversationConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [ConversationEdge!]!
+}
+
+input ConversationCreateInput {
+  participantIds: [ID!]!
+}
+
+"""A connection to a list of items."""
+type ConversationCursorConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [ConversationCursorEdge!]!
+
+  """Total quantity of existing nodes."""
+  totalCount: Int!
+}
+
+"""An edge in a connection."""
+type ConversationCursorEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: Conversation!
+}
+
+"""An edge in a connection."""
+type ConversationEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: Conversation!
+}
+
+type ConversationEventPayload {
+  conversation: Conversation!
+}
+
+input ConversationFilter {
+  id: IDBaseFilterLookup
+  AND: ConversationFilter
+  OR: ConversationFilter
+  NOT: ConversationFilter
+  DISTINCT: Boolean
+}
+
+input ConversationOrder @oneOf {
+  latestMessageTime: Ordering
+  latestMessageSender: Ordering
+}
+
+type Cover implements Node {
+  id: ID!
+  contentObject: Coverable!
+  reviews(
+    filters: ReviewFilter
+    order: ReviewOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): ReviewConnection!
+  image: String!
+  contentType: DjangoModelType!
+  objectId: Int!
+  position: Int!
+  reviewsCount: Int!
+  starAverage: Float!
+  isFeatured: Boolean!
+  featuredMessage: String!
+  primaryColor: String!
+  secondaryColor: String!
+}
+
+"""A connection to a list of items."""
+type CoverConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [CoverEdge!]!
+}
+
+"""A connection to a list of items."""
+type CoverCursorConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [CoverCursorEdge!]!
+
+  """Total quantity of existing nodes."""
+  totalCount: Int!
+}
+
+"""An edge in a connection."""
+type CoverCursorEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: Cover!
+}
+
+input CoverDataInput {
+  imageFile: String!
+}
+
+"""An edge in a connection."""
+type CoverEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: Cover!
+}
+
+input CoverFilter {
+  id: IDBaseFilterLookup
+  position: IntComparisonFilterLookup
+  isFeatured: BoolBaseFilterLookup
+  AND: CoverFilter
+  OR: CoverFilter
+  NOT: CoverFilter
+  DISTINCT: Boolean
+}
+
+input CoverOrder @oneOf {
+  position: Ordering
+  starAverage: Ordering
+  reviewsCount: Ordering
+  isFeatured: Ordering
+}
+
+union Coverable = Project | Podcast
+
+"""Date (isoformat)"""
+scalar Date
+
+input DateDateFilterLookup {
+  """Exact match. Filter will be skipped on `null` value"""
+  exact: Date
+
+  """Assignment test. Filter will be skipped on `null` value"""
+  isNull: Boolean
+
+  """
+  Exact match of items in a given list. Filter will be skipped on `null` value
+  """
+  inList: [Date!]
+
+  """Greater than. Filter will be skipped on `null` value"""
+  gt: Date
+
+  """Greater than or equal to. Filter will be skipped on `null` value"""
+  gte: Date
+
+  """Less than. Filter will be skipped on `null` value"""
+  lt: Date
+
+  """Less than or equal to. Filter will be skipped on `null` value"""
+  lte: Date
+
+  """Inclusive range test (between)"""
+  range: DateRangeLookup
+  year: IntComparisonFilterLookup
+  month: IntComparisonFilterLookup
+  day: IntComparisonFilterLookup
+  weekDay: IntComparisonFilterLookup
+  isoWeekDay: IntComparisonFilterLookup
+  week: IntComparisonFilterLookup
+  isoYear: IntComparisonFilterLookup
+  quarter: IntComparisonFilterLookup
+}
+
+input DateRangeLookup {
+  start: Date = null
+  end: Date = null
+}
+
+"""Date with time (isoformat)"""
+scalar DateTime
+
+input DatetimeDatetimeFilterLookup {
+  """Exact match. Filter will be skipped on `null` value"""
+  exact: DateTime
+
+  """Assignment test. Filter will be skipped on `null` value"""
+  isNull: Boolean
+
+  """
+  Exact match of items in a given list. Filter will be skipped on `null` value
+  """
+  inList: [DateTime!]
+
+  """Greater than. Filter will be skipped on `null` value"""
+  gt: DateTime
+
+  """Greater than or equal to. Filter will be skipped on `null` value"""
+  gte: DateTime
+
+  """Less than. Filter will be skipped on `null` value"""
+  lt: DateTime
+
+  """Less than or equal to. Filter will be skipped on `null` value"""
+  lte: DateTime
+
+  """Inclusive range test (between)"""
+  range: DatetimeRangeLookup
+  year: IntComparisonFilterLookup
+  month: IntComparisonFilterLookup
+  day: IntComparisonFilterLookup
+  weekDay: IntComparisonFilterLookup
+  isoWeekDay: IntComparisonFilterLookup
+  week: IntComparisonFilterLookup
+  isoYear: IntComparisonFilterLookup
+  quarter: IntComparisonFilterLookup
+  hour: IntComparisonFilterLookup
+  minute: IntComparisonFilterLookup
+  second: IntComparisonFilterLookup
+  date: IntComparisonFilterLookup
+  time: IntComparisonFilterLookup
+}
+
+input DatetimeRangeLookup {
+  start: DateTime = null
+  end: DateTime = null
+}
+
+"""Decimal (fixed-point)"""
+scalar Decimal
+
+input DecimalComparisonFilterLookup {
+  """Exact match. Filter will be skipped on `null` value"""
+  exact: Decimal
+
+  """Assignment test. Filter will be skipped on `null` value"""
+  isNull: Boolean
+
+  """
+  Exact match of items in a given list. Filter will be skipped on `null` value
+  """
+  inList: [Decimal!]
+
+  """Greater than. Filter will be skipped on `null` value"""
+  gt: Decimal
+
+  """Greater than or equal to. Filter will be skipped on `null` value"""
+  gte: Decimal
+
+  """Less than. Filter will be skipped on `null` value"""
+  lt: Decimal
+
+  """Less than or equal to. Filter will be skipped on `null` value"""
+  lte: Decimal
+
+  """Inclusive range test (between)"""
+  range: DecimalRangeLookup
+}
+
+input DecimalRangeLookup {
+  start: Decimal = null
+  end: Decimal = null
+}
+
+type DjangoModelType {
+  pk: ID!
+}
+
+type Event implements Node {
+  id: ID!
+  series: EventSeries!
+  reviews(
+    filters: ReviewFilter
+    order: ReviewOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): ReviewConnection!
+  outfits(
+    filters: OutfitFilter
+    order: OutfitOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): OutfitConnection!
+  name: String!
+  date: Date!
+  picture: String
+  location: String!
+  isOneTime: Boolean!
+  reviewsCount: Int!
+  starAverage: Float!
+  isFeatured: Boolean!
+  featuredMessage: String!
+  primaryColor: String!
+  secondaryColor: String!
+}
+
+"""A connection to a list of items."""
+type EventConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [EventEdge!]!
+}
+
+input EventCreateInput {
+  name: String!
+  date: Date!
+  location: String = null
+  isOneTime: Boolean = false
+  seriesId: ID = null
+  isFeatured: Boolean = false
+  featuredMessage: String = null
+}
+
+"""A connection to a list of items."""
+type EventCursorConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [EventCursorEdge!]!
+
+  """Total quantity of existing nodes."""
+  totalCount: Int!
+}
+
+"""An edge in a connection."""
+type EventCursorEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: Event!
+}
+
+"""An edge in a connection."""
+type EventEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: Event!
+}
+
+input EventFilter {
+  id: IDBaseFilterLookup
+  name: StrFilterLookup
+  date: DateDateFilterLookup
+  location: StrFilterLookup
+  isOneTime: BoolBaseFilterLookup
+  isFeatured: BoolBaseFilterLookup
+  series: EventSeriesFilter
+  AND: EventFilter
+  OR: EventFilter
+  NOT: EventFilter
+  DISTINCT: Boolean
+}
+
+input EventOrder @oneOf {
+  date: Ordering
+  name: Ordering
+  isOneTime: Ordering
+  reviewsCount: Ordering
+  starAverage: Ordering
+  isFeatured: Ordering
+}
+
+type EventSeries implements Node {
+  id: ID!
+  events(
+    filters: EventFilter
+    order: EventOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): EventConnection!
+  name: String!
+  description: String!
+  picture: String
+  isFeatured: Boolean!
+  featuredMessage: String!
+  primaryColor: String!
+  secondaryColor: String!
+}
+
+input EventSeriesCreateInput {
+  name: String!
+  description: String = null
+  isFeatured: Boolean = false
+  featuredMessage: String = null
+}
+
+"""A connection to a list of items."""
+type EventSeriesCursorConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [EventSeriesCursorEdge!]!
+
+  """Total quantity of existing nodes."""
+  totalCount: Int!
+}
+
+"""An edge in a connection."""
+type EventSeriesCursorEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: EventSeries!
+}
+
+input EventSeriesFilter {
+  id: IDBaseFilterLookup
+  name: StrFilterLookup
+  isFeatured: BoolBaseFilterLookup
+  AND: EventSeriesFilter
+  OR: EventSeriesFilter
+  NOT: EventSeriesFilter
+  DISTINCT: Boolean
+}
+
+input EventSeriesOrder @oneOf {
+  name: Ordering
+  isFeatured: Ordering
+}
+
+input EventSeriesUpdateInput {
+  id: ID!
+  name: String
+  description: String
+  isFeatured: Boolean
+  featuredMessage: String
+}
+
+input EventUpdateInput {
+  id: ID!
+  name: String
+  date: String
+  location: String
+  isOneTime: Boolean
+  seriesId: ID
+  isFeatured: Boolean
+  featuredMessage: String
+}
+
+input IDBaseFilterLookup {
+  """Exact match. Filter will be skipped on `null` value"""
+  exact: ID
+
+  """Assignment test. Filter will be skipped on `null` value"""
+  isNull: Boolean
+
+  """
+  Exact match of items in a given list. Filter will be skipped on `null` value
+  """
+  inList: [ID!]
+}
+
+input IntComparisonFilterLookup {
+  """Exact match. Filter will be skipped on `null` value"""
+  exact: Int
+
+  """Assignment test. Filter will be skipped on `null` value"""
+  isNull: Boolean
+
+  """
+  Exact match of items in a given list. Filter will be skipped on `null` value
+  """
+  inList: [Int!]
+
+  """Greater than. Filter will be skipped on `null` value"""
+  gt: Int
+
+  """Greater than or equal to. Filter will be skipped on `null` value"""
+  gte: Int
+
+  """Less than. Filter will be skipped on `null` value"""
+  lt: Int
+
+  """Less than or equal to. Filter will be skipped on `null` value"""
+  lte: Int
+
+  """Inclusive range test (between)"""
+  range: IntRangeLookup
+}
+
+input IntRangeLookup {
+  start: Int = null
+  end: Int = null
+}
+
+enum LikeAction {
+  LIKE
+  DISLIKE
+}
+
+input LoginInput {
+  username: String!
+  password: String!
+}
+
+type Message implements Node {
+  id: ID!
+  conversation: Conversation!
+  sender: User
+  replyingTo: Message
+  likedBy(
+    filters: UserFilter
+    order: UserOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): UserConnection!
+  text: String!
+  time: DateTime!
+  isDelivered: Boolean!
+  isRead: Boolean!
+}
+
+"""A connection to a list of items."""
+type MessageConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [MessageEdge!]!
+}
+
+"""A connection to a list of items."""
+type MessageCursorConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [MessageCursorEdge!]!
+
+  """Total quantity of existing nodes."""
+  totalCount: Int!
+}
+
+"""An edge in a connection."""
+type MessageCursorEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: Message!
+}
+
+input MessageDataInput {
+  text: String!
+  replyingToMesssageId: ID = null
+}
+
+type MessageDeletedPayload {
+  eventType: String!
+  id: ID!
+}
+
+"""An edge in a connection."""
+type MessageEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: Message!
+}
+
+union MessageEventUnion = MessagePayload | MessageDeletedPayload
+
+input MessageFilter {
+  id: IDBaseFilterLookup
+  sender: UserFilter
+  isRead: BoolBaseFilterLookup
+  isDelivered: BoolBaseFilterLookup
+  AND: MessageFilter
+  OR: MessageFilter
+  NOT: MessageFilter
+  DISTINCT: Boolean
+}
+
+input MessageOrder @oneOf {
+  time: Ordering
+}
+
+type MessagePayload {
+  eventType: String!
+  message: Message!
+}
+
+type MusicVideo implements Node {
+  id: ID!
+  songs(
+    filters: SongFilter
+    order: SongOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): SongConnection!
+  reviews(
+    filters: ReviewFilter
+    order: ReviewOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): ReviewConnection!
+  outfits(
+    filters: OutfitFilter
+    order: OutfitOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): OutfitConnection!
+  title: String!
+  numberOfSongs: Int!
+  releaseDate: Date!
+  youtube: String!
+  thumbnail: String
+  reviewsCount: Int!
+  starAverage: Float!
+  isFeatured: Boolean!
+  featuredMessage: String!
+  primaryColor: String!
+  secondaryColor: String!
+}
+
+"""A connection to a list of items."""
+type MusicVideoConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [MusicVideoEdge!]!
+}
+
+"""A connection to a list of items."""
+type MusicVideoCursorConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [MusicVideoCursorEdge!]!
+
+  """Total quantity of existing nodes."""
+  totalCount: Int!
+}
+
+"""An edge in a connection."""
+type MusicVideoCursorEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: MusicVideo!
+}
+
+"""An edge in a connection."""
+type MusicVideoEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: MusicVideo!
+}
+
+input MusicVideoFilter {
+  id: IDBaseFilterLookup
+  numberOfSongs: IntComparisonFilterLookup
+  title: StrFilterLookup
+  releaseDate: DateDateFilterLookup
+  isFeatured: BoolBaseFilterLookup
+  AND: MusicVideoFilter
+  OR: MusicVideoFilter
+  NOT: MusicVideoFilter
+  DISTINCT: Boolean
+}
+
+input MusicVideoInput {
+  youtubeUrl: String!
+  songIds: [ID!]!
+}
+
+input MusicVideoOrder @oneOf {
+  releaseDate: Ordering
+  title: Ordering
+  numberOfSongs: Ordering
+  reviewsCount: Ordering
+  starAverage: Ordering
+  isFeatured: Ordering
+}
+
+input MusicVideoUpdateInput {
+  id: ID!
+  title: String
+  releaseDate: String
+  youtube: String
+  thumbnail: String
+  isFeatured: Boolean
+  featuredMessage: String
+}
+
+type Mutation {
+  createArtist(data: ArtistCreateInput!): Artist!
+  updateArtist(data: ArtistUpdateInput!): Artist!
+  deleteArtist(data: ID!): Artist!
+  updateProject(data: ProjectUpdateInput!): Project!
+  deleteProject(data: ID!): Project!
+  createSong(data: SongCreateInput!): Song!
+  updateSong(data: SongUpdateInput!): Song!
+  deleteSong(data: ID!): Song!
+  createEventSeries(data: EventSeriesCreateInput!): EventSeries!
+  updateEventSeries(data: EventSeriesUpdateInput!): EventSeries!
+  deleteEventSeries(data: ID!): EventSeries!
+  updateEvent(data: EventUpdateInput!): Event!
+  deleteEvent(data: ID!): Event!
+  updateSubreview(data: SubReviewUpdateInput!): SubReview!
+  deleteSubreview(data: ID!): SubReview!
+  updateMusicVideo(data: MusicVideoUpdateInput!): MusicVideo!
+  deleteMusicVideo(data: ID!): MusicVideo!
+  updatePodcast(data: PodcastUpdateInput!): Podcast!
+  deletePodcast(data: ID!): Podcast!
+  updateOutfit(data: OutfitUpdateInput!): Outfit!
+  deleteOutfit(data: ID!): Outfit!
+  updateProfile(data: ProfileUpdateInput!): Profile!
+  createEvent(data: EventCreateInput!): Event!
+  createComment(data: CommentCreateInput!): Comment!
+  deleteComment(commentId: ID!): Comment!
+  likeDislikeComment(commentId: ID!, action: LikeAction!): Comment!
+  likeDislikeReview(reviewId: ID!, action: LikeAction!): Review!
+  loginUser(data: LoginInput!): User!
+  logoutUser: SuccessMessage!
+  signup(data: SignupInput!): User!
+  addReviewToProject(projectId: ID!, data: ReviewDataInput!): Review!
+  addReviewToSong(songId: ID!, data: ReviewDataInput!): Review!
+  addReviewToOutfit(outfitId: ID!, data: ReviewDataInput!): Review!
+  addReviewToPodcast(podcastId: ID!, data: ReviewDataInput!): Review!
+  addReviewToMusicVideo(musicVideoId: ID!, data: ReviewDataInput!): Review!
+  addReviewToCover(coverId: ID!, data: ReviewDataInput!): Review!
+  addSubReviewToReview(reviewId: ID!, data: SubReviewDataInput!): SubReview!
+  deleteReview(reviewId: ID!): Review!
+  editReview(data: ReviewUpdateInput!): Review!
+  createConversation(data: ConversationCreateInput!): Conversation!
+  addMessageToConversation(conversationId: ID!, data: MessageDataInput!): Message!
+  markConversationAsSeenByUser(conversationId: ID!): SuccessMessage!
+  deleteMessage(id: ID!): SuccessMessage!
+  likeMessage(id: ID!): SuccessMessage!
+  markMessagesAsRead(conversationId: ID!): SuccessMessage!
+  markMessageAsDelivered(messageId: ID!): SuccessMessage!
+  addCoverToProject(projectId: ID!, data: CoverDataInput!): Cover!
+  addCoverToPodcast(podcastId: ID!, data: CoverDataInput!): Cover!
+  addMusicVideo(data: MusicVideoInput!): MusicVideo!
+  followOrUnfollowUser(followerId: ID!, followedId: ID!): Profile!
+  changeMyPassword(oldPassword: String!, newPassword: String!): SuccessMessage!
+  changeMyDisplayName(newDisplayName: String!): SuccessMessage!
+  changeMyUsername(newUsername: String!): SuccessMessage!
+  setProfilePremium(hasPremium: Boolean!): SuccessMessage!
+  deleteMyAccount(password: String!): SuccessMessage!
+}
+
+"""An object with a Globally Unique ID"""
+interface Node {
+  """The Globally Unique ID of this object"""
+  id: ID!
+}
+
+enum Ordering {
+  ASC
+  ASC_NULLS_FIRST
+  ASC_NULLS_LAST
+  DESC
+  DESC_NULLS_FIRST
+  DESC_NULLS_LAST
+}
+
+type Outfit implements Node {
+  id: ID!
+  artist: Artist!
+  musicVideos(
+    filters: MusicVideoFilter
+    order: MusicVideoOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): MusicVideoConnection!
+  covers(
+    filters: CoverFilter
+    order: CoverOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): CoverConnection!
+  matches(
+    filters: OutfitFilter
+    order: OutfitOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): OutfitConnection!
+  events(
+    filters: EventFilter
+    order: EventOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): EventConnection!
+  reviews(
+    filters: ReviewFilter
+    order: ReviewOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): ReviewConnection!
+  description: String!
+  date: Date!
+  previewPicture: String!
+  instagramPost: String!
+  reviewsCount: Int!
+  starAverage: Float!
+  isFeatured: Boolean!
+  featuredMessage: String!
+  primaryColor: String!
+  secondaryColor: String!
+}
+
+"""A connection to a list of items."""
+type OutfitConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [OutfitEdge!]!
+}
+
+"""A connection to a list of items."""
+type OutfitCursorConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [OutfitCursorEdge!]!
+
+  """Total quantity of existing nodes."""
+  totalCount: Int!
+}
+
+"""An edge in a connection."""
+type OutfitCursorEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: Outfit!
+}
+
+"""An edge in a connection."""
+type OutfitEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: Outfit!
+}
+
+input OutfitFilter {
+  id: IDBaseFilterLookup
+  artist: ArtistFilter
+  date: DateDateFilterLookup
+  isFeatured: BoolBaseFilterLookup
+  AND: OutfitFilter
+  OR: OutfitFilter
+  NOT: OutfitFilter
+  DISTINCT: Boolean
+}
+
+input OutfitOrder @oneOf {
+  date: Ordering
+  reviewsCount: Ordering
+  starAverage: Ordering
+  isFeatured: Ordering
+}
+
+input OutfitUpdateInput {
+  artistId: ID!
+  date: String!
+  instagramPost: String!
+  description: String = null
+  isFeatured: Boolean = false
+  coverIds: [ID!]
+  musicVideoIds: [ID!]
+  eventIds: [ID!]
+  matchIds: [ID!]
+}
+
+"""Information to aid in pagination."""
+type PageInfo {
+  """When paginating forwards, are there more items?"""
+  hasNextPage: Boolean!
+
+  """When paginating backwards, are there more items?"""
+  hasPreviousPage: Boolean!
+
+  """When paginating backwards, the cursor to continue."""
+  startCursor: String
+
+  """When paginating forwards, the cursor to continue."""
+  endCursor: String
+}
+
+type Podcast implements Node {
+  id: ID!
+  hosts(
+    filters: ArtistFilter
+    order: ArtistOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): ArtistConnection!
+  covers(
+    filters: CoverFilter
+    order: CoverOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): CoverConnection!
+  reviews(
+    filters: ReviewFilter
+    order: ReviewOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): ReviewConnection!
+  title: String!
+  description: String!
+  since: Date!
+  website: String
+  spotify: String
+  applePodcasts: String
+  youtube: String
+  youtubeMusic: String
+  reviewsCount: Int!
+  starAverage: Float!
+  isFeatured: Boolean!
+  featuredMessage: String!
+}
+
+"""A connection to a list of items."""
+type PodcastConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [PodcastEdge!]!
+}
+
+"""A connection to a list of items."""
+type PodcastCursorConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [PodcastCursorEdge!]!
+
+  """Total quantity of existing nodes."""
+  totalCount: Int!
+}
+
+"""An edge in a connection."""
+type PodcastCursorEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: Podcast!
+}
+
+"""An edge in a connection."""
+type PodcastEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: Podcast!
+}
+
+input PodcastFilter {
+  id: IDBaseFilterLookup
+  title: StrFilterLookup
+  since: DateDateFilterLookup
+  isFeatured: BoolBaseFilterLookup
+  AND: PodcastFilter
+  OR: PodcastFilter
+  NOT: PodcastFilter
+  DISTINCT: Boolean
+}
+
+input PodcastOrder @oneOf {
+  since: Ordering
+  title: Ordering
+  reviewsCount: Ordering
+  starAverage: Ordering
+  isFeatured: Ordering
+}
+
+input PodcastUpdateInput {
+  id: ID!
+  title: String
+  description: String
+  since: String
+  website: String
+  spotify: String
+  applePodcasts: String
+  youtube: String
+  youtubeMusic: String
+  isFeatured: Boolean
+  featuredMessage: String
+}
+
+type Profile implements Node {
+  id: ID!
+  user: User!
+  followers(
+    filters: ProfileFilter
+    order: ProfileOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): ProfileConnection!
+  following(
+    filters: ProfileFilter
+    order: ProfileOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): ProfileConnection!
+  hasPremium: Boolean!
+  bannerPicture: String
+  profilePicture: String
+  bio: String!
+  pronouns: String!
+  followersCount: Int!
+  followingCount: Int!
+  reviewsCount: Int!
+  projectReviewsCount: Int!
+  songReviewsCount: Int!
+  musicVideoReviewsCount: Int!
+  coverReviewsCount: Int!
+  podcastReviewsCount: Int!
+  outfitReviewsCount: Int!
+  customPrimaryColor: String!
+  customSecondaryColor: String!
+  profilePicturePrimaryColor: String!
+  profilePictureSecondaryColor: String!
+  bannerPicturePrimaryColor: String!
+  bannerPictureSecondaryColor: String!
+}
+
+"""A connection to a list of items."""
+type ProfileConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [ProfileEdge!]!
+}
+
+"""A connection to a list of items."""
+type ProfileCursorConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [ProfileCursorEdge!]!
+
+  """Total quantity of existing nodes."""
+  totalCount: Int!
+}
+
+"""An edge in a connection."""
+type ProfileCursorEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: Profile!
+}
+
+"""An edge in a connection."""
+type ProfileEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: Profile!
+}
+
+input ProfileFilter {
+  id: IDBaseFilterLookup
+  user: UserFilter
+  hasPremium: BoolBaseFilterLookup
+  AND: ProfileFilter
+  OR: ProfileFilter
+  NOT: ProfileFilter
+  DISTINCT: Boolean
+}
+
+input ProfileOrder @oneOf {
+  user: UserOrder
+  hasPremium: Ordering
+  followersCount: Ordering
+  followingCount: Ordering
+  reviewsCount: Ordering
+  projectReviewsCount: Ordering
+  songReviewsCount: Ordering
+  musicVideoReviewsCount: Ordering
+  coverReviewsCount: Ordering
+  podcastReviewsCount: Ordering
+  outfitReviewsCount: Ordering
+}
+
+input ProfileUpdateInput {
+  id: ID!
+  bio: String
+  pronouns: String
+  bannerPicture: String
+  profilePicture: String
+  accentColorHex: String
+}
+
+type Project implements Node {
+  id: ID!
+  covers(
+    filters: CoverFilter
+    order: CoverOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): CoverConnection!
+  projectSongs(
+    filters: ProjectSongFilter
+    order: ProjectSongOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): ProjectSongConnection!
+  projectArtists(
+    filters: ProjectArtistFilter
+    order: ProjectArtistOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): ProjectArtistConnection!
+  reviews(
+    filters: ReviewFilter
+    order: ReviewOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): ReviewConnection!
+  alternativeVersions(
+    filters: ProjectFilter
+    order: ProjectOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): ProjectConnection!
+  title: String!
+  numberOfSongs: Int!
+  releaseDate: Date!
+  projectType: String!
+  length: Int!
+  reviewsCount: Int!
+  starAverage: Float!
+  spotify: String
+  appleMusic: String
+  youtubeMusic: String
+  tidal: String
+  deezer: String
+  soundcloud: String
+  bandcamp: String
+  isFeatured: Boolean!
+  featuredMessage: String!
+}
+
+type ProjectArtist implements Node {
+  id: ID!
+  project: Project!
+  artist: Artist!
+  position: Int!
+}
+
+"""A connection to a list of items."""
+type ProjectArtistConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [ProjectArtistEdge!]!
+}
+
+"""A connection to a list of items."""
+type ProjectArtistCursorConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [ProjectArtistCursorEdge!]!
+
+  """Total quantity of existing nodes."""
+  totalCount: Int!
+}
+
+"""An edge in a connection."""
+type ProjectArtistCursorEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: ProjectArtist!
+}
+
+"""An edge in a connection."""
+type ProjectArtistEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: ProjectArtist!
+}
+
+input ProjectArtistFilter {
+  id: IDBaseFilterLookup
+  position: IntComparisonFilterLookup
+  project: ProjectFilter
+  artist: ArtistFilter
+  AND: ProjectArtistFilter
+  OR: ProjectArtistFilter
+  NOT: ProjectArtistFilter
+  DISTINCT: Boolean
+}
+
+input ProjectArtistOrder @oneOf {
+  position: Ordering
+}
+
+"""A connection to a list of items."""
+type ProjectConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [ProjectEdge!]!
+}
+
+"""A connection to a list of items."""
+type ProjectCursorConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [ProjectCursorEdge!]!
+
+  """Total quantity of existing nodes."""
+  totalCount: Int!
+}
+
+"""An edge in a connection."""
+type ProjectCursorEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: Project!
+}
+
+"""An edge in a connection."""
+type ProjectEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: Project!
+}
+
+input ProjectFilter {
+  id: IDBaseFilterLookup
+  title: StrFilterLookup
+  releaseDate: DateDateFilterLookup
+  projectType: StrFilterLookup
+  isFeatured: BoolBaseFilterLookup
+  AND: ProjectFilter
+  OR: ProjectFilter
+  NOT: ProjectFilter
+  DISTINCT: Boolean
+}
+
+input ProjectOrder @oneOf {
+  releaseDate: Ordering
+  title: Ordering
+  length: Ordering
+  numberOfSongs: Ordering
+  projectType: Ordering
+  reviewsCount: Ordering
+  starAverage: Ordering
+  isFeatured: Ordering
+}
+
+type ProjectSong implements Node {
+  id: ID!
+  project: Project!
+  song: Song!
+  position: Int!
+}
+
+"""A connection to a list of items."""
+type ProjectSongConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [ProjectSongEdge!]!
+}
+
+"""A connection to a list of items."""
+type ProjectSongCursorConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [ProjectSongCursorEdge!]!
+
+  """Total quantity of existing nodes."""
+  totalCount: Int!
+}
+
+"""An edge in a connection."""
+type ProjectSongCursorEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: ProjectSong!
+}
+
+"""An edge in a connection."""
+type ProjectSongEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: ProjectSong!
+}
+
+input ProjectSongFilter {
+  id: IDBaseFilterLookup
+  position: IntComparisonFilterLookup
+  project: ProjectFilter
+  song: SongFilter
+  AND: ProjectSongFilter
+  OR: ProjectSongFilter
+  NOT: ProjectSongFilter
+  DISTINCT: Boolean
+}
+
+input ProjectSongOrder @oneOf {
+  position: Ordering
+}
+
+input ProjectUpdateInput {
+  id: ID!
+  title: String
+  numberOfSongs: Int
+  releaseDate: String
+  projectType: String
+  length: Int
+  spotify: String
+  appleMusic: String
+  youtubeMusic: String
+  tidal: String
+  deezer: String
+  soundcloud: String
+  bandcamp: String
+  isFeatured: Boolean
+  featuredMessage: String
+}
+
+type Query {
+  artists(
+    filters: ArtistFilter
+    order: ArtistOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): ArtistCursorConnection!
+  projects(
+    filters: ProjectFilter
+    order: ProjectOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): ProjectCursorConnection!
+  songs(
+    filters: SongFilter
+    order: SongOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): SongCursorConnection!
+  podcasts(
+    filters: PodcastFilter
+    order: PodcastOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): PodcastCursorConnection!
+  outfits(
+    filters: OutfitFilter
+    order: OutfitOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): OutfitCursorConnection!
+  comments(
+    filters: CommentFilter
+    order: CommentOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): CommentCursorConnection!
+  reviews(
+    filters: ReviewFilter
+    order: ReviewOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): ReviewCursorConnection!
+  messages(
+    filters: MessageFilter
+    order: MessageOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): MessageCursorConnection!
+  conversations(
+    filters: ConversationFilter
+    order: ConversationOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): ConversationCursorConnection!
+  events(
+    filters: EventFilter
+    order: EventOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): EventCursorConnection!
+  eventSeries(
+    filters: EventSeriesFilter
+    order: EventSeriesOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): EventSeriesCursorConnection!
+  musicVideos(
+    filters: MusicVideoFilter
+    order: MusicVideoOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): MusicVideoCursorConnection!
+  users(
+    filters: UserFilter
+    order: UserOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): UserCursorConnection!
+  projectSongs(
+    filters: ProjectSongFilter
+    order: ProjectSongOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): ProjectSongCursorConnection!
+  projectArtists(
+    filters: ProjectArtistFilter
+    order: ProjectArtistOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): ProjectArtistCursorConnection!
+  songArtists(
+    filters: SongArtistFilter
+    order: SongArtistOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): SongArtistCursorConnection!
+  subReviews(
+    filters: SubReviewFilter
+    order: SubReviewOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): SubReviewCursorConnection!
+  profiles(
+    filters: ProfileFilter
+    order: ProfileOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): ProfileCursorConnection!
+  covers(
+    filters: CoverFilter
+    order: CoverOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): CoverCursorConnection!
+}
+
+type Review implements Node {
+  id: ID!
+  user: User!
+  contentObject: Reviewable!
+  subreviews(
+    filters: SubReviewFilter
+    order: SubReviewOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): SubReviewConnection!
+  comments(
+    filters: CommentFilter
+    order: CommentOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): CommentConnection!
+  likedBy(
+    filters: UserFilter
+    order: UserOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): UserConnection!
+  dislikedBy(
+    filters: UserFilter
+    order: UserOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): UserConnection!
+  stars: Decimal!
+  title: String!
+  text: String!
+  dateCreated: DateTime!
+  dateUpdated: DateTime!
+  isLatest: Boolean!
+  commentsCount: Int!
+  likesCount: Int!
+  dislikesCount: Int!
+  contentType: DjangoModelType!
+  objectId: Int!
+  likedByCurrentUser: Boolean!
+  dislikedByCurrentUser: Boolean!
+  isRereview: Boolean!
+}
+
+"""A connection to a list of items."""
+type ReviewConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [ReviewEdge!]!
+}
+
+"""A connection to a list of items."""
+type ReviewCursorConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [ReviewCursorEdge!]!
+
+  """Total quantity of existing nodes."""
+  totalCount: Int!
+}
+
+"""An edge in a connection."""
+type ReviewCursorEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: Review!
+}
+
+input ReviewDataInput {
+  stars: Float!
+  title: String!
+  text: String = null
+  subreviews: [SubReviewDataInput!] = null
+}
+
+"""An edge in a connection."""
+type ReviewEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: Review!
+}
+
+input ReviewFilter {
+  id: IDBaseFilterLookup
+  stars: DecimalComparisonFilterLookup
+  user: UserFilter
+  commentsCount: IntComparisonFilterLookup
+  likesCount: IntComparisonFilterLookup
+  dislikesCount: IntComparisonFilterLookup
+  dateCreated: DatetimeDatetimeFilterLookup
+  isLatest: BoolBaseFilterLookup
+  objectId: IntComparisonFilterLookup
+  contentType: ContentTypeFilter
+  AND: ReviewFilter
+  OR: ReviewFilter
+  NOT: ReviewFilter
+  DISTINCT: Boolean
+}
+
+input ReviewOrder @oneOf {
+  dateCreated: Ordering
+  stars: Ordering
+  commentsCount: Ordering
+  likesCount: Ordering
+  dislikesCount: Ordering
+  isLatest: Ordering
+  userFollowedByCurrentUser: Ordering
+}
+
+input ReviewUpdateInput {
+  id: ID!
+  stars: Float
+  title: String
+  text: String
+  isLatest: Boolean
+}
+
+union Reviewable = Event | Project | Song | MusicVideo | Podcast | Outfit | Cover
+
+input SignupInput {
+  email: String!
+  password: String!
+  passwordConfirmation: String!
+  username: String!
+  firstName: String = null
+  lastName: String = null
+}
+
+type Song implements Node {
+  id: ID!
+  alternativeVersions(
+    filters: SongFilter
+    order: SongOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): SongConnection!
+  songArtists(
+    filters: SongArtistFilter
+    order: SongArtistOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): SongArtistConnection!
+  projectSongs(
+    filters: ProjectSongFilter
+    order: ProjectSongOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): ProjectSongConnection!
+  musicVideos(
+    filters: MusicVideoFilter
+    order: MusicVideoOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): MusicVideoConnection!
+  reviews(
+    filters: ReviewFilter
+    order: ReviewOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): ReviewConnection!
+  title: String!
+  length: Int!
+  preview: String
+  releaseDate: Date!
+  reviewsCount: Int!
+  starAverage: Float!
+  isFeatured: Boolean!
+  featuredMessage: String!
+}
+
+type SongArtist implements Node {
+  id: ID!
+  song: Song!
+  artist: Artist!
+  position: Int!
+}
+
+"""A connection to a list of items."""
+type SongArtistConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [SongArtistEdge!]!
+}
+
+"""A connection to a list of items."""
+type SongArtistCursorConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [SongArtistCursorEdge!]!
+
+  """Total quantity of existing nodes."""
+  totalCount: Int!
+}
+
+"""An edge in a connection."""
+type SongArtistCursorEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: SongArtist!
+}
+
+"""An edge in a connection."""
+type SongArtistEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: SongArtist!
+}
+
+input SongArtistFilter {
+  id: IDBaseFilterLookup
+  position: IntComparisonFilterLookup
+  song: SongFilter
+  artist: ArtistFilter
+  AND: SongArtistFilter
+  OR: SongArtistFilter
+  NOT: SongArtistFilter
+  DISTINCT: Boolean
+}
+
+input SongArtistOrder @oneOf {
+  position: Ordering
+}
+
+"""A connection to a list of items."""
+type SongConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [SongEdge!]!
+}
+
+input SongCreateInput {
+  title: String!
+  length: Int!
+  releaseDate: Date!
+  preview: String = null
+  isFeatured: Boolean = false
+}
+
+"""A connection to a list of items."""
+type SongCursorConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [SongCursorEdge!]!
+
+  """Total quantity of existing nodes."""
+  totalCount: Int!
+}
+
+"""An edge in a connection."""
+type SongCursorEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: Song!
+}
+
+"""An edge in a connection."""
+type SongEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: Song!
+}
+
+input SongFilter {
+  id: IDBaseFilterLookup
+  title: StrFilterLookup
+  releaseDate: DateDateFilterLookup
+  isFeatured: BoolBaseFilterLookup
+  AND: SongFilter
+  OR: SongFilter
+  NOT: SongFilter
+  DISTINCT: Boolean
+}
+
+input SongOrder @oneOf {
+  releaseDate: Ordering
+  title: Ordering
+  length: Ordering
+  reviewsCount: Ordering
+  starAverage: Ordering
+  isFeatured: Ordering
+}
+
+input SongUpdateInput {
+  id: ID!
+  title: String
+  length: Int
+  releaseDate: String
+  preview: String
+  isFeatured: Boolean
+  featuredMessage: String
+}
+
+input StrFilterLookup {
+  """Exact match. Filter will be skipped on `null` value"""
+  exact: String
+
+  """Assignment test. Filter will be skipped on `null` value"""
+  isNull: Boolean
+
+  """
+  Exact match of items in a given list. Filter will be skipped on `null` value
+  """
+  inList: [String!]
+
+  """Case-insensitive exact match. Filter will be skipped on `null` value"""
+  iExact: String
+
+  """
+  Case-sensitive containment test. Filter will be skipped on `null` value
+  """
+  contains: String
+
+  """
+  Case-insensitive containment test. Filter will be skipped on `null` value
+  """
+  iContains: String
+
+  """Case-sensitive starts-with. Filter will be skipped on `null` value"""
+  startsWith: String
+
+  """Case-insensitive starts-with. Filter will be skipped on `null` value"""
+  iStartsWith: String
+
+  """Case-sensitive ends-with. Filter will be skipped on `null` value"""
+  endsWith: String
+
+  """Case-insensitive ends-with. Filter will be skipped on `null` value"""
+  iEndsWith: String
+
+  """
+  Case-sensitive regular expression match. Filter will be skipped on `null` value
+  """
+  regex: String
+
+  """
+  Case-insensitive regular expression match. Filter will be skipped on `null` value
+  """
+  iRegex: String
+}
+
+type SubReview implements Node {
+  id: ID!
+  review: Review!
+  topic: String!
+  text: String!
+  stars: Decimal!
+  position: Int!
+}
+
+"""A connection to a list of items."""
+type SubReviewConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [SubReviewEdge!]!
+}
+
+"""A connection to a list of items."""
+type SubReviewCursorConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [SubReviewCursorEdge!]!
+
+  """Total quantity of existing nodes."""
+  totalCount: Int!
+}
+
+"""An edge in a connection."""
+type SubReviewCursorEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: SubReview!
+}
+
+input SubReviewDataInput {
+  topic: String!
+  stars: Float!
+  text: String = null
+}
+
+"""An edge in a connection."""
+type SubReviewEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: SubReview!
+}
+
+input SubReviewFilter {
+  id: IDBaseFilterLookup
+  topic: StrFilterLookup
+  position: IntComparisonFilterLookup
+  stars: DecimalComparisonFilterLookup
+  AND: SubReviewFilter
+  OR: SubReviewFilter
+  NOT: SubReviewFilter
+  DISTINCT: Boolean
+}
+
+input SubReviewOrder @oneOf {
+  stars: Ordering
+  position: Ordering
+  topic: Ordering
+}
+
+input SubReviewUpdateInput {
+  id: ID!
+  topic: String
+  text: String
+  stars: Float
+}
+
+type Subscription {
+  messageEvents(conversationId: Int!): MessageEventUnion!
+  conversationUpdates: ConversationEventPayload!
+}
+
+type SuccessMessage {
+  message: String!
+}
+
+type User implements Node {
+  id: ID!
+  profile: Profile!
+  conversations(
+    filters: ConversationFilter
+    order: ConversationOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): ConversationConnection!
+  seenConversations(
+    filters: ConversationFilter
+    order: ConversationOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): ConversationConnection!
+  reviews(
+    filters: ReviewFilter
+    order: ReviewOrder
+
+    """Returns the items in the list that come before the specified cursor."""
+    before: String = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    after: String = null
+
+    """Returns the first n items from the list."""
+    first: Int = null
+
+    """Returns the items in the list that come after the specified cursor."""
+    last: Int = null
+  ): ReviewConnection!
+  isSuperuser: Boolean!
+  username: String!
+  firstName: String!
+  email: String!
+  isStaff: Boolean!
+}
+
+"""A connection to a list of items."""
+type UserConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [UserEdge!]!
+}
+
+"""A connection to a list of items."""
+type UserCursorConnection {
+  """Pagination data for this connection"""
+  pageInfo: PageInfo!
+
+  """Contains the nodes in this connection"""
+  edges: [UserCursorEdge!]!
+
+  """Total quantity of existing nodes."""
+  totalCount: Int!
+}
+
+"""An edge in a connection."""
+type UserCursorEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: User!
+}
+
+"""An edge in a connection."""
+type UserEdge {
+  """A cursor for use in pagination"""
+  cursor: String!
+
+  """The item at the end of the edge"""
+  node: User!
+}
+
+input UserFilter {
+  id: IDBaseFilterLookup
+  username: StrFilterLookup
+  email: StrFilterLookup
+  firstName: StrFilterLookup
+  lastName: StrFilterLookup
+  reviews: ReviewFilter
+  AND: UserFilter
+  OR: UserFilter
+  NOT: UserFilter
+  DISTINCT: Boolean
+}
+
+input UserOrder @oneOf {
+  username: Ordering
+  firstName: Ordering
+  email: Ordering
+  isActive: Ordering
+  followedByCurrentUser: Ordering
+  reviews: ReviewOrder
+}
