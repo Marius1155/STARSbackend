@@ -154,6 +154,20 @@ class Review(strawberry.relay.Node):
 
         return await sync_to_async(check)()
 
+    @strawberry.field
+    async def is_rereview(self) -> bool:
+        """True if this user has older reviews for the same object."""
+
+        def check():
+            return models.Review.objects.filter(
+                user=self.user,
+                content_type=self.content_type,
+                object_id=self.object_id,
+                date_created__lt=self.date_created  # strictly older reviews
+            ).exists()
+
+        return await sync_to_async(check)()
+
     @sync_to_async
     def get_subreviews(self) -> List[models.SubReview]:
         return self.subreviews.all()
