@@ -359,8 +359,8 @@ class Message(models.Model):
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     has_premium = models.BooleanField(default=False)
-    banner_picture = models.URLField(max_length=500, blank=True, null=True)
-    profile_picture = models.URLField(max_length=500, blank=True, null=True)
+    banner_picture = models.URLField(max_length=500, null=True)
+    profile_picture = models.URLField(max_length=500, null=True)
     bio = models.TextField(blank=True)
     pronouns = models.CharField(max_length=100, blank=True)
     followers_count = models.IntegerField(default=0)
