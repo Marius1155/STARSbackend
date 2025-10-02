@@ -90,7 +90,7 @@ class Comment (models.Model):
         ordering = ['-date_created']
 
     def __str__(self):
-        f"Comment from {self.user.username} saying {self.text}"
+        return f"Comment from {self.user.username} saying {self.text}"
 
 
 class Review(models.Model):
