@@ -46,6 +46,13 @@ class CommentFilter:
     likes_count: auto
     dislikes_count: auto
     date_created: auto
+    is_top_level: Optional[bool] = None
+
+    @classmethod
+    def filter_is_top_level(cls, queryset, value):
+        if value:
+            return queryset.filter(replyingTo__isnull=True)
+        return queryset
 
 @strawberry_django.filter(ContentType, lookups=True)
 class ContentTypeFilter:
