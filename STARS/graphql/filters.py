@@ -50,8 +50,10 @@ class CommentFilter:
 
     @classmethod
     def filter_is_top_level(cls, queryset, value):
-        if value:
+        if value is True:
             return queryset.filter(replyingTo__isnull=True)
+        if value is False:
+            return queryset.filter(replyingTo__isnull=False)
         return queryset
 
 @strawberry_django.filter(ContentType, lookups=True)
