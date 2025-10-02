@@ -2,7 +2,7 @@ from django.contrib import admin
 
 # Register your models here.
 from django.contrib import admin
-from .models import Artist, Project, Song, ProjectSong, Podcast, Outfit, Review, SubReview, Profile, Message, Conversation, Event, EventSeries, Cover, MusicVideo, ProjectArtist, SongArtist  # etc.
+from .models import Artist, Project, Song, ProjectSong, Podcast, Outfit, Review, SubReview, Profile, Message, Conversation, Event, EventSeries, Cover, MusicVideo, ProjectArtist, SongArtist, Comment  # etc.
 
 admin.site.register(Artist)
 admin.site.register(Project)
@@ -21,3 +21,4 @@ admin.site.register(MusicVideo)
 admin.site.register(ProjectSong)
 admin.site.register(ProjectArtist)
 admin.site.register(SongArtist)
+admin.site.register(Comment)
