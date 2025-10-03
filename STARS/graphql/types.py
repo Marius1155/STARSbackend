@@ -133,6 +133,7 @@ class Review(strawberry.relay.Node):
     comments: relay.ListConnection["Comment"] = strawberry_django.connection(filters=filters.CommentFilter, order=orders.CommentOrder)
     liked_by: relay.ListConnection["User"] = strawberry_django.connection(filters=filters.UserFilter, order=orders.UserOrder)
     disliked_by: relay.ListConnection["User"] = strawberry_django.connection(filters=filters.UserFilter, order=orders.UserOrder)
+    top_level_comments: relay.ListConnection["Comment"] = strawberry_django.connection(filters=filters.CommentFilter, order=orders.CommentOrder)
 
     @strawberry.field
     async def liked_by_current_user(self, info: Info) -> bool:
@@ -183,6 +184,13 @@ class Review(strawberry.relay.Node):
     @sync_to_async
     def get_disliked_by(self) -> List[models.User]:
         return self.disliked_by.all()
+
+    @sync_to_async
+    def get_top_level_comments(self, filters: Optional[filters.CommentFilter] = None) -> List[models.Comment]:
+        qs = self.comments.all()
+        if filters and filters.is_top_level is True:
+            qs = qs.filter(replying_to__isnull=True)
+        return list(qs)
 
 
 @strawberry_django.type(models.SubReview, fields="__all__")

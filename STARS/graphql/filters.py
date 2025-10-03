@@ -47,7 +47,7 @@ class CommentFilter:
     likes_count: auto
     dislikes_count: auto
     date_created: auto
-    is_top_level: Optional[bool] = filters.BooleanFilter(field_name="replying_to", lookup_expr="isnull")
+    is_top_level: Optional[bool] = None
 
 @strawberry_django.filter(ContentType, lookups=True)
 class ContentTypeFilter:
