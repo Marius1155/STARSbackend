@@ -40,7 +40,7 @@ class EventFilter:
 class CommentFilter:
     id: auto
     number_of_replies: auto
-    replyingTo: Optional["CommentFilter"]
+    replying_to: Optional["CommentFilter"]
     review: Optional["ReviewFilter"]
     user: Optional["UserFilter"]
     likes_count: auto
