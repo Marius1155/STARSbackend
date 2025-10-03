@@ -9,7 +9,7 @@ from typing import Optional
 from STARS import models
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
-from strawberry_django import filters
+from strawberry_django.filters import FilterLookup
 
 # For Relay Nodes, the `id` filter should accept a simple integer,
 # which the resolver will then use to find the object.
@@ -41,13 +41,12 @@ class EventFilter:
 class CommentFilter:
     id: auto
     number_of_replies: auto
-    replying_to: Optional["CommentFilter"]
+    replying_to: Optional[FilterLookup["CommentFilter"]]
     review: Optional["ReviewFilter"]
     user: Optional["UserFilter"]
     likes_count: auto
     dislikes_count: auto
     date_created: auto
-    is_top_level: Optional[bool] = None
 
 @strawberry_django.filter(ContentType, lookups=True)
 class ContentTypeFilter:
