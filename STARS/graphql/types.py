@@ -2,6 +2,7 @@ import strawberry
 import strawberry_django
 from strawberry.types import Info
 from typing import Optional, Iterable, Any, List
+from django.db.models import QuerySet
 from strawberry_django.relay import DjangoCursorConnection
 from STARS import models
 from django.contrib.auth.models import User as DjangoUser
