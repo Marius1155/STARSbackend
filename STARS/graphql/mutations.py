@@ -618,9 +618,11 @@ class Mutation:
                 comment_to_reply_to = None
                 if data.replying_to_comment_id:
                     try:
-                        comment_to_reply_to = models.Comment.objects.get(
+                        comment_to_reply_to = models.Comment.objects.select_for_update().get(
                             pk=data.replying_to_comment_id
                         )
+                        comment_to_reply_to.number_of_replies += 1
+                        comment_to_reply_to.save(update_fields=["number_of_replies"])
                     except models.Comment.DoesNotExist:
                         raise Exception("The comment you are trying to reply to does not exist.")
 
