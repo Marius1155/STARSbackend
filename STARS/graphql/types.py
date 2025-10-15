@@ -361,7 +361,7 @@ class Conversation(strawberry.relay.Node):
 
     @sync_to_async
     def get_messages(self) -> List[models.Message]:
-        return self.messages.all()
+        return self.messages.all().order_by("time")
 
     @sync_to_async
     def get_seen_by(self) -> List[models.User]:
