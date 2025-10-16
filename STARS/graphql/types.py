@@ -15,26 +15,26 @@ from . import filters, orders
 
 @strawberry_django.type(models.Artist, fields="__all__")
 class Artist(strawberry.relay.Node):
-    song_artists: relay.ListConnection["SongArtist"] = strawberry_django.connection(filters=filters.SongArtistFilter, order=orders.SongArtistOrder)
-    project_artists: relay.ListConnection["ProjectArtist"] = strawberry_django.connection(filters=filters.ProjectArtistFilter, order=orders.ProjectArtistOrder)
-    outfits: relay.ListConnection["Outfit"] = strawberry_django.connection(filters=filters.OutfitFilter, order=orders.OutfitOrder)
-    podcasts: relay.ListConnection["Podcast"] = strawberry_django.connection(filters=filters.PodcastFilter, order=orders.PodcastOrder)
+    song_artists: DjangoCursorConnection["SongArtist"] = strawberry_django.connection(filters=filters.SongArtistFilter, order=orders.SongArtistOrder)
+    project_artists: DjangoCursorConnection["ProjectArtist"] = strawberry_django.connection(filters=filters.ProjectArtistFilter, order=orders.ProjectArtistOrder)
+    outfits: DjangoCursorConnection["Outfit"] = strawberry_django.connection(filters=filters.OutfitFilter, order=orders.OutfitOrder)
+    podcasts: DjangoCursorConnection["Podcast"] = strawberry_django.connection(filters=filters.PodcastFilter, order=orders.PodcastOrder)
 
-    @sync_to_async
-    def get_song_artists(self) -> List[models.SongArtist]:
+    '''@sync_to_async
+    def get_song_artists(self) -> QuerySet[models.SongArtist]:
         return self.song_artists.all()
 
     @sync_to_async
-    def get_project_artists(self) -> List[models.ProjectArtist]:
+    def get_project_artists(self) -> QuerySet[models.ProjectArtist]:
         return self.project_artists.all()
 
     @sync_to_async
-    def get_outfits(self) -> List[models.Outfit]:
+    def get_outfits(self) -> QuerySet[models.Outfit]:
         return self.outfits.all()
 
     @sync_to_async
-    def get_podcasts(self) -> List[models.Podcast]:
-        return self.podcasts.all()
+    def get_podcasts(self) -> QuerySet[models.Podcast]:
+        return self.podcasts.all()'''
 
 
 @strawberry_django.type(models.EventSeries, fields="__all__")
@@ -351,21 +351,9 @@ class Outfit(strawberry.relay.Node):
 class Conversation(strawberry.relay.Node):
     latest_message: Optional["Message"]
     latest_message_sender: Optional["User"]
-    participants: relay.ListConnection["User"] = strawberry_django.connection(filters=filters.UserFilter, order=orders.UserOrder)
-    messages: relay.ListConnection["Message"] = strawberry_django.connection(filters=filters.MessageFilter, order=orders.MessageOrder)
-    seen_by: relay.ListConnection["User"] = strawberry_django.connection(filters=filters.UserFilter, order=orders.UserOrder)
-
-    @sync_to_async
-    def get_participants(self) -> List[models.User]:
-        return self.participants.all()
-
-    @sync_to_async
-    def get_messages(self) -> List[models.Message]:
-        return self.messages.all().order_by("time")
-
-    @sync_to_async
-    def get_seen_by(self) -> List[models.User]:
-        return self.seen_by.all()
+    participants: DjangoCursorConnection["User"] = strawberry_django.connection(filters=filters.UserFilter, order=orders.UserOrder)
+    messages: DjangoCursorConnection["Message"] = strawberry_django.connection(filters=filters.MessageFilter, order=orders.MessageOrder)
+    seen_by: DjangoCursorConnection["User"] = strawberry_django.connection(filters=filters.UserFilter, order=orders.UserOrder)
 
 
 @strawberry_django.type(models.Message, fields="__all__")
@@ -395,7 +383,6 @@ class Profile(strawberry.relay.Node):
         return self.following.all()
 
 
-# The Unions still work correctly with these simplified types
 Reviewable = strawberry.union(
     "Reviewable",
     (Event, Project, Song, MusicVideo, Podcast, Outfit, Cover),
