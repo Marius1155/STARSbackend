@@ -45,26 +45,24 @@ class AppleMusicAlbumDetail:
 # --- GraphQL Query ---
 @strawberry.type
 class Query:
-    # --- Lightweight query: all albums of an artist ---
     @strawberry.field
-    async def get_artist_albums(self, artist_id: str) -> List[AppleMusicAlbumLight]:
-        results = await apple_music.get_albums_by_artist(artist_id)
-        albums = []
+    async def search_apple_music_albums(self, term: str) -> List[AppleMusicAlbumLight]:
+        results = await apple_music.search_albums(term)
+        albums: List[AppleMusicAlbumLight] = []
 
         for album in results:
             album_attrs = album.get("attributes", {})
-            artwork = album_attrs.get("artwork", {})
-            cover_url = artwork.get("url", "") if artwork else ""
-
-            # Proper artist fetching via relationships
-            artists: List[AppleMusicArtistLight] = []
-            for artist_data in album.get("relationships", {}).get("artists", {}).get("data", []):
-                artists.append(
+            album_artists: List[AppleMusicArtistLight] = []
+            for artist in album.get("relationships", {}).get("artists", {}).get("data", []):
+                album_artists.append(
                     AppleMusicArtistLight(
-                        id=artist_data.get("id", ""),
-                        name=album_attrs.get("artistName", "")
+                        id=artist.get("id"),
+                        name=artist.get("attributes", {}).get("name", "")
                     )
                 )
+
+            artwork = album_attrs.get("artwork", {})
+            cover_url = artwork.get("url", "") if artwork else ""
 
             albums.append(
                 AppleMusicAlbumLight(
@@ -72,52 +70,49 @@ class Query:
                     name=album_attrs.get("name", ""),
                     release_date=album_attrs.get("releaseDate", ""),
                     cover_url=cover_url,
-                    artists=artists
+                    artists=album_artists
                 )
             )
         return albums
 
-    # --- Detailed query: one album with songs and preview URLs ---
     @strawberry.field
     async def get_album_detail(self, album_id: str) -> AppleMusicAlbumDetail:
-        album = await apple_music.get_album_by_id(album_id)
+        album = await apple_music.get_album_with_songs(album_id)
         album_attrs = album.get("attributes", {})
-        artwork = album_attrs.get("artwork", {})
-        cover_url = artwork.get("url", "") if artwork else ""
 
-        # Artists
-        artists: List[AppleMusicArtistLight] = []
-        for artist_data in album.get("relationships", {}).get("artists", {}).get("data", []):
-            artists.append(
+        album_artists: List[AppleMusicArtistLight] = []
+        for artist in album.get("relationships", {}).get("artists", {}).get("data", []):
+            album_artists.append(
                 AppleMusicArtistLight(
-                    id=artist_data.get("id", ""),
-                    name=album_attrs.get("artistName", "")
+                    id=artist.get("id"),
+                    name=artist.get("attributes", {}).get("name", "")
                 )
             )
 
-        # Songs
         songs: List[AppleMusicSongDetail] = []
-        tracks_data = album.get("relationships", {}).get("tracks", {}).get("data", [])
-        for track in tracks_data:
-            track_attrs = track.get("attributes", {})
-            track_artists: List[AppleMusicArtistLight] = []
-            for artist_data in track.get("relationships", {}).get("artists", {}).get("data", []):
-                track_artists.append(
+        for song in album.get("relationships", {}).get("tracks", {}).get("data", []):
+            song_attrs = song.get("attributes", {})
+            song_artists: List[AppleMusicArtistLight] = []
+            for s_artist in song.get("relationships", {}).get("artists", {}).get("data", []):
+                song_artists.append(
                     AppleMusicArtistLight(
-                        id=artist_data.get("id", ""),
-                        name=artist_data.get("name", "")
+                        id=s_artist.get("id"),
+                        name=s_artist.get("attributes", {}).get("name", "")
                     )
                 )
 
             songs.append(
                 AppleMusicSongDetail(
-                    id=track.get("id"),
-                    name=track_attrs.get("name", ""),
-                    length_ms=track_attrs.get("durationInMillis", 0),
-                    preview_url=track_attrs.get("previews", [{}])[0].get("url", ""),
-                    artists=track_artists
+                    id=song.get("id"),
+                    name=song_attrs.get("name", ""),
+                    length_ms=song_attrs.get("durationInMillis", 0),
+                    preview_url=song_attrs.get("previews", [{}])[0].get("url", ""),
+                    artists=song_artists
                 )
             )
+
+        artwork = album_attrs.get("artwork", {})
+        cover_url = artwork.get("url", "") if artwork else ""
 
         return AppleMusicAlbumDetail(
             id=album.get("id"),
@@ -125,7 +120,7 @@ class Query:
             release_date=album_attrs.get("releaseDate", ""),
             cover_url=cover_url,
             songs=songs,
-            artists=artists
+            artists=album_artists
         )
 
     artists: DjangoCursorConnection[types.Artist] = strawberry_django.connection(filters=filters.ArtistFilter, order=orders.ArtistOrder)
