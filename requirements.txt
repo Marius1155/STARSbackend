@@ -20,3 +20,4 @@ channels-redis
 redis
 daphne
 cloudinary
+httpx==1.2.3
