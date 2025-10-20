@@ -40,6 +40,11 @@ class AppleMusicAlbum:
     songs: List[AppleMusicSong]
     cover: AppleMusicAlbumCover
 
+    @strawberry.field
+    def number_of_songs(self) -> int:
+        return len(self.songs)
+
+
 # --- Resolver ---
 @strawberry.type
 class Query:
@@ -52,18 +57,39 @@ class Query:
             album_attrs = album.get("attributes", {})
 
             # Album artists
-            album_artists: List[AppleMusicArtist] = []
-            for artist_name in album_attrs.get("artistName", "").split(","):
-                album_artists.append(
-                    AppleMusicArtist(
-                        id=artist_name,  # placeholder, real ID requires additional API call
-                        name=artist_name,
-                        picture=""  # placeholder, you could fetch artist picture later
-                    )
+            album_artists: List[AppleMusicArtist] = [
+                AppleMusicArtist(
+                    id=artist_name,  # placeholder
+                    name=artist_name,
+                    picture=""
                 )
+                for artist_name in album_attrs.get("artistName", "").split(",")
+            ]
 
-            # Songs (empty for now; proper fetching requires a per-album API call)
+            # Fetch songs for this album (requires another Apple Music API call)
+            album_id = album.get("id")
             songs: List[AppleMusicSong] = []
+            if album_id:
+                # example async call to fetch tracks
+                tracks_data = await apple_music.fetch_album_songs(album_id)  # <-- you need to implement this
+                for track in tracks_data:
+                    track_attrs = track.get("attributes", {})
+                    track_artists = [
+                        AppleMusicArtist(id=a, name=a)  # placeholders
+                        for a in track_attrs.get("artistName", "").split(",")
+                    ]
+                    songs.append(
+                        AppleMusicSong(
+                            id=track.get("id"),
+                            name=track_attrs.get("name", ""),
+                            release_date=track_attrs.get("releaseDate", ""),
+                            length_ms=track_attrs.get("durationInMillis", 0),
+                            artists=track_artists
+                        )
+                    )
+
+            # Compute album length_ms as sum of song durations
+            total_length = sum(song.length_ms for song in songs)
 
             # Album cover
             artwork = album_attrs.get("artwork", {})
@@ -71,10 +97,10 @@ class Query:
 
             albums.append(
                 AppleMusicAlbum(
-                    id=album.get("id"),
+                    id=album_id,
                     name=album_attrs.get("name", ""),
                     release_date=album_attrs.get("releaseDate", ""),
-                    length_ms=album_attrs.get("trackCount", 0) * 0,  # placeholder; Apple Music API doesn't provide album length directly
+                    length_ms=total_length,
                     artists=album_artists,
                     songs=songs,
                     cover=AppleMusicAlbumCover(url=cover_url)
