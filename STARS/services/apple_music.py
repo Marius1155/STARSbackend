@@ -19,15 +19,14 @@ class AppleMusicService:
         data = response.json()
         return data.get("results", {}).get("albums", {}).get("data", [])
 
-    async def fetch_album_songs(self, album_id: str, country: str = "us") -> List[Dict[str, Any]]:
-        """Fetch all songs for a given album."""
+    async def fetch_album_songs(self, album_id: str, country: str = "us") -> Dict[str, Any]:
+        """Fetch full album data including tracks."""
         url = f"{APPLE_MUSIC_API_URL}/catalog/{country}/albums/{album_id}"
         headers = {"Authorization": f"Bearer {get_apple_music_token()}"}
         response = await self.client.get(url, headers=headers)
         response.raise_for_status()
         data = response.json()
-        # 'relationships' -> 'tracks' -> 'data' contains the song list
-        return data.get("data", [])[0].get("relationships", {}).get("tracks", {}).get("data", [])
+        return data.get("data", [])[0]  # the first album
 
     async def close(self):
         """Close the async client when done."""

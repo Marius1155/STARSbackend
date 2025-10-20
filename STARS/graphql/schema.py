@@ -50,68 +50,85 @@ class AppleMusicAlbum:
 class Query:
     @strawberry.field
     async def search_apple_music_albums(self, term: str) -> List[AppleMusicAlbum]:
+        """Search for albums (basic info only)."""
         results = await apple_music.search_albums(term)
         albums: List[AppleMusicAlbum] = []
 
         for album in results:
-            album_attrs = album.get("attributes", {})
-
-            # Album artists
-            album_artists: List[AppleMusicArtist] = [
+            attrs = album.get("attributes", {})
+            album_artists = [
                 AppleMusicArtist(
-                    id=artist_name,  # placeholder
-                    name=artist_name,
+                    id=name,  # placeholder
+                    name=name,
                     picture=""
                 )
-                for artist_name in album_attrs.get("artistName", "").split(",")
+                for name in attrs.get("artistName", "").split(",")
             ]
-
-            # Fetch songs for this album (requires another Apple Music API call)
-            album_id = album.get("id")
-            songs: List[AppleMusicSong] = []
-            if album_id:
-                # example async call to fetch tracks
-                tracks_data = await apple_music.fetch_album_songs(album.get("id"))
-                songs: List[AppleMusicSong] = []
-                for track in tracks_data:
-                    track_attrs = track.get("attributes", {})
-                    track_artists: List[AppleMusicArtist] = [
-                        AppleMusicArtist(
-                            id=artist_name,
-                            name=artist_name,
-                            picture=""
-                        )
-                        for artist_name in track_attrs.get("artistName", "").split(",")
-                    ]
-                    songs.append(
-                        AppleMusicSong(
-                            id=track.get("id"),
-                            name=track_attrs.get("name", ""),
-                            release_date=track_attrs.get("releaseDate", ""),
-                            length_ms=track_attrs.get("durationInMillis", 0),
-                            artists=track_artists
-                        )
-                    )
-
-            # Compute album length_ms as sum of song durations
-            total_length = sum(song.length_ms for song in songs)
-
-            # Album cover
-            artwork = album_attrs.get("artwork", {})
-            cover_url = artwork.get("url", "") if artwork else ""
-
+            artwork = attrs.get("artwork", {})
             albums.append(
                 AppleMusicAlbum(
-                    id=album_id,
-                    name=album_attrs.get("name", ""),
-                    release_date=album_attrs.get("releaseDate", ""),
-                    length_ms=total_length,
+                    id=album.get("id"),
+                    name=attrs.get("name", ""),
+                    release_date=attrs.get("releaseDate", ""),
+                    length_ms=0,  # not fetching songs yet
                     artists=album_artists,
-                    songs=songs,
-                    cover=AppleMusicAlbumCover(url=cover_url)
+                    songs=[],  # empty for now
+                    cover=AppleMusicAlbumCover(url=artwork.get("url", ""))
                 )
             )
         return albums
+
+    @strawberry.field
+    async def apple_music_album(self, album_id: str) -> AppleMusicAlbum:
+        """Fetch a single album with full details including songs."""
+        # fetch album data
+        album_data = await apple_music.fetch_album_songs(album_id)
+        if not album_data:
+            return None
+
+        album_attrs = album_data.get("attributes", {})
+        album_artists = [
+            AppleMusicArtist(
+                id=name,
+                name=name,
+                picture=""
+            )
+            for name in album_attrs.get("artistName", "").split(",")
+        ]
+
+        # fetch songs
+        tracks = album_data.get("relationships", {}).get("tracks", {}).get("data", [])
+        songs = []
+        for track in tracks:
+            track_attrs = track.get("attributes", {})
+            track_artists = [
+                AppleMusicArtist(
+                    id=name,
+                    name=name,
+                    picture=""
+                )
+                for name in track_attrs.get("artistName", "").split(",")
+            ]
+            songs.append(
+                AppleMusicSong(
+                    id=track.get("id"),
+                    name=track_attrs.get("name", ""),
+                    release_date=track_attrs.get("releaseDate", ""),
+                    length_ms=track_attrs.get("durationInMillis", 0),
+                    artists=track_artists
+                )
+            )
+
+        artwork = album_attrs.get("artwork", {})
+        return AppleMusicAlbum(
+            id=album_data.get("id"),
+            name=album_attrs.get("name", ""),
+            release_date=album_attrs.get("releaseDate", ""),
+            length_ms=sum(track.get("attributes", {}).get("durationInMillis", 0) for track in tracks),
+            artists=album_artists,
+            songs=songs,
+            cover=AppleMusicAlbumCover(url=artwork.get("url", ""))
+        )
 
     artists: DjangoCursorConnection[types.Artist] = strawberry_django.connection(filters=filters.ArtistFilter, order=orders.ArtistOrder)
     projects: DjangoCursorConnection[types.Project] = strawberry_django.connection(filters=filters.ProjectFilter, order=orders.ProjectOrder)
