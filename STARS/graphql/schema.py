@@ -71,12 +71,17 @@ class Query:
             songs: List[AppleMusicSong] = []
             if album_id:
                 # example async call to fetch tracks
-                tracks_data = await apple_music.fetch_album_songs(album_id)  # <-- you need to implement this
+                tracks_data = await apple_music.fetch_album_songs(album.get("id"))
+                songs: List[AppleMusicSong] = []
                 for track in tracks_data:
                     track_attrs = track.get("attributes", {})
-                    track_artists = [
-                        AppleMusicArtist(id=a, name=a)  # placeholders
-                        for a in track_attrs.get("artistName", "").split(",")
+                    track_artists: List[AppleMusicArtist] = [
+                        AppleMusicArtist(
+                            id=artist_name,
+                            name=artist_name,
+                            picture=""
+                        )
+                        for artist_name in track_attrs.get("artistName", "").split(",")
                     ]
                     songs.append(
                         AppleMusicSong(
