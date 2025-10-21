@@ -19,7 +19,7 @@ class AppleMusicService:
         data = response.json()
         return data.get("results", {}).get("albums", {}).get("data", [])
 
-    async def fetch_album_songs(self, album_id: str, country: str = "us") -> Dict[str, Any]:
+    async def get_album_with_songs(self, album_id: str, country: str = "us") -> Dict[str, Any]:
         """Fetch full album data including tracks."""
         url = f"{APPLE_MUSIC_API_URL}/catalog/{country}/albums/{album_id}"
         headers = {"Authorization": f"Bearer {get_apple_music_token()}"}

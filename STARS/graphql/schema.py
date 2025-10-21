@@ -23,7 +23,7 @@ class AppleMusicAlbumLight:
     name: str
     release_date: str
     cover_url: str
-    artists: List[AppleMusicArtistLight]
+    artists_names: str
 
 @strawberry.type
 class AppleMusicSongDetail:
@@ -52,14 +52,7 @@ class Query:
 
         for album in results:
             album_attrs = album.get("attributes", {})
-            album_artists: List[AppleMusicArtistLight] = []
-            for artist in album.get("relationships", {}).get("artists", {}).get("data", []):
-                album_artists.append(
-                    AppleMusicArtistLight(
-                        id=artist.get("id"),
-                        name=artist.get("attributes", {}).get("name", "")
-                    )
-                )
+            artists_names = album_attrs.get("artistName", "")
 
             artwork = album_attrs.get("artwork", {})
             cover_url = artwork.get("url", "") if artwork else ""
@@ -70,7 +63,7 @@ class Query:
                     name=album_attrs.get("name", ""),
                     release_date=album_attrs.get("releaseDate", ""),
                     cover_url=cover_url,
-                    artists=album_artists
+                    artists_names=artists_names,
                 )
             )
         return albums
