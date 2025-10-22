@@ -13,6 +13,12 @@ apple_music = AppleMusicService()
 
 # --- GraphQL types ---
 @strawberry.type
+class AppleMusicArtistLight:
+    id: str
+    name: str
+    image_url: str
+
+@strawberry.type
 class AppleMusicArtistDetail:
     id: str
     name: str
@@ -207,6 +213,38 @@ class Query:
             is_single=is_single,
             is_compilation=is_compilation,
             is_complete=is_complete,
+        )
+
+    @strawberry.field
+    async def search_apple_music_artists(self, term: str) -> List[AppleMusicArtistLight]:
+        results = await apple_music.search_artists(term)
+        artists: List[AppleMusicArtistLight] = []
+
+        for artist in results:
+            attrs = artist.get("attributes", {})
+            artwork = attrs.get("artwork", {})
+            image_url = artwork.get("url", "") if artwork else ""
+
+            artists.append(
+                AppleMusicArtistLight(
+                    id=artist.get("id"),
+                    name=attrs.get("name", ""),
+                    image_url=image_url
+                )
+            )
+        return artists
+
+    @strawberry.field
+    async def get_apple_music_artist_detail(self, artist_id: str) -> AppleMusicArtistDetail:
+        artist = await apple_music.get_artist(f"/v1/catalog/us/artists/{artist_id}")
+        attrs = artist.get("attributes", {})
+
+        return AppleMusicArtistDetail(
+            id=artist.get("id"),
+            name=attrs.get("name", ""),
+            image_url=attrs.get("artwork", {}).get("url", ""),
+            url=attrs.get("url", ""),
+            genre_names=attrs.get("genreNames", []),
         )
 
     artists: DjangoCursorConnection[types.Artist] = strawberry_django.connection(filters=filters.ArtistFilter, order=orders.ArtistOrder)
