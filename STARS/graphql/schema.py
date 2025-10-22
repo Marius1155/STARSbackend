@@ -16,6 +16,7 @@ apple_music = AppleMusicService()
 class AppleMusicArtistLight:
     id: str
     name: str
+    image_url: str
 
 @strawberry.type
 class AppleMusicAlbumLight:
@@ -73,24 +74,49 @@ class Query:
         album = await apple_music.get_album_with_songs(album_id)
         album_attrs = album.get("attributes", {})
 
+        # ✅ Album Artists (with name + image fetched via href)
         album_artists: List[AppleMusicArtistLight] = []
         for artist in album.get("relationships", {}).get("artists", {}).get("data", []):
+            artist_href = artist.get("href")
+            artist_name = ""
+            artist_image = ""
+
+            if artist_href:
+                artist_detail = await apple_music.get_artist(artist_href)
+                attrs = artist_detail.get("attributes", {})
+                artist_name = attrs.get("name", "")
+                artist_image = attrs.get("artwork", {}).get("url", "")
+
             album_artists.append(
                 AppleMusicArtistLight(
                     id=artist.get("id"),
-                    name=artist.get("attributes", {}).get("name", "")
+                    name=artist_name,
+                    image_url=artist_image
                 )
             )
 
+        # ✅ Songs + Song Artists (also fetched via API)
         songs: List[AppleMusicSongDetail] = []
         for song in album.get("relationships", {}).get("tracks", {}).get("data", []):
             song_attrs = song.get("attributes", {})
             song_artists: List[AppleMusicArtistLight] = []
+
             for s_artist in song.get("relationships", {}).get("artists", {}).get("data", []):
+                s_artist_href = s_artist.get("href")
+                s_artist_name = ""
+                s_artist_image = ""
+
+                if s_artist_href:
+                    s_artist_detail = await apple_music.get_artist(s_artist_href)
+                    s_attrs = s_artist_detail.get("attributes", {})
+                    s_artist_name = s_attrs.get("name", "")
+                    s_artist_image = s_attrs.get("artwork", {}).get("url", "")
+
                 song_artists.append(
                     AppleMusicArtistLight(
                         id=s_artist.get("id"),
-                        name=s_artist.get("attributes", {}).get("name", "")
+                        name=s_artist_name,
+                        image_url=s_artist_image
                     )
                 )
 
@@ -104,6 +130,7 @@ class Query:
                 )
             )
 
+        # ✅ Album artwork
         artwork = album_attrs.get("artwork", {})
         cover_url = artwork.get("url", "") if artwork else ""
 

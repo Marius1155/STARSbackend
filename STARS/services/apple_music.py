@@ -27,6 +27,12 @@ class AppleMusicService:
         response.raise_for_status()
         data = response.json()
         return data.get("data", [])[0]  # the first album
+    async def get_artist(self, href: str) -> Dict[str, Any]:
+        url = f"https://api.music.apple.com{href}"
+        headers = {"Authorization": f"Bearer {get_apple_music_token()}"}
+        response = await self.client.get(url, headers=headers)
+        response.raise_for_status()
+        return response.json()["data"][0]
 
     async def close(self):
         """Close the async client when done."""
