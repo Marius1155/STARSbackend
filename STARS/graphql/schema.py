@@ -74,12 +74,11 @@ class Query:
         album = await apple_music.get_album_with_songs(album_id)
         album_attrs = album.get("attributes", {})
 
-        # ✅ Album Artists (with name + image fetched via href)
+        # ✅ Album Artists (name + image via artist href)
         album_artists: List[AppleMusicArtistLight] = []
         for artist in album.get("relationships", {}).get("artists", {}).get("data", []):
-            artist_href = artist.get("href")
-            artist_name = ""
-            artist_image = ""
+            artist_href = artist.get("href", "")
+            artist_name, artist_image = "", ""
 
             if artist_href:
                 artist_detail = await apple_music.get_artist(artist_href)
@@ -95,31 +94,52 @@ class Query:
                 )
             )
 
-        # ✅ Songs + Song Artists (also fetched via API)
+        # ✅ Songs (but with full song fetch to get artist IDs + artist hrefs)
         songs: List[AppleMusicSongDetail] = []
+
         for song in album.get("relationships", {}).get("tracks", {}).get("data", []):
+            song_href = song.get("href", "")  # to fetch full song
+            full_song = None
             song_attrs = song.get("attributes", {})
+
+            # Fetch full song (so we can access relationships.artists)
+            try:
+                if song_href:
+                    full_song = await apple_music.get_song(song_href)
+            except Exception:
+                full_song = None
+
+            # ✅ Song Artists (must come from full song → relationships.artists → href)
             song_artists: List[AppleMusicArtistLight] = []
+            if full_song:
+                for s_artist in full_song.get("relationships", {}).get("artists", {}).get("data", []):
+                    s_artist_href = s_artist.get("href", "")
+                    s_artist_name, s_artist_image = "", ""
 
-            for s_artist in song.get("relationships", {}).get("artists", {}).get("data", []):
-                s_artist_href = s_artist.get("href")
-                s_artist_name = ""
-                s_artist_image = ""
+                    if s_artist_href:
+                        s_artist_detail = await apple_music.get_artist(s_artist_href)
+                        s_attrs = s_artist_detail.get("attributes", {})
+                        s_artist_name = s_attrs.get("name", "")
+                        s_artist_image = s_attrs.get("artwork", {}).get("url", "")
 
-                if s_artist_href:
-                    s_artist_detail = await apple_music.get_artist(s_artist_href)
-                    s_attrs = s_artist_detail.get("attributes", {})
-                    s_artist_name = s_attrs.get("name", "")
-                    s_artist_image = s_attrs.get("artwork", {}).get("url", "")
-
+                    song_artists.append(
+                        AppleMusicArtistLight(
+                            id=s_artist.get("id"),
+                            name=s_artist_name,
+                            image_url=s_artist_image
+                        )
+                    )
+            else:
+                # Fallback if full song fetch fails → only name from attributes
                 song_artists.append(
                     AppleMusicArtistLight(
-                        id=s_artist.get("id"),
-                        name=s_artist_name,
-                        image_url=s_artist_image
+                        id=None,
+                        name=song_attrs.get("artistName", ""),
+                        image_url=""
                     )
                 )
 
+            # ✅ Add song with full preview + artists
             songs.append(
                 AppleMusicSongDetail(
                     id=song.get("id"),
@@ -130,7 +150,7 @@ class Query:
                 )
             )
 
-        # ✅ Album artwork
+        # ✅ Album cover
         artwork = album_attrs.get("artwork", {})
         cover_url = artwork.get("url", "") if artwork else ""
 
