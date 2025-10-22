@@ -13,10 +13,12 @@ apple_music = AppleMusicService()
 
 # --- GraphQL types ---
 @strawberry.type
-class AppleMusicArtistLight:
+class AppleMusicArtistDetail:
     id: str
     name: str
     image_url: str
+    url: str
+    genre_names: List[str]
 
 @strawberry.type
 class AppleMusicAlbumLight:
@@ -25,6 +27,9 @@ class AppleMusicAlbumLight:
     release_date: str
     cover_url: str
     artists_names: str
+    track_count: int
+    kind: str
+    is_single: bool
 
 @strawberry.type
 class AppleMusicSongDetail:
@@ -32,7 +37,10 @@ class AppleMusicSongDetail:
     name: str
     length_ms: int
     preview_url: str
-    artists: List[AppleMusicArtistLight]
+    track_number: int
+    release_date: str
+    url: str
+    artists: List[AppleMusicArtistDetail]
 
 @strawberry.type
 class AppleMusicAlbumDetail:
@@ -40,8 +48,15 @@ class AppleMusicAlbumDetail:
     name: str
     release_date: str
     cover_url: str
+    track_count: int
+    kind: str
+    url: str
+    is_single: bool
+    is_compilation: bool
+    is_complete: bool
+    genre_names: List[str]
     songs: List[AppleMusicSongDetail]
-    artists: List[AppleMusicArtistLight]
+    artists: List[AppleMusicArtistDetail]
 
 # --- GraphQL Query ---
 @strawberry.type
@@ -57,6 +72,9 @@ class Query:
 
             artwork = album_attrs.get("artwork", {})
             cover_url = artwork.get("url", "") if artwork else ""
+            track_count = album_attrs.get("trackCount", 0)
+            kind = album_attrs.get("playParams", {}).get("kind", "")
+            is_single = album_attrs.get("isSingle", False)
 
             albums.append(
                 AppleMusicAlbumLight(
@@ -65,6 +83,9 @@ class Query:
                     release_date=album_attrs.get("releaseDate", ""),
                     cover_url=cover_url,
                     artists_names=artists_names,
+                    track_count=track_count,
+                    kind=kind,
+                    is_single=is_single,
                 )
             )
         return albums
@@ -75,7 +96,7 @@ class Query:
         album_attrs = album.get("attributes", {})
 
         # ✅ Album Artists (name + image via artist href)
-        album_artists: List[AppleMusicArtistLight] = []
+        album_artists: List[AppleMusicArtistDetail] = []
         for artist in album.get("relationships", {}).get("artists", {}).get("data", []):
             artist_href = artist.get("href", "")
             artist_name, artist_image = "", ""
@@ -85,12 +106,16 @@ class Query:
                 attrs = artist_detail.get("attributes", {})
                 artist_name = attrs.get("name", "")
                 artist_image = attrs.get("artwork", {}).get("url", "")
+                artist_url = attrs.get("url", "")
+                artist_genre_names = attrs.get("genreNames", [])
 
             album_artists.append(
-                AppleMusicArtistLight(
+                AppleMusicArtistDetail(
                     id=artist.get("id"),
                     name=artist_name,
-                    image_url=artist_image
+                    image_url=artist_image,
+                    url=artist_url,
+                    genre_names=artist_genre_names,
                 )
             )
 
@@ -110,7 +135,7 @@ class Query:
                 full_song = None
 
             # ✅ Song Artists (must come from full song → relationships.artists → href)
-            song_artists: List[AppleMusicArtistLight] = []
+            song_artists: List[AppleMusicArtistDetail] = []
             if full_song:
                 for s_artist in full_song.get("relationships", {}).get("artists", {}).get("data", []):
                     s_artist_href = s_artist.get("href", "")
@@ -121,18 +146,22 @@ class Query:
                         s_attrs = s_artist_detail.get("attributes", {})
                         s_artist_name = s_attrs.get("name", "")
                         s_artist_image = s_attrs.get("artwork", {}).get("url", "")
+                        s_artist_url = s_attrs.get("url", "")
+                        s_artist_genre_names = s_attrs.get("genreNames", [])
 
                     song_artists.append(
-                        AppleMusicArtistLight(
+                        AppleMusicArtistDetail(
                             id=s_artist.get("id"),
                             name=s_artist_name,
-                            image_url=s_artist_image
+                            image_url=s_artist_image,
+                            url=s_artist_url,
+                            genre_names=s_artist_genre_names,
                         )
                     )
             else:
                 # Fallback if full song fetch fails → only name from attributes
                 song_artists.append(
-                    AppleMusicArtistLight(
+                    AppleMusicArtistDetail(
                         id=None,
                         name=song_attrs.get("artistName", ""),
                         image_url=""
@@ -146,13 +175,23 @@ class Query:
                     name=song_attrs.get("name", ""),
                     length_ms=song_attrs.get("durationInMillis", 0),
                     preview_url=song_attrs.get("previews", [{}])[0].get("url", ""),
-                    artists=song_artists
+                    artists=song_artists,
+                    track_number=song_attrs.get("trackNumber", 0),
+                    release_date=song_attrs.get("releaseDate", ""),
+                    url=song_attrs.get("url", ""),
                 )
             )
 
         # ✅ Album cover
         artwork = album_attrs.get("artwork", {})
         cover_url = artwork.get("url", "") if artwork else ""
+        track_count = album_attrs.get("trackCount", 0)
+        genre_names = album_attrs.get("genreNames", [])
+        kind = album_attrs.get("playParams", {}).get("kind", "")
+        url = album_attrs.get("url", "")
+        is_single = album_attrs.get("isSingle", False)
+        is_compilation = album_attrs.get("isCompilation", False)
+        is_complete = album_attrs.get("isComplete", False)
 
         return AppleMusicAlbumDetail(
             id=album.get("id"),
@@ -160,7 +199,14 @@ class Query:
             release_date=album_attrs.get("releaseDate", ""),
             cover_url=cover_url,
             songs=songs,
-            artists=album_artists
+            artists=album_artists,
+            track_count=track_count,
+            genre_names=genre_names,
+            kind=kind,
+            url=url,
+            is_single=is_single,
+            is_compilation=is_compilation,
+            is_complete=is_complete,
         )
 
     artists: DjangoCursorConnection[types.Artist] = strawberry_django.connection(filters=filters.ArtistFilter, order=orders.ArtistOrder)
