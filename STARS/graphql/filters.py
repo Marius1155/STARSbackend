@@ -17,6 +17,7 @@ from strawberry_django.filters import FilterLookup
 @strawberry_django.filter(models.Artist, lookups=True)
 class ArtistFilter:
     id: auto # This will correctly resolve to an Int lookup
+    apple_music_id: auto
     name: auto
     origin: auto
     is_featured: auto
@@ -88,6 +89,7 @@ class MusicVideoFilter:
 
 @strawberry_django.filter(models.Song, lookups=True)
 class SongFilter:
+    apple_music_id: auto
     id: auto
     title: auto
     release_date: auto
@@ -102,6 +104,7 @@ class SongArtistFilter:
 
 @strawberry_django.filter(models.Project, lookups=True)
 class ProjectFilter:
+    apple_music_id: auto
     id: auto
     title: auto
     release_date: auto
