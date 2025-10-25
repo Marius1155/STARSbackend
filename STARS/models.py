@@ -7,6 +7,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelatio
 
 
 class Artist(models.Model):
+    apple_music_id = models.CharField(blank=True, null=True, max_length=255)
     name = models.CharField(max_length=100, db_index=True)
     picture = models.URLField(max_length=500)
     bio = models.TextField(blank=True)
@@ -177,6 +178,7 @@ class MusicVideo(models.Model):
 
 
 class Song(models.Model):
+    apple_music_id = models.CharField(blank=True, null=True, max_length=255)
     title = models.CharField(max_length=500, db_index=True)
     length = models.IntegerField()
     preview = models.URLField(max_length=500, blank=True, null=True)
@@ -215,6 +217,7 @@ class Project(models.Model):
         MIXTAPE = "MIXTAPE", "Mixtape"
         SINGLE = "SINGLE", "Single"
 
+    apple_music_id = models.CharField(blank=True, null=True, max_length=255)
     title = models.CharField(max_length=500, db_index=True)
     number_of_songs = models.IntegerField()
     release_date = models.DateField(db_index=True)
