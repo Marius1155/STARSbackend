@@ -270,7 +270,7 @@ class Query:
             song_artists: List[AppleMusicArtistDetail] = []
             song_artists.append(
                 AppleMusicArtistDetail(
-                    id=None,
+                    id=artist_id,
                     name=song_attrs.get("artistName", ""),
                     image_url="",
                     url="",
