@@ -4,6 +4,7 @@ from .apple_music_token import get_apple_music_token
 
 APPLE_MUSIC_API_URL = "https://api.music.apple.com/v1"
 
+
 class AppleMusicService:
     def __init__(self):
         self.client = httpx.AsyncClient()  # reusable async client
@@ -59,6 +60,17 @@ class AppleMusicService:
         response.raise_for_status()
         data = response.json()
         return data.get("data", [])[0] if data.get("data") else {}
+
+    async def get_artist_top_songs(self, artist_id: str, limit: int = 10, country: str = "us") -> List[Dict[str, Any]]:
+        url = f"{APPLE_MUSIC_API_URL}/catalog/{country}/artists/{artist_id}/view/top-songs"
+        params = {"limit": limit}
+        headers = {"Authorization": f"Bearer {get_apple_music_token()}"}
+
+        response = await self.client.get(url, headers=headers, params=params)
+        response.raise_for_status()
+        data = response.json()
+
+        return data.get("data", [])
 
     async def close(self):
         await self.client.aclose()

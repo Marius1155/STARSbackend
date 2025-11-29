@@ -4,6 +4,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.db.models import JSONField
 
 
 class Artist(models.Model):
@@ -386,3 +387,40 @@ class Profile(models.Model):
 
     def __str__(self):
         return f"Profile of {self.user.username}"
+
+
+class UnresolvedImportTask(models.Model):
+    class TaskStatus(models.TextChoices):
+        PENDING_USER = "PENDING_USER", "Awaiting User Resolution"
+        PENDING_ADMIN = "PENDING_ADMIN", "Awaiting Admin Review"
+        RESOLVED = "RESOLVED", "Task Completed"
+
+    # The user who initiated the import
+    importer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='import_tasks')
+
+    # What the task is about
+    task_type = models.CharField(max_length=50, choices=[('DEDUPLICATION', 'Song Deduplication'),
+                                                         ('FEATURE_RESOLUTION', 'Feature Resolution')])
+
+    # The external ID of the original project (Apple Music Album ID)
+    external_id = models.CharField(max_length=255, db_index=True)
+
+    # JSON field to store the specific data needed for resolution
+    # (e.g., {song_id: "...", candidates: [...]})
+    resolution_payload = JSONField()
+
+    # Current status of the task
+    status = models.CharField(max_length=20, choices=TaskStatus.choices, default=TaskStatus.PENDING_USER, db_index=True)
+
+    # When the task was created (used for automated escalation)
+    date_created = models.DateTimeField(auto_now_add=True, db_index=True)
+    date_updated = models.DateTimeField(auto_now=True)
+
+    # Optional link to the partially created Project in STARS DB
+    partial_project = models.ForeignKey('Project', on_delete=models.SET_NULL, null=True, blank=True)
+
+    # Optional admin note/resolution log
+    admin_note = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"Task for {self.task_type} on {self.external_id} - {self.get_status_display()}"

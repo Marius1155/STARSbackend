@@ -253,6 +253,46 @@ class Query:
             genre_names=attrs.get("genreNames", []),
         )
 
+    @strawberry.field
+    async def get_apple_music_artist_top_songs(self, artist_id: str) -> List[AppleMusicSongDetail]:
+        """
+        Fetches the top songs for a given Apple Music Artist ID.
+        """
+        # 1. Call the new service method
+        results = await apple_music.get_artist_top_songs(artist_id)
+        songs: List[AppleMusicSongDetail] = []
+
+        # 2. Map the results to the GraphQL type
+        for song in results:
+            song_attrs = song.get("attributes", {})
+
+            # Create a simplified artist detail using only the name for display purposes
+            song_artists: List[AppleMusicArtistDetail] = []
+            song_artists.append(
+                AppleMusicArtistDetail(
+                    id=None,
+                    name=song_attrs.get("artistName", ""),
+                    image_url="",
+                    url="",
+                    genre_names=[],
+                )
+            )
+
+            songs.append(
+                AppleMusicSongDetail(
+                    id=song.get("id"),
+                    name=song_attrs.get("name", ""),
+                    length_ms=song_attrs.get("durationInMillis", 0),
+                    # Fallback to empty dict for safety
+                    preview_url=song_attrs.get("previews", [{}])[0].get("url", ""),
+                    artists=song_artists,
+                    track_number=song_attrs.get("trackNumber", 0),
+                    release_date=song_attrs.get("releaseDate", ""),
+                    url=song_attrs.get("url", ""),
+                )
+            )
+        return songs
+
     artists: DjangoCursorConnection[types.Artist] = strawberry_django.connection(filters=filters.ArtistFilter, order=orders.ArtistOrder)
     projects: DjangoCursorConnection[types.Project] = strawberry_django.connection(filters=filters.ProjectFilter, order=orders.ProjectOrder)
     songs: DjangoCursorConnection[types.Song] = strawberry_django.connection(filters=filters.SongFilter, order=orders.SongOrder)
