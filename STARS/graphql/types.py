@@ -15,10 +15,29 @@ from . import filters, orders
 
 @strawberry_django.type(models.Artist, fields="__all__")
 class Artist(strawberry.relay.Node):
-    song_artists: DjangoCursorConnection["SongArtist"] = strawberry_django.connection(filters=filters.SongArtistFilter, order=orders.SongArtistOrder)
-    project_artists: DjangoCursorConnection["ProjectArtist"] = strawberry_django.connection(filters=filters.ProjectArtistFilter, order=orders.ProjectArtistOrder)
-    outfits: DjangoCursorConnection["Outfit"] = strawberry_django.connection(filters=filters.OutfitFilter, order=orders.OutfitOrder)
-    podcasts: DjangoCursorConnection["Podcast"] = strawberry_django.connection(filters=filters.PodcastFilter, order=orders.PodcastOrder)
+    # Change DjangoCursorConnection to relay.ListConnection to match your Project type
+    song_artists: relay.ListConnection["SongArtist"] = strawberry_django.connection(filters=filters.SongArtistFilter, order=orders.SongArtistOrder)
+    project_artists: relay.ListConnection["ProjectArtist"] = strawberry_django.connection(filters=filters.ProjectArtistFilter, order=orders.ProjectArtistOrder)
+    outfits: relay.ListConnection["Outfit"] = strawberry_django.connection(filters=filters.OutfitFilter, order=orders.OutfitOrder)
+    podcasts: relay.ListConnection["Podcast"] = strawberry_django.connection(filters=filters.PodcastFilter, order=orders.PodcastOrder)
+
+    # Add these async accessors to ensure safe DB access if needed by custom resolvers
+    # or simply to match your Project pattern.
+    @sync_to_async
+    def get_song_artists(self) -> List[models.SongArtist]:
+        return self.song_artists.all()
+
+    @sync_to_async
+    def get_project_artists(self) -> List[models.ProjectArtist]:
+        return self.project_artists.all()
+
+    @sync_to_async
+    def get_outfits(self) -> List[models.Outfit]:
+        return self.outfits.all()
+
+    @sync_to_async
+    def get_podcasts(self) -> List[models.Podcast]:
+        return self.podcasts.all()
 
 
 @strawberry_django.type(models.EventSeries, fields="__all__")
