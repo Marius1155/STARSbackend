@@ -42,6 +42,7 @@ class AppleMusicAlbumLight:
 class AppleMusicSongDetail:
     id: str
     name: str
+    disc_number: int
     length_ms: int
     preview_url: str
     track_number: int
@@ -184,6 +185,7 @@ class Query:
                 AppleMusicSongDetail(
                     id=song.get("id"),
                     name=song_attrs.get("name", ""),
+                    disc_number=song.get("discNumber"),
                     length_ms=song_attrs.get("durationInMillis", 0),
                     preview_url=song_attrs.get("previews", [{}])[0].get("url", ""),
                     artists=song_artists,
