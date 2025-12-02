@@ -185,7 +185,7 @@ class Query:
                 AppleMusicSongDetail(
                     id=song.get("id"),
                     name=song_attrs.get("name", ""),
-                    disc_number=song.get("discNumber"),
+                    disc_number=song_attrs.get("discNumber", 1),
                     length_ms=song_attrs.get("durationInMillis", 0),
                     preview_url=song_attrs.get("previews", [{}])[0].get("url", ""),
                     artists=song_artists,
