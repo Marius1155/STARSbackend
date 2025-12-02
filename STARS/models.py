@@ -178,9 +178,22 @@ class MusicVideo(models.Model):
         return self.title
 
 
+class MusicGenre(models.Model):
+    title = models.CharField(max_length=500, db_index=True, unique=True)
+    is_featured = models.BooleanField(default=False, db_index=True)
+    featured_message = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.title} - {self.is_featured}"
+
+    class Meta:
+        ordering = ['title']
+
+
 class Song(models.Model):
     apple_music_id = models.CharField(blank=True, null=True, max_length=255)
     title = models.CharField(max_length=500, db_index=True)
+    genres = models.ManyToManyField('MusicGenre', related_name='songs')
     length = models.IntegerField()
     preview = models.URLField(max_length=500, blank=True, null=True)
     release_date = models.DateField(db_index=True)
@@ -220,11 +233,12 @@ class Project(models.Model):
 
     apple_music_id = models.CharField(blank=True, null=True, max_length=255)
     title = models.CharField(max_length=500, db_index=True)
+    genres = models.ManyToManyField('MusicGenre', related_name='projects')
     number_of_songs = models.IntegerField()
     release_date = models.DateField(db_index=True)
     project_type = models.CharField(max_length=10, choices=ProjectType.choices, db_index=True)
     covers = GenericRelation('Cover')
-    length = models.IntegerField()
+    record_label = models.CharField(max_length=500, null = True, blank = True, db_index=True)
     reviews = GenericRelation('Review')
     reviews_count = models.IntegerField(default=0)
     star_average = models.FloatField(default=0)

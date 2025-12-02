@@ -289,7 +289,7 @@ class ProjectSongInput:
     position: int
 
 
-@strawberry_django.input(models.Project)
+'''@strawberry_django.input(models.Project)
 class ProjectCreateInput:
     title: auto
     number_of_songs: auto
@@ -306,16 +306,17 @@ class ProjectCreateInput:
     is_featured: Optional[bool] = False
     artists: Optional[List[ProjectArtistInput]] = None
     songs: Optional[List[ProjectSongInput]] = None
-
+'''
 
 @strawberry.input
 class ProjectUpdateInput:
     id: strawberry.ID
+    apple_music_id: Optional[str] = strawberry.UNSET
     title: Optional[str] = strawberry.UNSET
     number_of_songs: Optional[int] = strawberry.UNSET
     release_date: Optional[str] = strawberry.UNSET
     project_type: Optional[str] = strawberry.UNSET
-    length: Optional[int] = strawberry.UNSET
+    record_label: Optional[str] = strawberry.UNSET
     spotify: Optional[str] = strawberry.UNSET
     apple_music: Optional[str] = strawberry.UNSET
     youtube_music: Optional[str] = strawberry.UNSET

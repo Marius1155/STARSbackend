@@ -73,6 +73,11 @@ class MusicVideoOrder:
     star_average : auto
     is_featured : auto
 
+@strawberry_django.order_type(models.MusicGenre)
+class MusicGenreOrder:
+    title: auto
+    is_featured : auto
+
 @strawberry_django.order_type(models.Song)
 class SongOrder:
     release_date : auto

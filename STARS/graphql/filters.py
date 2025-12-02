@@ -87,6 +87,12 @@ class MusicVideoFilter:
     release_date: auto
     is_featured: auto
 
+@strawberry_django.filter(models.MusicGenre, lookups=True)
+class MusicGenreFilter:
+    id: auto
+    title: auto
+    is_featured: auto
+
 @strawberry_django.filter(models.Song, lookups=True)
 class SongFilter:
     apple_music_id: auto
@@ -94,6 +100,7 @@ class SongFilter:
     title: auto
     release_date: auto
     is_featured: auto
+    genre: Optional["MusicGenreFilter"]
 
 @strawberry_django.filter(models.SongArtist, lookups=True)
 class SongArtistFilter:
@@ -101,6 +108,7 @@ class SongArtistFilter:
     position: auto
     song: Optional["SongFilter"]
     artist: Optional["ArtistFilter"]
+
 
 @strawberry_django.filter(models.Project, lookups=True)
 class ProjectFilter:
@@ -110,6 +118,7 @@ class ProjectFilter:
     release_date: auto
     project_type: auto
     is_featured: auto
+    genre: Optional["MusicGenreFilter"]
 
 @strawberry_django.filter(models.ProjectArtist, lookups=True)
 class ProjectArtistFilter:

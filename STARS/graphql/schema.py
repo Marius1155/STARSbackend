@@ -47,6 +47,7 @@ class AppleMusicSongDetail:
     track_number: int
     release_date: str
     url: str
+    genre_names: List[str]
     artists: List[AppleMusicArtistDetail]
 
 @strawberry.type
@@ -189,6 +190,7 @@ class Query:
                     track_number=song_attrs.get("trackNumber", 0),
                     release_date=song_attrs.get("releaseDate", ""),
                     url=song_attrs.get("url", ""),
+                    genre_names=song_attrs.get("genreNames", []),
                 )
             )
 
@@ -294,6 +296,7 @@ class Query:
         return songs
 
     artists: DjangoCursorConnection[types.Artist] = strawberry_django.connection(filters=filters.ArtistFilter, order=orders.ArtistOrder)
+    project_genres: DjangoCursorConnection[types.MusicGenre] = strawberry_django.connection(filters=filters.MusicGenreFilter, order=orders.MusicGenreOrder)
     projects: DjangoCursorConnection[types.Project] = strawberry_django.connection(filters=filters.ProjectFilter, order=orders.ProjectOrder)
     songs: DjangoCursorConnection[types.Song] = strawberry_django.connection(filters=filters.SongFilter, order=orders.SongOrder)
     podcasts: DjangoCursorConnection[types.Podcast] = strawberry_django.connection(filters=filters.PodcastFilter, order=orders.PodcastOrder)
@@ -335,7 +338,6 @@ class Query:
             followed_by_current_user=Exists(followed_subquery)
         )
 
-    # These are not paginated
     project_songs: DjangoCursorConnection[types.ProjectSong] = strawberry_django.connection(filters=filters.ProjectSongFilter, order=orders.ProjectSongOrder)
     project_artists: DjangoCursorConnection[types.ProjectArtist] = strawberry_django.connection(filters=filters.ProjectArtistFilter, order=orders.ProjectArtistOrder)
     song_artists: DjangoCursorConnection[types.SongArtist] = strawberry_django.connection(filters=filters.SongArtistFilter, order=orders.SongArtistOrder)
