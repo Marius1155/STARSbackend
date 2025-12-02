@@ -15,6 +15,11 @@ class UserOrder:
     followed_by_current_user: auto
     reviews: Optional["ReviewOrder"]
 
+@strawberry_django.order_type(models.MusicGenre)
+class MusicGenreOrder:
+    title: auto
+    is_featured : auto
+
 @strawberry_django.order_type(models.Artist)
 class ArtistOrder:
     name : auto
@@ -71,11 +76,6 @@ class MusicVideoOrder:
     number_of_songs : auto
     reviews_count : auto
     star_average : auto
-    is_featured : auto
-
-@strawberry_django.order_type(models.MusicGenre)
-class MusicGenreOrder:
-    title: auto
     is_featured : auto
 
 @strawberry_django.order_type(models.Song)

@@ -7,9 +7,22 @@ from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelatio
 from django.db.models import JSONField
 
 
+class MusicGenre(models.Model):
+    title = models.CharField(max_length=500, db_index=True, unique=True)
+    is_featured = models.BooleanField(default=False, db_index=True)
+    featured_message = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.title} - {self.is_featured}"
+
+    class Meta:
+        ordering = ['title']
+
+
 class Artist(models.Model):
     apple_music_id = models.CharField(blank=True, null=True, max_length=255)
     name = models.CharField(max_length=100, db_index=True)
+    genres = models.ManyToManyField('MusicGenre', related_name='artists', blank=True)
     picture = models.URLField(max_length=500)
     bio = models.TextField(blank=True)
     wikipedia = models.URLField(max_length=500, blank=True, null=True)
@@ -178,22 +191,10 @@ class MusicVideo(models.Model):
         return self.title
 
 
-class MusicGenre(models.Model):
-    title = models.CharField(max_length=500, db_index=True, unique=True)
-    is_featured = models.BooleanField(default=False, db_index=True)
-    featured_message = models.TextField(blank=True)
-
-    def __str__(self):
-        return f"{self.title} - {self.is_featured}"
-
-    class Meta:
-        ordering = ['title']
-
-
 class Song(models.Model):
     apple_music_id = models.CharField(blank=True, null=True, max_length=255)
     title = models.CharField(max_length=500, db_index=True)
-    genres = models.ManyToManyField('MusicGenre', related_name='songs')
+    genres = models.ManyToManyField('MusicGenre', related_name='songs', blank=True)
     length = models.IntegerField()
     preview = models.URLField(max_length=500, blank=True, null=True)
     release_date = models.DateField(db_index=True)
@@ -233,7 +234,7 @@ class Project(models.Model):
 
     apple_music_id = models.CharField(blank=True, null=True, max_length=255)
     title = models.CharField(max_length=500, db_index=True)
-    genres = models.ManyToManyField('MusicGenre', related_name='projects')
+    genres = models.ManyToManyField('MusicGenre', related_name='projects', blank=True)
     number_of_songs = models.IntegerField()
     release_date = models.DateField(db_index=True)
     project_type = models.CharField(max_length=10, choices=ProjectType.choices, db_index=True)

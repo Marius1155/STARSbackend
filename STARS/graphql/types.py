@@ -13,6 +13,15 @@ from STARS import models
 # Import your filters to use them in the fields
 from . import filters, orders
 
+
+@strawberry_django.type(models.MusicGenre, fields="__all__")
+class MusicGenre(strawberry.relay.Node):
+    projects: DjangoCursorConnection["Project"] = strawberry_django.connection(filters=filters.ProjectFilter, order=orders.ProjectOrder)
+    songs: DjangoCursorConnection["Song"] = strawberry_django.connection(filters=filters.SongFilter, order=orders.SongOrder)
+    artists: DjangoCursorConnection["Artist"] = strawberry_django.connection(filters=filters.ArtistFilter, order=orders.ArtistOrder)
+
+
+
 @strawberry_django.type(models.Artist, fields="__all__")
 class Artist(strawberry.relay.Node):
     # Change DjangoCursorConnection to relay.ListConnection to match your Project type
@@ -20,6 +29,7 @@ class Artist(strawberry.relay.Node):
     project_artists: relay.ListConnection["ProjectArtist"] = strawberry_django.connection(filters=filters.ProjectArtistFilter, order=orders.ProjectArtistOrder)
     outfits: relay.ListConnection["Outfit"] = strawberry_django.connection(filters=filters.OutfitFilter, order=orders.OutfitOrder)
     podcasts: relay.ListConnection["Podcast"] = strawberry_django.connection(filters=filters.PodcastFilter, order=orders.PodcastOrder)
+    genres: relay.ListConnection["MusicGenre"] = strawberry_django.connection(filters=filters.MusicGenreFilter, order=orders.MusicGenreOrder)
 
     # Add these async accessors to ensure safe DB access if needed by custom resolvers
     # or simply to match your Project pattern.
@@ -38,6 +48,10 @@ class Artist(strawberry.relay.Node):
     @sync_to_async
     def get_podcasts(self) -> List[models.Podcast]:
         return self.podcasts.all()
+
+    @sync_to_async
+    def get_genres(self) -> List[models.MusicGenre]:
+        return self.genres.all()
 
 
 @strawberry_django.type(models.EventSeries, fields="__all__")
@@ -153,13 +167,6 @@ class MusicVideo(strawberry.relay.Node):
     songs: DjangoCursorConnection["Song"] = strawberry_django.connection(filters=filters.SongFilter, order=orders.SongOrder)
     reviews: DjangoCursorConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
     outfits: DjangoCursorConnection["Outfit"] = strawberry_django.connection(filters=filters.OutfitFilter, order=orders.OutfitOrder)
-
-
-@strawberry_django.type(models.MusicGenre, fields="__all__")
-class MusicGenre(strawberry.relay.Node):
-    projects: DjangoCursorConnection["Project"] = strawberry_django.connection(filters=filters.ProjectFilter, order=orders.ProjectOrder)
-    songs: DjangoCursorConnection["Song"] = strawberry_django.connection(filters=filters.SongFilter, order=orders.SongOrder)
-
 
 
 @strawberry_django.type(models.Song, fields="__all__")

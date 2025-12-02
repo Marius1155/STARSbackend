@@ -14,6 +14,12 @@ from strawberry_django.filters import FilterLookup
 # For Relay Nodes, the `id` filter should accept a simple integer,
 # which the resolver will then use to find the object.
 
+@strawberry_django.filter(models.MusicGenre, lookups=True)
+class MusicGenreFilter:
+    id: auto
+    title: auto
+    is_featured: auto
+
 @strawberry_django.filter(models.Artist, lookups=True)
 class ArtistFilter:
     id: auto # This will correctly resolve to an Int lookup
@@ -21,6 +27,7 @@ class ArtistFilter:
     name: auto
     origin: auto
     is_featured: auto
+    genre: Optional["MusicGenreFilter"]
 
 @strawberry_django.filter(models.EventSeries, lookups=True)
 class EventSeriesFilter:
@@ -85,12 +92,6 @@ class MusicVideoFilter:
     number_of_songs: auto
     title: auto
     release_date: auto
-    is_featured: auto
-
-@strawberry_django.filter(models.MusicGenre, lookups=True)
-class MusicGenreFilter:
-    id: auto
-    title: auto
     is_featured: auto
 
 @strawberry_django.filter(models.Song, lookups=True)
