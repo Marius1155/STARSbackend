@@ -132,6 +132,7 @@ class ProjectArtistFilter:
 class ProjectSongFilter:
     id: auto
     position: auto
+    disc_number: auto
     project: Optional["ProjectFilter"]
     song: Optional["SongFilter"]
 

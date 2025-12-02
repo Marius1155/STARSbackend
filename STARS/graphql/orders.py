@@ -109,6 +109,7 @@ class ProjectArtistOrder:
 @strawberry_django.order_type(models.ProjectSong)
 class ProjectSongOrder:
     position : auto
+    disc_number: auto
 
 @strawberry_django.order_type(models.Podcast)
 class PodcastOrder:

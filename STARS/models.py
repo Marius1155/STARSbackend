@@ -278,6 +278,7 @@ class ProjectSong(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='project_songs') # <-- ADDED
     song = models.ForeignKey(Song, on_delete=models.CASCADE, related_name='project_songs') # <-- ADDED
     position = models.PositiveIntegerField()
+    disc_number = models.PositiveIntegerField(default=1)
 
     def __str__(self):
         return f"{self.project.title} - {self.position}. {self.song.title}"
