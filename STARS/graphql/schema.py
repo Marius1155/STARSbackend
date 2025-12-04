@@ -207,7 +207,8 @@ class Query:
                     id=song.get("id"),
                     name=song_attrs.get("name", ""),
                     length_ms=song_attrs.get("durationInMillis", 0),
-                    # Only show preview URL if released
+                    disc_number=song_attrs.get("discNumber"),
+                    genre_names=song_attrs.get("genreNames", []),
                     preview_url=song_attrs.get("previews", [{}])[0].get("url", "") if is_released else "",
                     artists=song_artists,
                     track_number=song_attrs.get("trackNumber", 0),
