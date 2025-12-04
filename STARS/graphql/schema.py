@@ -8,6 +8,7 @@ from . import types, filters, mutations, subscriptions, orders
 from django.db.models import OuterRef, Subquery, Exists
 from STARS import models
 from STARS.services.apple_music import AppleMusicService
+from datetime import datetime
 
 apple_music = AppleMusicService()
 
@@ -107,22 +108,36 @@ class Query:
 
     @strawberry.field
     async def get_album_detail(self, album_id: str) -> AppleMusicAlbumDetail:
+        # 1. Fetch the main album object (this usually works even for pre-release albums)
         album = await apple_music.get_album_with_songs(album_id)
         album_attrs = album.get("attributes", {})
 
-        # ✅ Album Artists (name + image via artist href)
+        # helper to safely check dates if you prefer explicit date comparison
+        def is_date_in_past(date_str: str) -> bool:
+            if not date_str: return False
+            try:
+                return datetime.strptime(date_str, "%Y-%m-%d") <= datetime.now()
+            except ValueError:
+                return False  # Handle 'YYYY' or invalid formats safely
+
+        # ✅ Album Artists
         album_artists: List[AppleMusicArtistDetail] = []
         for artist in album.get("relationships", {}).get("artists", {}).get("data", []):
             artist_href = artist.get("href", "")
-            artist_name, artist_image = "", ""
+            artist_name, artist_image, artist_url = "", "", ""
+            artist_genre_names = []
 
             if artist_href:
-                artist_detail = await apple_music.get_artist(artist_href)
-                attrs = artist_detail.get("attributes", {})
-                artist_name = attrs.get("name", "")
-                artist_image = attrs.get("artwork", {}).get("url", "")
-                artist_url = attrs.get("url", "")
-                artist_genre_names = attrs.get("genreNames", [])
+                # You might want to wrap this in try/except as well to be safe
+                try:
+                    artist_detail = await apple_music.get_artist(artist_href)
+                    attrs = artist_detail.get("attributes", {})
+                    artist_name = attrs.get("name", "")
+                    artist_image = attrs.get("artwork", {}).get("url", "")
+                    artist_url = attrs.get("url", "")
+                    artist_genre_names = attrs.get("genreNames", [])
+                except Exception:
+                    pass  # Fallback to empty details if artist fetch fails
 
             album_artists.append(
                 AppleMusicArtistDetail(
@@ -134,63 +149,78 @@ class Query:
                 )
             )
 
-        # ✅ Songs (but with full song fetch to get artist IDs + artist hrefs)
+        # ✅ Songs
         songs: List[AppleMusicSongDetail] = []
 
         for song in album.get("relationships", {}).get("tracks", {}).get("data", []):
-            song_href = song.get("href", "")  # to fetch full song
-            full_song = None
+            song_href = song.get("href", "")
             song_attrs = song.get("attributes", {})
 
-            # Fetch full song (so we can access relationships.artists)
-            try:
-                if song_href:
-                    full_song = await apple_music.get_song(song_href)
-            except Exception:
-                full_song = None
+            # KEY FIX: Check if song is released before fetching full details.
+            # Apple Music API exposes 'playParams' only for playable (released) tracks.
+            # You can also combine this with `is_date_in_past(song_attrs.get("releaseDate"))`.
+            is_released = song_attrs.get("playParams") is not None
 
-            # ✅ Song Artists (must come from full song → relationships.artists → href)
+            full_song = None
+
+            # Only fetch full details if the song is actually out
+            if is_released and song_href:
+                try:
+                    full_song = await apple_music.get_song(song_href)
+                except Exception:
+                    full_song = None
+
+            # ✅ Song Artists Logic
             song_artists: List[AppleMusicArtistDetail] = []
             if full_song:
+                # ... (Same logic as before for fetching artists from full_song)
                 for s_artist in full_song.get("relationships", {}).get("artists", {}).get("data", []):
-                    s_artist_href = s_artist.get("href", "")
-                    s_artist_name, s_artist_image = "", ""
+                    try:
+                        s_artist_href = s_artist.get("href", "")
+                        s_artist_name, s_artist_image, s_artist_url = "", "", ""
+                        s_artist_genre_names = []
 
-                    if s_artist_href:
-                        s_artist_detail = await apple_music.get_artist(s_artist_href)
-                        s_attrs = s_artist_detail.get("attributes", {})
-                        s_artist_name = s_attrs.get("name", "")
-                        s_artist_image = s_attrs.get("artwork", {}).get("url", "")
-                        s_artist_url = s_attrs.get("url", "")
-                        s_artist_genre_names = s_attrs.get("genreNames", [])
+                        if s_artist_href:
+                            s_artist_detail = await apple_music.get_artist(s_artist_href)
+                            s_attrs = s_artist_detail.get("attributes", {})
+                            s_artist_name = s_attrs.get("name", "")
+                            s_artist_image = s_attrs.get("artwork", {}).get("url", "")
+                            s_artist_url = s_attrs.get("url", "")
+                            s_artist_genre_names = s_attrs.get("genreNames", [])
 
-                    song_artists.append(
-                        AppleMusicArtistDetail(
-                            id=s_artist.get("id"),
-                            name=s_artist_name,
-                            image_url=s_artist_image,
-                            url=s_artist_url,
-                            genre_names=s_artist_genre_names,
+                        song_artists.append(
+                            AppleMusicArtistDetail(
+                                id=s_artist.get("id"),
+                                name=s_artist_name,
+                                image_url=s_artist_image,
+                                url=s_artist_url,
+                                genre_names=s_artist_genre_names,
+                            )
                         )
-                    )
+                    except Exception:
+                        continue
             else:
-                # Fallback if full song fetch fails → only name from attributes
+                # Fallback for unreleased songs OR fetch failures
+                # This handles the "grayed out" data case
                 song_artists.append(
                     AppleMusicArtistDetail(
                         id=None,
-                        name=song_attrs.get("artistName", ""),
-                        image_url=""
+                        name=song_attrs.get("artistName", ""),  # Basic name is always available
+                        image_url="",
+                        url="",
+                        genre_names=[]
                     )
                 )
 
-            # ✅ Add song with full preview + artists
+            # ✅ Add song
+            # For unreleased songs, preview_url might be empty or missing.
             songs.append(
                 AppleMusicSongDetail(
                     id=song.get("id"),
                     name=song_attrs.get("name", ""),
                     disc_number=song_attrs.get("discNumber", 1),
                     length_ms=song_attrs.get("durationInMillis", 0),
-                    preview_url=song_attrs.get("previews", [{}])[0].get("url", ""),
+                    preview_url=song_attrs.get("previews", [{}])[0].get("url", "") if is_released else "",
                     artists=song_artists,
                     track_number=song_attrs.get("trackNumber", 0),
                     release_date=song_attrs.get("releaseDate", ""),
@@ -199,33 +229,24 @@ class Query:
                 )
             )
 
-        # ✅ Album cover
-        artwork = album_attrs.get("artwork", {})
-        cover_url = artwork.get("url", "") if artwork else ""
-        bg_color = artwork.get("bgColor", "") if artwork else ""
-        track_count = album_attrs.get("trackCount", 0)
-        genre_names = album_attrs.get("genreNames", [])
-        kind = album_attrs.get("playParams", {}).get("kind", "")
-        url = album_attrs.get("url", "")
-        is_single = album_attrs.get("isSingle", False)
-        is_compilation = album_attrs.get("isCompilation", False)
-        is_complete = album_attrs.get("isComplete", False)
+        # ... (Rest of your album attribute parsing)
 
         return AppleMusicAlbumDetail(
+            # ... (Same return structure)
             id=album.get("id"),
             name=album_attrs.get("name", ""),
             release_date=album_attrs.get("releaseDate", ""),
-            cover_url=cover_url,
-            bg_color=bg_color,
+            cover_url=album_attrs.get("artwork", {}).get("url", ""),
+            bg_color=album_attrs.get("artwork", {}).get("bgColor", ""),
             songs=songs,
             artists=album_artists,
-            track_count=track_count,
-            genre_names=genre_names,
-            kind=kind,
-            url=url,
-            is_single=is_single,
-            is_compilation=is_compilation,
-            is_complete=is_complete,
+            track_count=album_attrs.get("trackCount", 0),
+            genre_names=album_attrs.get("genreNames", []),
+            kind=album_attrs.get("playParams", {}).get("kind", ""),
+            url=album_attrs.get("url", ""),
+            is_single=album_attrs.get("isSingle", False),
+            is_compilation=album_attrs.get("isCompilation", False),
+            is_complete=album_attrs.get("isComplete", False),
         )
 
     @strawberry.field
