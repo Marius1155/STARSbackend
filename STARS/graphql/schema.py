@@ -37,6 +37,7 @@ class AppleMusicAlbumLight:
     track_count: int
     kind: str
     is_single: bool
+    is_complete: bool
 
 @strawberry.type
 class AppleMusicSongDetail:
@@ -86,6 +87,7 @@ class Query:
             track_count = album_attrs.get("trackCount", 0)
             kind = album_attrs.get("playParams", {}).get("kind", "")
             is_single = album_attrs.get("isSingle", False)
+            is_complete = album_attrs.get("isComplete", False)
 
             albums.append(
                 AppleMusicAlbumLight(
@@ -98,6 +100,7 @@ class Query:
                     track_count=track_count,
                     kind=kind,
                     is_single=is_single,
+                    is_complete=is_complete,
                 )
             )
         return albums
