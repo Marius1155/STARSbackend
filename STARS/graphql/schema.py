@@ -193,10 +193,10 @@ class Query:
                 # UNRELEASED / FALLBACK: Use metadata from the Album's tracklist
                 song_artists.append(
                     AppleMusicArtistDetail(
-                        id=None,  # Valid because id is now Optional[str]
+                        id="",  # Valid because id is now Optional[str]
                         name=song_attrs.get("artistName", "Unknown Artist"),
-                        image_url=None,
-                        url=None,
+                        image_url="",
+                        url="",
                         genre_names=[]
                     )
                 )
