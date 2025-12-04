@@ -234,6 +234,7 @@ class Project(models.Model):
 
     apple_music_id = models.CharField(blank=True, null=True, max_length=255)
     title = models.CharField(max_length=500, db_index=True)
+    length = models.IntegerField()
     genres = models.ManyToManyField('MusicGenre', related_name='projects', blank=True)
     number_of_songs = models.IntegerField()
     release_date = models.DateField(db_index=True)

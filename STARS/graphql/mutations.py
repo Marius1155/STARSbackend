@@ -15,9 +15,6 @@ from django.contrib.auth import password_validation, login, authenticate, logout
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.contrib.contenttypes.models import ContentType
-import cloudinary.uploader
-import base64
-import tempfile
 import enum
 from datetime import datetime
 from .subscriptions import broadcast_conversation_update, broadcast_message_event
@@ -34,6 +31,75 @@ from allauth.socialaccount.models import SocialApp, SocialLogin, SocialToken
 from STARS import models
 from . import types
 
+import base64
+import tempfile
+import cloudinary.uploader
+from django.db import transaction
+from STARS import models
+
+
+def process_image_from_url(image_url: str):
+    """
+    Downloads image from a URL (handling Apple Music placeholders),
+    uploads to Cloudinary, and extracts colors.
+    Returns: (secure_url, primary_color, secondary_color)
+    """
+    if not image_url:
+        return None, None, None
+
+    # Apple Music URLs often come as '.../100x100bb.jpg' or with placeholders '{w}x{h}'
+    # We ensure we get a high-res version.
+    if "{w}" in image_url and "{h}" in image_url:
+        final_url = image_url.replace("{w}", "1024").replace("{h}", "1024")
+    else:
+        final_url = image_url
+
+    try:
+        # Stream the download so we don't load huge files into memory entirely
+        response = requests.get(final_url, stream=True)
+        if response.status_code != 200:
+            return None, None, None
+
+        # Write to temp file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
+            for chunk in response.iter_content(chunk_size=4096):
+                temp_file.write(chunk)
+            temp_file.flush()
+
+            # Upload to Cloudinary
+            upload_result = cloudinary.uploader.upload(temp_file.name, colors=True)
+
+        # Clean up temp file
+        os.unlink(temp_file.name)
+
+        # Extract data
+        url = upload_result.get("secure_url")
+        colors = upload_result.get("colors", [])
+        primary = colors[0][0] if len(colors) > 0 else None
+        secondary = colors[1][0] if len(colors) > 1 else None
+
+        return url, primary, secondary
+
+    except Exception as e:
+        print(f"Error processing image: {e}")
+        return None, None, None
+
+
+def get_or_create_genres(genre_names: List[str]):
+    """
+    Takes a list of genre name strings.
+    Returns a list of MusicGenre model instances (creating new ones if needed).
+    """
+    if not genre_names:
+        return []
+
+    genres = []
+    for name in genre_names:
+        # get_or_create returns (object, created)
+        genre_obj, _ = models.MusicGenre.objects.get_or_create(title=name)
+        genres.append(genre_obj)
+    return genres
+
 
 # -----------------------------------------------------------------------------
 # Input Types
@@ -41,27 +107,44 @@ from . import types
 
 @strawberry_django.input(models.Artist)
 class ArtistCreateInput:
-    name: auto
-    picture: auto
-    bio: Optional[str] = None
-    wikipedia: Optional[str] = None
-    pronouns: Optional[str] = None
-    birthdate: Optional[str] = None
-    origin: Optional[str] = None
-    website: Optional[str] = None
-    facebook: Optional[str] = None
-    instagram: Optional[str] = None
-    twitter: Optional[str] = None
-    youtube_channel: Optional[str] = None
-    spotify: Optional[str] = None
-    apple_music: Optional[str] = None
-    youtube_music: Optional[str] = None
-    tidal: Optional[str] = None
-    deezer: Optional[str] = None
-    soundcloud: Optional[str] = None
-    bandcamp: Optional[str] = None
-    is_featured: Optional[bool] = False
-    featured_message: Optional[str] = None
+    apple_music_id: str
+    name: str
+    genres: List[str]
+    picture: str
+    apple_music_url: str
+
+
+@strawberry_django.input(models.Song)
+class SongCreateInput:
+    apple_music_id: str
+    title: str
+    genres: List[str]
+    length: int
+    preview_url: str
+    release_date: datetime
+    artists_ids: List[str]
+
+
+@strawberry.input
+class ProjectSongInput:
+    song_id: strawberry.ID
+    position: int
+
+
+@strawberry_django.input(models.Project)
+class ProjectCreateInput:
+    apple_music_id: str
+    title: str
+    is_single: bool
+    genres: List[str]
+    number_of_songs: int
+    release_date: datetime
+    cover_url: str
+    record_label: str
+    alternative_versions: List[str]
+    apple_music_url: str
+    artists_ids: List[str]
+    project_songs: List[ProjectSongInput]
 
 
 @strawberry.input
@@ -256,16 +339,6 @@ class MusicVideoUpdateInput:
     featured_message: Optional[str] = strawberry.UNSET
 
 
-
-@strawberry_django.input(models.Song)
-class SongCreateInput:
-    title: auto
-    length: auto
-    release_date: auto
-    preview: Optional[str] = None
-    is_featured: Optional[bool] = False
-
-
 @strawberry.input
 class SongUpdateInput:
     id: strawberry.ID
@@ -283,30 +356,6 @@ class ProjectArtistInput:
     artist_id: strawberry.ID
     position: int
 
-@strawberry.input
-class ProjectSongInput:
-    song_id: strawberry.ID
-    position: int
-
-
-'''@strawberry_django.input(models.Project)
-class ProjectCreateInput:
-    title: auto
-    number_of_songs: auto
-    release_date: auto
-    project_type: auto
-    length: auto
-    spotify: Optional[str] = None
-    apple_music: Optional[str] = None
-    youtube_music: Optional[str] = None
-    tidal: Optional[str] = None
-    deezer: Optional[str] = None
-    soundcloud: Optional[str] = None
-    bandcamp: Optional[str] = None
-    is_featured: Optional[bool] = False
-    artists: Optional[List[ProjectArtistInput]] = None
-    songs: Optional[List[ProjectSongInput]] = None
-'''
 
 @strawberry.input
 class ProjectUpdateInput:
@@ -424,6 +473,7 @@ class ProjectSongCreateInput:
     project_id: strawberry.ID
     song_id: strawberry.ID
     position: auto
+    disc_number: auto
 
 
 @strawberry.input
@@ -461,14 +511,12 @@ class LikeAction(enum.Enum):
 
 @strawberry.type
 class Mutation:
-    create_artist: types.Artist = strawberry_django.mutations.create(ArtistCreateInput)
     update_artist: types.Artist = strawberry_django.mutations.update(ArtistUpdateInput)
     delete_artist: types.Artist = strawberry_django.mutations.delete(strawberry.ID)
 
     update_project: types.Project = strawberry_django.mutations.update(ProjectUpdateInput)
     delete_project: types.Project = strawberry_django.mutations.delete(strawberry.ID)
 
-    create_song: types.Song = strawberry_django.mutations.create(SongCreateInput)
     update_song: types.Song = strawberry_django.mutations.update(SongUpdateInput)
     delete_song: types.Song = strawberry_django.mutations.delete(strawberry.ID)
 
@@ -491,6 +539,166 @@ class Mutation:
     delete_outfit: types.Outfit = strawberry_django.mutations.delete(strawberry.ID)
 
     update_profile: types.Profile = strawberry_django.mutations.update(ProfileUpdateInput)
+
+    @strawberry.mutation
+    async def create_artist(self, info: Info, data: ArtistCreateInput) -> types.Artist:
+        def _create_sync():
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
+
+            with transaction.atomic():
+                # 1. Process Image (Fetch -> Upload -> Get Colors)
+                pic_url, primary, secondary = process_image_from_url(data.picture_url)
+
+                # 2. Create Artist
+                artist = models.Artist.objects.create(
+                    apple_music_id=data.apple_music_id,
+                    name=data.name,
+                    picture=pic_url or "",  # Fallback if fetch failed
+                    primary_color=primary,
+                    secondary_color=secondary,
+                    apple_music=data.apple_music_url,
+                )
+
+                # 3. Handle Genres
+                genre_objects = get_or_create_genres(data.genres)
+                if genre_objects:
+                    artist.genres.set(genre_objects)
+
+                return artist
+
+        return await database_sync_to_async(_create_sync)()
+
+    @strawberry.mutation
+    async def create_song(self, info: Info, data: SongCreateInput) -> types.Song:
+        def _create_sync():
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
+
+            with transaction.atomic():
+                # 1. Create Song
+                song = models.Song.objects.create(
+                    apple_music_id=data.apple_music_id,
+                    title=data.title,
+                    length=data.length,
+                    preview=data.preview_url,
+                    release_date=data.release_date
+                )
+
+                # 2. Handle Genres
+                genre_objects = get_or_create_genres(data.genres)
+                if genre_objects:
+                    song.genres.set(genre_objects)
+
+                # 3. Link Artists
+                if data.artists_ids:
+                    artists = models.Artist.objects.filter(pk__in=data.artists_ids)
+                    artist_map = {str(a.id): a for a in artists}
+
+                    for index, artist_id in enumerate(data.artists_ids):
+                        artist = artist_map.get(str(artist_id))
+                        if artist:
+                            models.SongArtist.objects.create(
+                                song=song,
+                                artist=artist,
+                                position=index
+                            )
+                return song
+
+        return await database_sync_to_async(_create_sync)()
+
+    @strawberry.mutation
+    async def create_project(self, info: Info, data: ProjectCreateInput) -> types.Project:
+        def _create_sync():
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
+            
+            with transaction.atomic():
+                # 1. Calculate length
+                total_length = 0
+                song_ids = [ps.song_id for ps in data.project_songs]
+                songs = models.Song.objects.filter(pk__in=song_ids)
+                song_map = {str(s.id): s for s in songs}
+
+                for ps in data.project_songs:
+                    song = song_map.get(str(ps.song_id))
+                    if song:
+                        total_length += song.length
+
+                # 2. Determine Project Type
+                if data.is_single:
+                    project_type = models.Project.ProjectType.SINGLE
+                elif data.number_of_songs <= 6:
+                    project_type = models.Project.ProjectType.EP
+                else:
+                    project_type = models.Project.ProjectType.ALBUM
+
+                # 3. Create Project
+                project = models.Project.objects.create(
+                    apple_music_id=data.apple_music_id,
+                    title=data.title,
+                    number_of_songs=data.number_of_songs,
+                    release_date=data.release_date,
+                    length=total_length,
+                    project_type=project_type,
+                    apple_music=data.apple_music_url,
+                    record_label=data.record_label
+                )
+
+                # 4. Handle Genres
+                genre_objects = get_or_create_genres(data.genres)
+                if genre_objects:
+                    project.genres.set(genre_objects)
+
+                # 5. Handle Cover (Fetch -> Upload -> Create Cover Object -> Link)
+                if data.cover_url:
+                    img_url, primary, secondary = process_image_from_url(data.cover_url)
+
+                    if img_url:
+                        models.Cover.objects.create(
+                            image=img_url,
+                            content_object=project,
+                            position=1,
+                            primary_color=primary,
+                            secondary_color=secondary
+                        )
+
+                # 6. Link Artists
+                if data.artists_ids:
+                    artists = models.Artist.objects.filter(pk__in=data.artists_ids)
+                    artist_map = {str(a.id): a for a in artists}
+
+                    for index, artist_id in enumerate(data.artists_ids):
+                        artist = artist_map.get(str(artist_id))
+                        if artist:
+                            models.ProjectArtist.objects.create(
+                                project=project,
+                                artist=artist,
+                                position=index
+                            )
+
+                # 7. Link Songs
+                for ps in data.project_songs:
+                    song = song_map.get(str(ps.song_id))
+                    if song:
+                        models.ProjectSong.objects.create(
+                            project=project,
+                            song=song,
+                            position=ps.position
+                        )
+
+                # 8. Link Alternative Versions
+                if data.alternative_versions:
+                    alts = models.Project.objects.filter(pk__in=data.alternative_versions)
+                    project.alternative_versions.set(alts)
+
+                return project
+
+        return await database_sync_to_async(_create_sync)()
+
 
     @strawberry.mutation
     async def create_event(self, info: Info, data: EventCreateInput) -> types.Event:
@@ -530,48 +738,6 @@ class Mutation:
 
         return await database_sync_to_async(_create_sync)()
 
-    """
-    @strawberry.mutation
-    async def create_project(self, info: Info, data: ProjectCreateInput) -> types.Project:
-        # (Add permission checks here if needed)
-
-        def _create_sync():
-            project_data = strawberry.asdict(data)
-
-            # Separate the nested artists and songs data
-            artist_inputs = project_data.pop("artists", None)
-            song_inputs = project_data.pop("songs", None)
-
-            with transaction.atomic():
-                # Create the main project object
-                project = models.Project.objects.create(**project_data)
-
-                # If artists were provided, create the links
-                if artist_inputs:
-                    project_artists = [
-                        models.ProjectArtist(
-                            project=project,
-                            artist_id=artist['artist_id'],
-                            position=artist['position']
-                        ) for artist in artist_inputs
-                    ]
-                    models.ProjectArtist.objects.bulk_create(project_artists)
-
-                # If songs were provided, create the links
-                if song_inputs:
-                    project_songs = [
-                        models.ProjectSong(
-                            project=project,
-                            song_id=song['song_id'],
-                            position=song['position']
-                        ) for song in song_inputs
-                    ]
-                    models.ProjectSong.objects.bulk_create(project_songs)
-
-            return project
-
-        return await database_sync_to_async(_create_sync)()
-    """
 
     """
     @strawberry.mutation
@@ -1680,40 +1846,6 @@ class Mutation:
 
         return await database_sync_to_async(_sync)()
 
-
-    """
-    @strawberry.mutation
-    async def add_artist_to_song(self, info: Info, song_id: strawberry.ID, artist_id: strawberry.ID,
-                                 position: int) -> types.SongArtist:
-        song = await database_sync_to_async(models.Song.objects.get)(pk=song_id)
-        artist = await database_sync_to_async(models.Artist.objects.get)(pk=artist_id)
-        song_artist = await database_sync_to_async(models.SongArtist.objects.create)(song=song, artist=artist,
-                                                                                     position=position)
-        return song_artist
-    """
-
-    """
-    @strawberry.mutation
-    async def add_artist_to_project(self, info: Info, project_id: strawberry.ID, artist_id: strawberry.ID,
-                                    position: int) -> types.ProjectArtist:
-        project = await database_sync_to_async(models.Project.objects.get)(pk=project_id)
-        artist = await database_sync_to_async(models.Artist.objects.get)(pk=artist_id)
-        project_artist = await database_sync_to_async(models.ProjectArtist.objects.create)(project=project,
-                                                                                           artist=artist,
-                                                                                           position=position)
-        return project_artist
-    """
-
-    """
-    @strawberry.mutation
-    async def add_song_to_project(self, info: Info, project_id: strawberry.ID, song_id: strawberry.ID,
-                                  position: int) -> types.ProjectSong:
-        project = await database_sync_to_async(models.Project.objects.get)(pk=project_id)
-        song = await database_sync_to_async(models.Song.objects.get)(pk=song_id)
-        project_song = await database_sync_to_async(models.ProjectSong.objects.create)(project=project, song=song,
-                                                                                       position=position)
-        return project_song
-    """
 
     @strawberry.mutation
     async def add_cover_to_project(self, info, project_id: strawberry.ID, data: CoverDataInput) -> types.Cover:

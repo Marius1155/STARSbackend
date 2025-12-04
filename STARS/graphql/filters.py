@@ -116,6 +116,7 @@ class ProjectFilter:
     apple_music_id: auto
     id: auto
     title: auto
+    length: auto
     release_date: auto
     project_type: auto
     is_featured: auto
