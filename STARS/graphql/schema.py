@@ -85,10 +85,32 @@ class AppleMusicAlbumDetail:
 class Query:
     @strawberry.field
     async def search_apple_music_albums(self, term: str) -> List[AppleMusicAlbumLight]:
+        # Import sync_to_async to handle DB calls in async function
+        from asgiref.sync import sync_to_async
+
         results = await apple_music.search_albums(term)
+
+        # 1. Extract all Apple Music IDs from the search results
+        result_ids = [album.get("id") for album in results if album.get("id")]
+
+        # 2. Check which of these IDs already exist in your Project database
+        # We use sync_to_async because accessing Django models is synchronous
+        existing_ids = await sync_to_async(lambda: list(
+            models.Project.objects.filter(
+                apple_music_id__in=result_ids
+            ).values_list('apple_music_id', flat=True)
+        ))()
+
+        # Convert to a set for O(1) lookup speed
+        existing_ids_set = set(existing_ids)
+
         albums: List[AppleMusicAlbumLight] = []
 
         for album in results:
+            # 3. Skip this album if its ID is already in the database
+            if album.get("id") in existing_ids_set:
+                continue
+
             album_attrs = album.get("attributes", {})
             artists_names = album_attrs.get("artistName", "")
 
