@@ -547,11 +547,17 @@ class Mutation:
             if not user.is_authenticated:
                 raise Exception("Authentication required.")
 
+            # ✅ 1. Check if artist already exists
+            if data.apple_music_id:
+                existing_artist = models.Artist.objects.filter(apple_music_id=data.apple_music_id).first()
+                if existing_artist:
+                    return existing_artist
+
             with transaction.atomic():
-                # 1. Process Image (Fetch -> Upload -> Get Colors)
+                # 2. Process Image (Fetch -> Upload -> Get Colors)
                 pic_url, primary, secondary = process_image_from_url(data.picture_url)
 
-                # 2. Create Artist
+                # 3. Create Artist
                 artist = models.Artist.objects.create(
                     apple_music_id=data.apple_music_id,
                     name=data.name,
@@ -561,7 +567,7 @@ class Mutation:
                     apple_music=data.apple_music_url,
                 )
 
-                # 3. Handle Genres
+                # 4. Handle Genres
                 genre_objects = get_or_create_genres(data.genres)
                 if genre_objects:
                     artist.genres.set(genre_objects)
