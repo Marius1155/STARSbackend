@@ -52,6 +52,7 @@ class AppleMusicSongDetail:
     url: str
     genre_names: List[str]
     artists: List[AppleMusicArtistDetail]
+    is_out: bool
 
 @strawberry.type
 class AppleMusicAlbumDetail:
@@ -214,6 +215,7 @@ class Query:
                     track_number=song_attrs.get("trackNumber", 0),
                     release_date=song_attrs.get("releaseDate", ""),
                     url=song_attrs.get("url", ""),
+                    is_out = is_released,
                 )
             )
 
