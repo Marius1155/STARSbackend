@@ -28,6 +28,15 @@ class AppleMusicArtistDetail:
     genre_names: List[str]
 
 @strawberry.type
+class AppleMusicSongLight:
+    id: str
+    name: str
+    length_ms: int
+    release_date: str
+    preview_url: str
+    artists_names: str
+
+@strawberry.type
 class AppleMusicAlbumLight:
     id: str
     name: str
@@ -281,41 +290,26 @@ class Query:
         )
 
     @strawberry.field
-    async def get_apple_music_artist_top_songs(self, artist_id: str) -> List[AppleMusicSongDetail]:
+    async def get_apple_music_artist_top_songs(self, artist_id: str) -> List[AppleMusicSongLight]:
         """
         Fetches the top songs for a given Apple Music Artist ID.
         """
         # 1. Call the new service method
         results = await apple_music.get_artist_top_songs(artist_id)
-        songs: List[AppleMusicSongDetail] = []
+        songs: List[AppleMusicSongLight] = []
 
         # 2. Map the results to the GraphQL type
         for song in results:
             song_attrs = song.get("attributes", {})
 
-            # Create a simplified artist detail using only the name for display purposes
-            song_artists: List[AppleMusicArtistDetail] = []
-            song_artists.append(
-                AppleMusicArtistDetail(
-                    id=artist_id,
-                    name=song_attrs.get("artistName", ""),
-                    image_url="",
-                    url="",
-                    genre_names=[],
-                )
-            )
-
             songs.append(
-                AppleMusicSongDetail(
+                AppleMusicSongLight(
                     id=song.get("id"),
                     name=song_attrs.get("name", ""),
                     length_ms=song_attrs.get("durationInMillis", 0),
-                    # Fallback to empty dict for safety
                     preview_url=song_attrs.get("previews", [{}])[0].get("url", ""),
-                    artists=song_artists,
-                    track_number=song_attrs.get("trackNumber", 0),
+                    artists_names=song_attrs.get("artistName", ""),
                     release_date=song_attrs.get("releaseDate", ""),
-                    url=song_attrs.get("url", ""),
                 )
             )
         return songs
