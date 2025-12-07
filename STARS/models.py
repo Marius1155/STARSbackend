@@ -202,6 +202,13 @@ class Song(models.Model):
     reviews = GenericRelation('Review')
     star_average = models.FloatField(default=0)
     alternative_versions = models.ManyToManyField('self', blank=True)
+    spotify = models.URLField(max_length=500, blank=True, null=True)
+    apple_music = models.URLField(max_length=500, blank=True, null=True)
+    youtube_music = models.URLField(max_length=500, blank=True, null=True)
+    tidal = models.URLField(max_length=500, blank=True, null=True)
+    deezer = models.URLField(max_length=500, blank=True, null=True)
+    soundcloud = models.URLField(max_length=500, blank=True, null=True)
+    bandcamp = models.URLField(max_length=500, blank=True, null=True)
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
 
