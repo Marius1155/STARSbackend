@@ -21,3 +21,4 @@ redis
 daphne
 cloudinary
 httpx
+Pillow

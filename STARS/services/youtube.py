@@ -1,7 +1,9 @@
 import httpx
 import re
+import io
 from typing import Dict, Any, List
 from decouple import config
+from PIL import Image
 
 YOUTUBE_API_URL = "https://www.googleapis.com/youtube/v3"
 YOUTUBE_API_KEY = config("YOUTUBE_API_KEY")
@@ -72,6 +74,9 @@ class YoutubeService:
                         thumbnails.get("high", {}).get("url") or \
                         thumbnails.get("medium", {}).get("url")
 
+        # Extract primary color from thumbnail
+        primary_color = await self._get_primary_color(thumbnail_url)
+
         return {
             "id": video_id,
             "title": snippet.get("title"),
@@ -81,8 +86,36 @@ class YoutubeService:
             "published_at": snippet.get("publishedAt"),
             "length_ms": duration_ms,
             "view_count": int(statistics.get("viewCount", 0)),
-            "url": f"https://www.youtube.com/watch?v={video_id}"
+            "url": f"https://www.youtube.com/watch?v={video_id}",
+            "primary_color": primary_color
         }
+
+    async def _get_primary_color(self, image_url: str) -> str:
+        """Downloads the image and calculates the dominant color."""
+        if not image_url:
+            return "#000000"
+
+        try:
+            response = await self.client.get(image_url)
+            if response.status_code != 200:
+                return "#000000"
+
+            # Open image with PIL
+            image = Image.open(io.BytesIO(response.content))
+
+            # Resize to a smaller size to speed up processing
+            image = image.resize((150, 150))
+
+            # Reduce to a palette of 1 color to get the dominant one
+            # .convert('RGB') ensures we handle RGBA or P modes correctly
+            dominant_color = image.quantize(colors=1).convert('RGB').getpixel((0, 0))
+
+            # Convert RGB tuple to Hex string
+            return '#{:02x}{:02x}{:02x}'.format(*dominant_color)
+
+        except Exception:
+            # Fallback to black if anything fails (e.g. image format error)
+            return "#000000"
 
     def _parse_duration_to_ms(self, duration_iso: str) -> int:
         """Parses ISO 8601 duration (e.g. PT1H2M10S) to milliseconds."""

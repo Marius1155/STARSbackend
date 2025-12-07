@@ -103,6 +103,7 @@ class YoutubeVideoDetail:
     length_ms: int
     view_count: int
     url: str
+    primary_color: str
 
 # --- GraphQL Query ---
 @strawberry.type
@@ -138,7 +139,8 @@ class Query:
             published_at=vid.get("published_at", ""),
             length_ms=vid.get("length_ms", 0),
             view_count=vid.get("view_count", 0),
-            url=vid.get("url", "")
+            url=vid.get("url", ""),
+            primary_color=vid.get("primary_color", "#000000")
         )
 
     @strawberry.field
