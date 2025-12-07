@@ -118,6 +118,7 @@ class SongCreateInput:
     length: int
     preview_url: str
     release_date: datetime
+    apple_music_url: str
     artists_apple_music_ids: List[str]
 
 
@@ -637,6 +638,7 @@ class Mutation:
                     title=data.title,
                     length=data.length,
                     preview=data.preview_url,
+                    apple_music=data.apple_music_url,
                     release_date=data.release_date,
                 )
 
