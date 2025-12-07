@@ -169,6 +169,7 @@ class Cover(models.Model):
 
 
 class MusicVideo(models.Model):
+    youtube_id = models.CharField(blank=True, null=True, max_length=255)
     title = models.CharField(max_length=500, db_index=True)
     number_of_songs = models.IntegerField()
     songs = models.ManyToManyField('Song', related_name='music_videos')

@@ -89,6 +89,7 @@ class CoverFilter:
 @strawberry_django.filter(models.MusicVideo, lookups=True)
 class MusicVideoFilter:
     id: auto
+    youtube_id: auto
     number_of_songs: auto
     title: auto
     release_date: auto
@@ -119,6 +120,7 @@ class ProjectFilter:
     length: auto
     release_date: auto
     project_type: auto
+    record_label: auto
     is_featured: auto
     genre: Optional["MusicGenreFilter"]
 
