@@ -20,8 +20,7 @@ class YoutubeService:
             "q": term,
             "type": "video",
             "maxResults": limit,
-            "key": YOUTUBE_API_KEY,
-            "videoCategoryId": "10"
+            "key": YOUTUBE_API_KEY
         }
 
         response = await self.client.get(url, params=params)
