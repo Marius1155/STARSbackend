@@ -77,6 +77,7 @@ class AppleMusicAlbumDetail:
     is_compilation: bool
     is_complete: bool
     genre_names: List[str]
+    record_label: str
     songs: List[AppleMusicSongDetail]
     artists: List[AppleMusicArtistDetail]
 
@@ -261,6 +262,7 @@ class Query:
         is_single = album_attrs.get("isSingle", False)
         is_compilation = album_attrs.get("isCompilation", False)
         is_complete = album_attrs.get("isComplete", False)
+        record_label = album_attrs.get("recordLabel", "")
 
         return AppleMusicAlbumDetail(
             id=album.get("id"),
@@ -272,6 +274,7 @@ class Query:
             artists=album_artists,
             track_count=track_count,
             genre_names=genre_names,
+            record_label=record_label,
             kind=kind,
             url=url,
             is_single=is_single,
