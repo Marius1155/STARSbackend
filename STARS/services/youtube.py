@@ -5,6 +5,8 @@ import asyncio
 from typing import Dict, Any, List
 from decouple import config
 from PIL import Image
+from asgiref.sync import sync_to_async
+from STARS.models import MusicVideo
 
 YOUTUBE_API_URL = "https://www.googleapis.com/youtube/v3"
 YOUTUBE_API_KEY = config("YOUTUBE_API_KEY")
@@ -38,11 +40,26 @@ class YoutubeService:
         if not video_ids:
             return []
 
-        # 2. Call Videos API to get full details (snippet, contentDetails, statistics)
+        # 2. Filter out videos that are already in the database
+        #    Checking 'youtube_id' field against the fetched IDs
+        @sync_to_async
+        def get_existing_ids(ids):
+            # Assumes the field name in the model is 'youtube_id'
+            return list(MusicVideo.objects.filter(youtube_id__in=ids).values_list('youtube_id', flat=True))
+
+        existing_ids = set(await get_existing_ids(video_ids))
+
+        # Keep only new IDs
+        filtered_ids = [vid for vid in video_ids if vid not in existing_ids]
+
+        if not filtered_ids:
+            return []
+
+        # 3. Call Videos API to get full details for the new videos
         videos_url = f"{YOUTUBE_API_URL}/videos"
         videos_params = {
             "part": "snippet,contentDetails,statistics",
-            "id": ",".join(video_ids),
+            "id": ",".join(filtered_ids),
             "key": YOUTUBE_API_KEY
         }
 
@@ -53,7 +70,7 @@ class YoutubeService:
         results = []
         color_tasks = []
 
-        # 3. Process details and prepare color extraction tasks
+        # 4. Process details and prepare color extraction tasks
         for item in vid_data.get("items", []):
             snippet = item.get("snippet", {})
             content_details = item.get("contentDetails", {})
@@ -73,11 +90,10 @@ class YoutubeService:
             # Queue up the color extraction
             color_tasks.append(self._get_primary_color(thumbnail_url))
 
-            # Build initial result object (without color yet)
+            # Build initial result object
             results.append({
                 "id": video_id,
                 "title": snippet.get("title"),
-                # Description removed as requested
                 "thumbnail": thumbnail_url,
                 "channel_title": snippet.get("channelTitle"),
                 "published_at": snippet.get("publishedAt"),
@@ -86,10 +102,10 @@ class YoutubeService:
                 "url": f"https://www.youtube.com/watch?v={video_id}",
             })
 
-        # 4. Run all color extraction tasks concurrently
+        # 5. Run all color extraction tasks concurrently
         colors = await asyncio.gather(*color_tasks)
 
-        # 5. Assign colors to results
+        # 6. Assign colors to results
         for result, color in zip(results, colors):
             result["primary_color"] = color
 
