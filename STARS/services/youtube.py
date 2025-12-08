@@ -114,12 +114,12 @@ class YoutubeService:
     async def _get_primary_color(self, image_url: str) -> str:
         """Downloads the image and calculates the dominant color."""
         if not image_url:
-            return "#000000"
+            return "000000"
 
         try:
             response = await self.client.get(image_url)
             if response.status_code != 200:
-                return "#000000"
+                return "000000"
 
             # Open image with PIL
             image = Image.open(io.BytesIO(response.content))
@@ -131,11 +131,11 @@ class YoutubeService:
             dominant_color = image.quantize(colors=1).convert('RGB').getpixel((0, 0))
 
             # Convert RGB tuple to Hex string
-            return '#{:02x}{:02x}{:02x}'.format(*dominant_color)
+            return '{:02x}{:02x}{:02x}'.format(*dominant_color)
 
         except Exception:
             # Fallback to black if anything fails
-            return "#000000"
+            return "000000"
 
     def _parse_duration_to_ms(self, duration_iso: str) -> int:
         """Parses ISO 8601 duration (e.g. PT1H2M10S) to milliseconds."""
