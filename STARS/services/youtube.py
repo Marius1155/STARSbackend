@@ -1,6 +1,7 @@
 import httpx
 import re
 import io
+import asyncio
 from typing import Dict, Any, List
 from decouple import config
 from PIL import Image
@@ -14,81 +15,85 @@ class YoutubeService:
         self.client = httpx.AsyncClient()
 
     async def search_videos(self, term: str, limit: int = 20) -> List[Dict[str, Any]]:
-        url = f"{YOUTUBE_API_URL}/search"
-        params = {
-            "part": "snippet",
+        # 1. Call Search API to get Video IDs
+        search_url = f"{YOUTUBE_API_URL}/search"
+        search_params = {
+            "part": "id",
             "q": term,
             "type": "video",
             "maxResults": limit,
             "key": YOUTUBE_API_KEY
         }
 
-        response = await self.client.get(url, params=params)
+        response = await self.client.get(search_url, params=search_params)
         response.raise_for_status()
-        data = response.json()
+        search_data = response.json()
 
-        results = []
-        for item in data.get("items", []):
-            snippet = item.get("snippet", {})
-            video_id = item.get("id", {}).get("videoId")
+        video_ids = []
+        for item in search_data.get("items", []):
+            vid = item.get("id", {}).get("videoId")
+            if vid:
+                video_ids.append(vid)
 
-            if video_id:
-                results.append({
-                    "id": video_id,
-                    "title": snippet.get("title"),
-                    "description": snippet.get("description"),
-                    "thumbnail": snippet.get("thumbnails", {}).get("high", {}).get("url"),
-                    "channel_title": snippet.get("channelTitle"),
-                    "published_at": snippet.get("publishedAt"),
-                })
-        return results
+        if not video_ids:
+            return []
 
-    async def get_video_details(self, video_id: str) -> Dict[str, Any]:
-        url = f"{YOUTUBE_API_URL}/videos"
-        params = {
+        # 2. Call Videos API to get full details (snippet, contentDetails, statistics)
+        videos_url = f"{YOUTUBE_API_URL}/videos"
+        videos_params = {
             "part": "snippet,contentDetails,statistics",
-            "id": video_id,
+            "id": ",".join(video_ids),
             "key": YOUTUBE_API_KEY
         }
 
-        response = await self.client.get(url, params=params)
-        response.raise_for_status()
-        data = response.json()
-        items = data.get("items", [])
+        vid_response = await self.client.get(videos_url, params=videos_params)
+        vid_response.raise_for_status()
+        vid_data = vid_response.json()
 
-        if not items:
-            return {}
+        results = []
+        color_tasks = []
 
-        item = items[0]
-        snippet = item.get("snippet", {})
-        content_details = item.get("contentDetails", {})
-        statistics = item.get("statistics", {})
+        # 3. Process details and prepare color extraction tasks
+        for item in vid_data.get("items", []):
+            snippet = item.get("snippet", {})
+            content_details = item.get("contentDetails", {})
+            statistics = item.get("statistics", {})
+            video_id = item.get("id")
 
-        # Parse duration to milliseconds
-        duration_iso = content_details.get("duration", "")
-        duration_ms = self._parse_duration_to_ms(duration_iso)
+            # Parse duration
+            duration_iso = content_details.get("duration", "")
+            duration_ms = self._parse_duration_to_ms(duration_iso)
 
-        # Get the best available thumbnail
-        thumbnails = snippet.get("thumbnails", {})
-        thumbnail_url = thumbnails.get("maxres", {}).get("url") or \
-                        thumbnails.get("high", {}).get("url") or \
-                        thumbnails.get("medium", {}).get("url")
+            # Get best thumbnail
+            thumbnails = snippet.get("thumbnails", {})
+            thumbnail_url = thumbnails.get("maxres", {}).get("url") or \
+                            thumbnails.get("high", {}).get("url") or \
+                            thumbnails.get("medium", {}).get("url")
 
-        # Extract primary color from thumbnail
-        primary_color = await self._get_primary_color(thumbnail_url)
+            # Queue up the color extraction
+            color_tasks.append(self._get_primary_color(thumbnail_url))
 
-        return {
-            "id": video_id,
-            "title": snippet.get("title"),
-            "description": snippet.get("description"),
-            "thumbnail": thumbnail_url,
-            "channel_title": snippet.get("channelTitle"),
-            "published_at": snippet.get("publishedAt"),
-            "length_ms": duration_ms,
-            "view_count": int(statistics.get("viewCount", 0)),
-            "url": f"https://www.youtube.com/watch?v={video_id}",
-            "primary_color": primary_color
-        }
+            # Build initial result object (without color yet)
+            results.append({
+                "id": video_id,
+                "title": snippet.get("title"),
+                # Description removed as requested
+                "thumbnail": thumbnail_url,
+                "channel_title": snippet.get("channelTitle"),
+                "published_at": snippet.get("publishedAt"),
+                "length_ms": duration_ms,
+                "view_count": int(statistics.get("viewCount", 0)),
+                "url": f"https://www.youtube.com/watch?v={video_id}",
+            })
+
+        # 4. Run all color extraction tasks concurrently
+        colors = await asyncio.gather(*color_tasks)
+
+        # 5. Assign colors to results
+        for result, color in zip(results, colors):
+            result["primary_color"] = color
+
+        return results
 
     async def _get_primary_color(self, image_url: str) -> str:
         """Downloads the image and calculates the dominant color."""
@@ -107,14 +112,13 @@ class YoutubeService:
             image = image.resize((150, 150))
 
             # Reduce to a palette of 1 color to get the dominant one
-            # .convert('RGB') ensures we handle RGBA or P modes correctly
             dominant_color = image.quantize(colors=1).convert('RGB').getpixel((0, 0))
 
             # Convert RGB tuple to Hex string
             return '#{:02x}{:02x}{:02x}'.format(*dominant_color)
 
         except Exception:
-            # Fallback to black if anything fails (e.g. image format error)
+            # Fallback to black if anything fails
             return "#000000"
 
     def _parse_duration_to_ms(self, duration_iso: str) -> int:

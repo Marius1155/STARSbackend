@@ -96,7 +96,6 @@ class YoutubeVideoLight:
 class YoutubeVideoDetail:
     id: str
     title: str
-    description: str
     thumbnail_url: str
     channel_name: str
     published_at: str
@@ -109,39 +108,26 @@ class YoutubeVideoDetail:
 @strawberry.type
 class Query:
     @strawberry.field
-    async def search_youtube_videos(self, term: str) -> List[YoutubeVideoLight]:
+    async def search_youtube_videos(self, term: str) -> List[YoutubeVideoDetail]:
         results = await youtube_service.search_videos(term)
-        videos: List[YoutubeVideoLight] = []
+        videos: List[YoutubeVideoDetail] = []
 
         for vid in results:
             videos.append(
-                YoutubeVideoLight(
+                YoutubeVideoDetail(
                     id=vid.get("id"),
                     title=vid.get("title", ""),
                     thumbnail_url=vid.get("thumbnail", ""),
                     channel_name=vid.get("channel_title", ""),
                     published_at=vid.get("published_at", ""),
-                    url=f"https://www.youtube.com/watch?v={vid.get('id')}"
+                    length_ms=vid.get("length_ms", 0),
+                    view_count=vid.get("view_count", 0),
+                    url=vid.get("url", ""),
+                    primary_color=vid.get("primary_color", "#000000")
                 )
             )
         return videos
 
-    @strawberry.field
-    async def get_youtube_video_detail(self, video_id: str) -> YoutubeVideoDetail:
-        vid = await youtube_service.get_video_details(video_id)
-
-        return YoutubeVideoDetail(
-            id=vid.get("id"),
-            title=vid.get("title", ""),
-            description=vid.get("description", ""),
-            thumbnail_url=vid.get("thumbnail", ""),
-            channel_name=vid.get("channel_title", ""),
-            published_at=vid.get("published_at", ""),
-            length_ms=vid.get("length_ms", 0),
-            view_count=vid.get("view_count", 0),
-            url=vid.get("url", ""),
-            primary_color=vid.get("primary_color", "#000000")
-        )
 
     @strawberry.field
     async def search_apple_music_albums(self, term: str) -> List[AppleMusicAlbumLight]:
