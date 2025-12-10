@@ -108,8 +108,7 @@ class SongFilter:
     # Allow filtering by specific artist fields (e.g. artist.name)
     song_artists: Optional["SongArtistFilter"]
 
-    strawberry_django.filter_field
-
+    @strawberry_django.filter_field
     def search(self, queryset, value: str, prefix) -> None:
         if value:
             matching_ids = models.Song.objects.filter(
