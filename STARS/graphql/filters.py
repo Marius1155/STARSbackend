@@ -105,19 +105,16 @@ class SongFilter:
     release_date: auto
     is_featured: auto
 
-    # 1. Allow filtering by specific artist fields (e.g. artist.name)
+    # Allow filtering by specific artist fields (e.g. artist.name)
     song_artists: Optional["SongArtistFilter"]
 
-    # 2. Custom "search" field definition using the decorator
-    # This defines the field in the schema AND the logic to apply it
     @strawberry_django.filter_field
     def search(self, queryset, value: str, prefix) -> None:
         if value:
-            return queryset.filter(
-                Q(title__icontains=value) |
-                Q(song_artists__artist__name__icontains=value)
-            ).distinct()
-        return queryset
+            # FIX: Return a Q object combining your conditions.
+            # Do NOT use queryset.filter() here.
+            return Q(title__icontains=value) | Q(song_artists__artist__name__icontains=value)
+        return None
 
 @strawberry_django.filter(models.SongArtist, lookups=True)
 class SongArtistFilter:
