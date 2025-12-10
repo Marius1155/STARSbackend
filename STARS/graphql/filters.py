@@ -108,12 +108,16 @@ class SongFilter:
     # Allow filtering by specific artist fields (e.g. artist.name)
     song_artists: Optional["SongArtistFilter"]
 
-    @strawberry_django.filter_field
+    strawberry_django.filter_field
+
     def search(self, queryset, value: str, prefix) -> None:
         if value:
-            # FIX: Return a Q object combining your conditions.
-            # Do NOT use queryset.filter() here.
-            return Q(title__icontains=value) | Q(song_artists__artist__name__icontains=value)
+            matching_ids = models.Song.objects.filter(
+                Q(title__icontains=value) |
+                Q(song_artists__artist__name__icontains=value)
+            ).values('pk')
+
+            return Q(pk__in=matching_ids)
         return None
 
 @strawberry_django.filter(models.SongArtist, lookups=True)
