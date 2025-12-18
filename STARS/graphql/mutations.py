@@ -110,39 +110,7 @@ class ArtistCreateInput:
     apple_music_url: str
 
 
-@strawberry_django.input(models.Song)
-class SongCreateInput:
-    apple_music_id: str
-    title: str
-    genres: List[str]
-    length: int
-    preview_url: str
-    release_date: datetime
-    apple_music_url: str
-    artists_apple_music_ids: List[str]
 
-
-@strawberry.input
-class ProjectSongInput:
-    song_id: strawberry.ID
-    position: int
-    disc_number: int
-
-
-@strawberry_django.input(models.Project)
-class ProjectCreateInput:
-    apple_music_id: str
-    title: str
-    is_single: bool
-    genres: List[str]
-    number_of_songs: int
-    release_date: datetime
-    cover_url: str
-    record_label: str
-    alternative_versions: List[str]
-    apple_music_url: str
-    artists_apple_music_ids: List[str]
-    project_songs: List[ProjectSongInput]
 
 
 @strawberry.input
@@ -210,7 +178,35 @@ class EventUpdateInput:
     is_featured: Optional[bool] = strawberry.UNSET
     featured_message: Optional[str] = strawberry.UNSET
 
+@strawberry_django.input(models.Song)
+class SongCreateInput:
+    position: int
+    disc_number: int
+    song_id: Optional[strawberry.ID]
+    apple_music_id: Optional[str]
+    title: Optional[str]
+    length: Optional[int]
+    preview_url: Optional[str]
+    release_date: Optional[datetime]
+    apple_music_url: Optional[str]
+    genres: List[str]
+    artists_apple_music_ids: List[str]
 
+
+@strawberry_django.input(models.Project)
+class ProjectCreateInput:
+    apple_music_id: str
+    title: str
+    is_single: bool
+    genres: List[str]
+    number_of_songs: int
+    release_date: datetime
+    cover_url: str
+    record_label: str
+    alternative_versions: List[str]
+    apple_music_url: str
+    artists_apple_music_ids: List[str]
+    songs: List[SongCreateInput]
 
 @strawberry_django.input(models.Comment)
 class CommentCreateInput:
@@ -575,140 +571,46 @@ class Mutation:
         return await database_sync_to_async(_create_sync)()
 
     @strawberry.mutation
-    async def create_song(self, info: Info, data: SongCreateInput) -> types.Song:
-        am_service = AppleMusicService()
-
-        # Prepare lists of IDs
-        am_ids = data.artists_apple_music_ids or []
-
-        # Dictionary to store fetched data for new artists: { am_id: { name, picture, ... } }
-        artists_to_create_data = {}
-
-        # -------------------------------------------------------
-        # 1. ASYNC PHASE: Fetch & Process Missing Artists
-        # -------------------------------------------------------
-        for am_id in am_ids:
-            # Check if artist exists in DB (sync check wrapped in async)
-            exists = await sync_to_async(models.Artist.objects.filter(apple_music_id=am_id).exists)()
-
-            if not exists:
-                try:
-                    # A. Fetch details from Apple Music
-                    # This logic mirrors your get_apple_music_artist_detail query
-                    href = f"/v1/catalog/us/artists/{am_id}"
-                    artist_data = await am_service.get_artist(href)
-
-                    attrs = artist_data.get("attributes", {})
-                    name = attrs.get("name", "")
-                    url = attrs.get("url", "")
-                    raw_image_url = attrs.get("artwork", {}).get("url", "")
-
-                    # B. Process Image (Download -> Upload to Cloudinary -> Get Colors)
-                    # We wrap the sync function call to avoid blocking the async loop
-                    pic_url, primary, secondary = await sync_to_async(process_image_from_url)(raw_image_url)
-
-                    # Store prepared data to be used in the transaction later
-                    artists_to_create_data[am_id] = {
-                        "name": name,
-                        "apple_music_url": url,
-                        "picture": pic_url or "",  # Fallback to empty string if failed
-                        "primary_color": primary,
-                        "secondary_color": secondary,
-                        "genres": attrs.get("genreNames", []) # Add this if you implemented genres
-                    }
-
-                except Exception as e:
-                    print(f"Error fetching/processing artist {am_id}: {e}")
-                    pass
-
-        await am_service.close()
-
-        # -------------------------------------------------------
-        # 2. SYNC PHASE: Database Transaction
-        # -------------------------------------------------------
-        def _create_sync():
-            user = info.context.request.user
-            if not user.is_authenticated:
-                raise Exception("Authentication required.")
-
-            with transaction.atomic():
-                # A. Create Song
-                song = models.Song.objects.create(
-                    apple_music_id=data.apple_music_id,
-                    title=data.title,
-                    length=data.length,
-                    preview=data.preview_url,
-                    apple_music=data.apple_music_url,
-                    release_date=data.release_date,
-                )
-
-                if data.genres:
-                    genre_objs = get_or_create_genres(data.genres)
-                    song.genres.set(genre_objs)
-
-                # B. Link Artists (from Apple Music IDs)
-                current_position = 1
-
-                for am_id in am_ids:
-                    artist = None
-
-                    # If we fetched data in the async phase, create the artist now
-                    if am_id in artists_to_create_data:
-                        adata = artists_to_create_data[am_id]
-                        artist = models.Artist.objects.create(
-                            apple_music_id=am_id,
-                            name=adata["name"],
-                            picture=adata["picture"],
-                            primary_color=adata["primary_color"] or "",
-                            secondary_color=adata["secondary_color"] or "",
-                            apple_music=adata["apple_music_url"]
-                        )
-                        if adata["genres"]:
-                            genre_objs = get_or_create_genres(adata["genres"])
-                            artist.genres.set(genre_objs)
-                    else:
-                        artist = models.Artist.objects.filter(apple_music_id=am_id).first()
-
-                    if artist:
-                        models.SongArtist.objects.create(
-                            song=song,
-                            artist=artist,
-                            position=current_position
-                        )
-                        current_position += 1
-
-                return song
-
-        return await database_sync_to_async(_create_sync)()
-
-    @strawberry.mutation
     async def create_project(self, info: Info, data: ProjectCreateInput) -> types.Project:
         am_service = AppleMusicService()
 
-        # Prepare lists
-        am_ids = data.artists_apple_music_ids or []
+        # -------------------------------------------------------
+        # 1. PREPARATION PHASE
+        # -------------------------------------------------------
+
+        # Collect all Artist Apple Music IDs (from the Project and from any New Songs)
+        # We use a set to avoid processing the same artist twice (e.g. if they are on the project AND a song)
+        all_am_ids = set(data.artists_apple_music_ids or [])
+
+        if data.songs:
+            for song_input in data.songs:
+                # If song_id is missing, it's a new song, so we need to check its artists too
+                if not song_input.song_id and song_input.artists_apple_music_ids:
+                    all_am_ids.update(song_input.artists_apple_music_ids)
+
+        # Dictionary to store fetched data: { am_id: { name, picture, ... } }
         artists_to_create_data = {}
 
-        # Variables for Cover Art (Fetch them here, use them later)
+        # Variables for Cover Art
         cover_image_url = None
         cover_primary = None
         cover_secondary = None
 
         # -------------------------------------------------------
-        # 1. ASYNC PHASE: Network Operations (Apple Music + Images)
+        # 2. ASYNC PHASE: Network Operations (Apple Music + Images)
         # -------------------------------------------------------
 
-        # A. Process Cover Image (MOVED HERE)
+        # A. Process Project Cover Image
         if data.cover_url:
             try:
-                # Run image processing in thread to avoid blocking async loop
                 cover_image_url, cover_primary, cover_secondary = await sync_to_async(process_image_from_url)(
-                    data.cover_url)
+                    data.cover_url
+                )
             except Exception as e:
-                print(f"Error processing cover image: {e}")
+                print(f"Error processing project cover image: {e}")
 
-        # B. Fetch & Process Missing Artists
-        for am_id in am_ids:
+        # B. Fetch & Process Missing Artists (for both Project and New Songs)
+        for am_id in all_am_ids:
             # Check if artist exists in DB
             exists = await sync_to_async(models.Artist.objects.filter(apple_music_id=am_id).exists)()
 
@@ -742,7 +644,7 @@ class Mutation:
         await am_service.close()
 
         # -------------------------------------------------------
-        # 2. SYNC PHASE: Database Transaction
+        # 3. SYNC PHASE: Database Transaction
         # -------------------------------------------------------
         def _create_sync():
             user = info.context.request.user
@@ -750,60 +652,15 @@ class Mutation:
                 raise Exception("Authentication required.")
 
             with transaction.atomic():
-                # 1. Calculate length from songs
-                total_length = 0
-                song_ids = [ps.song_id for ps in (data.project_songs or [])]
-                songs = models.Song.objects.filter(pk__in=song_ids)
-                song_map = {str(s.id): s for s in songs}
 
-                if data.project_songs:
-                    for ps in data.project_songs:
-                        song = song_map.get(str(ps.song_id))
-                        if song:
-                            total_length += song.length
+                # --- Helper: Get Existing Artist or Create from Fetched Data ---
+                def get_or_create_artist_node(am_id):
+                    # 1. Check DB (It might exist, or we might have just created it in a previous iteration of this loop)
+                    artist = models.Artist.objects.filter(apple_music_id=am_id).first()
+                    if artist:
+                        return artist
 
-                # 2. Determine Project Type
-                if data.is_single:
-                    project_type = models.Project.ProjectType.SINGLE
-                elif data.number_of_songs <= 6:
-                    project_type = models.Project.ProjectType.EP
-                else:
-                    project_type = models.Project.ProjectType.ALBUM
-
-                # 3. Create Project
-                project = models.Project.objects.create(
-                    apple_music_id=data.apple_music_id,
-                    title=data.title,
-                    number_of_songs=data.number_of_songs,
-                    release_date=data.release_date,
-                    length=total_length,
-                    project_type=project_type,
-                    apple_music=data.apple_music_url,
-                    record_label=data.record_label
-                )
-
-                # 4. Handle Genres
-                if data.genres:
-                    genre_objects = get_or_create_genres(data.genres)
-                    if genre_objects:
-                        project.genres.set(genre_objects)
-
-                # 5. Create Cover (Using the data we fetched in the Async Phase)
-                if cover_image_url:
-                    models.Cover.objects.create(
-                        image=cover_image_url,
-                        content_object=project,
-                        position=1,
-                        primary_color=cover_primary,
-                        secondary_color=cover_secondary
-                    )
-
-                # 6. Link Artists
-                current_position = 1
-                for am_id in am_ids:
-                    artist = None
-
-                    # Use pre-fetched data if available
+                    # 2. If not in DB, check if we fetched data for it
                     if am_id in artists_to_create_data:
                         adata = artists_to_create_data[am_id]
                         artist = models.Artist.objects.create(
@@ -817,33 +674,111 @@ class Mutation:
                         if adata["genres"]:
                             genre_objs = get_or_create_genres(adata["genres"])
                             artist.genres.set(genre_objs)
-                    else:
-                        # Fallback to existing DB artist
-                        artist = models.Artist.objects.filter(apple_music_id=am_id).first()
+                        return artist
 
+                    return None
+
+                # --- A. Create Project ---
+                # Determine Project Type
+                if data.is_single:
+                    project_type = models.Project.ProjectType.SINGLE
+                elif data.number_of_songs <= 6:
+                    project_type = models.Project.ProjectType.EP
+                else:
+                    project_type = models.Project.ProjectType.ALBUM
+
+                # Create Base Object
+                project = models.Project.objects.create(
+                    apple_music_id=data.apple_music_id,
+                    title=data.title,
+                    number_of_songs=data.number_of_songs,
+                    release_date=data.release_date,
+                    length=0,  # Will update this after processing songs
+                    project_type=project_type,
+                    apple_music=data.apple_music_url,
+                    record_label=data.record_label
+                )
+
+                # Handle Genres
+                if data.genres:
+                    genre_objects = get_or_create_genres(data.genres)
+                    if genre_objects:
+                        project.genres.set(genre_objects)
+
+                # Create Cover
+                if cover_image_url:
+                    models.Cover.objects.create(
+                        image=cover_image_url,
+                        content_object=project,
+                        position=1,
+                        primary_color=cover_primary,
+                        secondary_color=cover_secondary
+                    )
+
+                # --- B. Link Project Artists ---
+                for i, am_id in enumerate(data.artists_apple_music_ids or []):
+                    artist = get_or_create_artist_node(am_id)
                     if artist:
                         models.ProjectArtist.objects.create(
                             project=project,
                             artist=artist,
-                            position=current_position
+                            position=i + 1
                         )
-                        current_position += 1
 
-                # 7. Link Songs
-                if data.project_songs:
-                    for ps in data.project_songs:
-                        song = song_map.get(str(ps.song_id))
-                        if song:
-                            models.ProjectSong.objects.create(
-                                project=project,
-                                song=song,
-                                position=ps.position,
-                                disc_number=ps.disc_number,
+                # --- C. Handle Songs (Existing or New) ---
+                calculated_total_length = 0
+
+                if data.songs:
+                    for song_input in data.songs:
+                        song_obj = None
+
+                        # Scenario 1: Existing Song (Link it)
+                        if song_input.song_id:
+                            song_obj = models.Song.objects.filter(pk=song_input.song_id).first()
+
+                        # Scenario 2: New Song (Create it)
+                        else:
+                            song_obj = models.Song.objects.create(
+                                apple_music_id=song_input.apple_music_id,
+                                title=song_input.title,
+                                length=song_input.length or 0,
+                                preview=song_input.preview_url,
+                                apple_music=song_input.apple_music_url,
+                                release_date=song_input.release_date,
                             )
 
-                # 8. Link Alternative Versions
+                            # Add Genres to Song
+                            if song_input.genres:
+                                s_genres = get_or_create_genres(song_input.genres)
+                                song_obj.genres.set(s_genres)
+
+                            # Link Artists to Song
+                            if song_input.artists_apple_music_ids:
+                                for j, s_am_id in enumerate(song_input.artists_apple_music_ids):
+                                    s_artist = get_or_create_artist_node(s_am_id)
+                                    if s_artist:
+                                        models.SongArtist.objects.create(
+                                            song=song_obj,
+                                            artist=s_artist,
+                                            position=j + 1
+                                        )
+
+                        # Link Song to Project (ProjectSong)
+                        if song_obj:
+                            models.ProjectSong.objects.create(
+                                project=project,
+                                song=song_obj,
+                                position=song_input.position,
+                                disc_number=song_input.disc_number,
+                            )
+                            calculated_total_length += song_obj.length
+
+                # Update Project Length
+                project.length = calculated_total_length
+                project.save(update_fields=["length"])
+
+                # --- D. Link Alternative Versions ---
                 if data.alternative_versions:
-                    # Assuming alternative_versions is a list of Project IDs
                     alts = models.Project.objects.filter(pk__in=data.alternative_versions)
                     project.alternative_versions.set(alts)
 
