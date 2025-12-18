@@ -189,8 +189,8 @@ class SongCreateInput:
     preview_url: Optional[str]
     release_date: Optional[datetime]
     apple_music_url: Optional[str]
-    genres: List[str]
-    artists_apple_music_ids: List[str]
+    genres: Optional[List[str]]
+    artists_apple_music_ids: Optional[List[str]]
 
 
 @strawberry_django.input(models.Project)
