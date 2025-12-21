@@ -188,6 +188,7 @@ class SongCreateInput:
     length: Optional[int]
     preview_url: Optional[str]
     release_date: Optional[datetime]
+    is_out: Optional[bool]
     apple_music_url: Optional[str]
     genres: Optional[List[str]]
     artists_apple_music_ids: Optional[List[str]]
@@ -745,6 +746,7 @@ class Mutation:
                                 preview=song_input.preview_url,
                                 apple_music=song_input.apple_music_url,
                                 release_date=song_input.release_date,
+                                is_out=song_input.is_out,
                             )
 
                             # Add Genres to Song

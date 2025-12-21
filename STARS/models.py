@@ -199,6 +199,7 @@ class Song(models.Model):
     length = models.IntegerField()
     preview = models.URLField(max_length=500, blank=True, null=True)
     release_date = models.DateField(db_index=True)
+    is_out = models.BooleanField(default=True, db_index=True)
     reviews_count = models.IntegerField(default=0)
     reviews = GenericRelation('Review')
     star_average = models.FloatField(default=0)
@@ -217,7 +218,8 @@ class Song(models.Model):
         ordering = ['-release_date']
 
     def __str__(self):
-        return f"{self.title} - {self.release_date}"
+        release_info = self.release_date if self.is_out else "Unreleased"
+        return f"{self.title} - {release_info}"
 
 
 class SongArtist(models.Model):
