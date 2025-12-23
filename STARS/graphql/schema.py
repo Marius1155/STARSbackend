@@ -9,6 +9,7 @@ from django.db.models import OuterRef, Subquery, Exists
 from STARS import models
 from STARS.services.apple_music import AppleMusicService
 from STARS.services.youtube import YoutubeService
+from asgiref.sync import sync_to_async
 from datetime import datetime
 
 apple_music = AppleMusicService()
@@ -110,9 +111,23 @@ class Query:
     @strawberry.field
     async def search_youtube_videos(self, term: str) -> List[YoutubeVideoDetail]:
         results = await youtube_service.search_videos(term)
+
+        result_ids = [video.get("id") for video in results if video.get("id")]
+
+        existing_ids = await sync_to_async(lambda: list(
+            models.MusicVideo.objects.filter(
+                youtube_id__in=result_ids
+            ).values_list('youtube_id', flat=True)
+        ))()
+
+        existing_ids_set = set(existing_ids)
+
         videos: List[YoutubeVideoDetail] = []
 
         for vid in results:
+            if vid.get("id") in existing_ids_set:
+                continue
+
             videos.append(
                 YoutubeVideoDetail(
                     id=vid.get("id"),
@@ -131,9 +146,6 @@ class Query:
 
     @strawberry.field
     async def search_apple_music_albums(self, term: str) -> List[AppleMusicAlbumLight]:
-        # Import sync_to_async to handle DB calls in async function
-        from asgiref.sync import sync_to_async
-
         results = await apple_music.search_albums(term)
 
         # 1. Extract all Apple Music IDs from the search results
