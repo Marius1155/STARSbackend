@@ -171,9 +171,11 @@ class Cover(models.Model):
 class MusicVideo(models.Model):
     youtube_id = models.CharField(blank=True, null=True, max_length=255)
     title = models.CharField(max_length=500, db_index=True)
+    channel_name = models.CharField(max_length=500, db_index=True)
     number_of_songs = models.IntegerField()
     songs = models.ManyToManyField('Song', related_name='music_videos')
     release_date = models.DateField(db_index=True)
+    length = models.IntegerField()
     youtube = models.URLField(max_length=500, unique=True)
     thumbnail = models.URLField(max_length=500, null=True, blank=True)
     reviews_count = models.IntegerField(default=0)

@@ -319,8 +319,14 @@ def fetch_youtube_metadata(video_url: str):
 
 @strawberry.input
 class MusicVideoInput:
+    youtube_id: str
+    title: str
+    thumbnail_url: str
+    channel_name: str
+    published_at: datetime
+    length_ms: int
     youtube_url: str
-    song_ids: list[strawberry.ID]
+    songs_ids: list[strawberry.ID]
 
 
 @strawberry.input
@@ -534,6 +540,42 @@ class Mutation:
     delete_outfit: types.Outfit = strawberry_django.mutations.delete(strawberry.ID)
 
     update_profile: types.Profile = strawberry_django.mutations.update(ProfileUpdateInput)
+
+    @strawberry.mutation
+    async def add_music_video(self, info, data: MusicVideoInput) -> types.MusicVideo:
+
+        def _sync():
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
+
+            uploaded_url, primary_color, secondary_color = process_image_from_url(data.thumbnail_url)
+
+            if not uploaded_url:
+                # Handle the case where image processing failed, or let it fail gracefully
+                # For now, we proceed, but you might want to raise an Exception here
+                pass
+
+            with transaction.atomic():
+                mv = models.MusicVideo.objects.create(
+                    youtube_id=data.youtube_id,
+                    title=data.title,
+                    channel_name=data.channel_name,
+                    release_date=data.published_at,
+                    length=data.length_ms,
+                    youtube=data.youtube_url,
+                    thumbnail=uploaded_url,
+                    primary_color=primary_color,
+                    secondary_color=secondary_color,
+                    number_of_songs=len(data.songs_ids)
+                )
+
+                songs = list(models.Song.objects.filter(pk__in=data.songs_ids))
+                mv.songs.set(songs)
+
+            return mv
+
+        return await database_sync_to_async(_sync)()
 
     @strawberry.mutation
     async def create_artist(self, info: Info, data: ArtistCreateInput) -> types.Artist:
@@ -2016,55 +2058,6 @@ class Mutation:
                     secondary_color=secondary_color
                 )
                 return cover
-
-        return await database_sync_to_async(_sync)()
-
-
-    @strawberry.mutation
-    async def add_music_video(self, info, data: MusicVideoInput) -> types.MusicVideo:
-
-        def _sync():
-            user = info.context.request.user
-            if not user.is_authenticated:
-                raise Exception("Authentication required.")
-
-            clean_url = clean_youtube_url(data.youtube_url)
-            title, published_at, thumbnail_url = fetch_youtube_metadata(clean_url)
-
-            import urllib.request
-            import tempfile
-            image_data = urllib.request.urlopen(thumbnail_url).read()
-            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-            temp_file.write(image_data)
-            temp_file.flush()
-
-            upload_result = cloudinary.uploader.upload(
-                temp_file.name,
-                colors=True,
-                transformation=[
-                    {"width": 1280, "height": 720, "crop": "fill", "gravity": "center"}
-                ]
-            )
-            uploaded_url = upload_result["secure_url"]
-            colors = upload_result.get("colors", [])
-            primary_color = colors[0][0] if len(colors) > 0 else None
-            secondary_color = colors[1][0] if len(colors) > 1 else None
-
-            with transaction.atomic():
-                mv = models.MusicVideo.objects.create(
-                    title=title,
-                    release_date=published_at,
-                    youtube=data.youtube_url,
-                    thumbnail=uploaded_url,
-                    primary_color=primary_color,
-                    secondary_color=secondary_color,
-                    number_of_songs=len(data.song_ids)
-                )
-
-                songs = list(models.Song.objects.filter(pk__in=data.song_ids))
-                mv.songs.set(songs)
-
-            return mv
 
         return await database_sync_to_async(_sync)()
 
