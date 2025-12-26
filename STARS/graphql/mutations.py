@@ -28,7 +28,6 @@ from allauth.socialaccount.providers.apple.views import AppleOAuth2Adapter
 from allauth.socialaccount.helpers import complete_social_login
 from allauth.socialaccount.models import SocialApp, SocialLogin, SocialToken
 
-from STARS import models
 from . import types
 
 import base64
@@ -37,7 +36,6 @@ import cloudinary.uploader
 from django.db import transaction
 from STARS import models
 from ..services.apple_music import AppleMusicService
-
 
 def process_image_from_url(image_url: str):
     """
@@ -108,8 +106,6 @@ class ArtistCreateInput:
     genres: List[str]
     picture: str
     apple_music_url: str
-
-
 
 
 
@@ -344,6 +340,7 @@ class MusicVideoUpdateInput:
 class PerformanceVideoInput:
     youtube_id: str
     title: str
+    type: str
     thumbnail_url: str
     channel_name: str
     published_at: datetime
@@ -617,11 +614,14 @@ class Mutation:
                 # Handle the case where image processing failed, or let it fail gracefully
                 # For now, we proceed, but you might want to raise an Exception here
                 pass
+            valid_types = models.PerformanceVideo.PerformanceType.values
+            clean_type = data.type if data.type in valid_types else "OTHER"
 
             with transaction.atomic():
                 pv = models.PerformanceVideo.objects.create(
                     youtube_id=data.youtube_id,
                     title=data.title,
+                    performance_type=clean_type,
                     channel_name=data.channel_name,
                     release_date=data.published_at,
                     length=data.length_ms,

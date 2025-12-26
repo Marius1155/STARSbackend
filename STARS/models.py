@@ -195,8 +195,18 @@ class MusicVideo(models.Model):
 
 
 class PerformanceVideo(models.Model):
+    class PerformanceType(models.TextChoices):
+        AWARD_SHOW = "AWARD_SHOW", "Award Show"
+        TOUR = "TOUR", "Tour"
+        FESTIVAL = "FESTIVAL", "Festival"
+        TV_APPEARANCE = "TV_APPEARANCE", "TV Appearance"
+        LIVE_SESSION = "LIVE_SESSION", "Live Session"
+        RESIDENCY = "RESIDENCY", "Residency"
+        OTHER = "OTHER", "Other"
+
     youtube_id = models.CharField(blank=True, null=True, max_length=255)
     title = models.CharField(max_length=500, db_index=True)
+    performance_type = models.CharField(max_length=20, choices=PerformanceType.choices, db_index=True, default=PerformanceType.OTHER)
     channel_name = models.CharField(max_length=500, db_index=True)
     number_of_songs = models.IntegerField()
     songs = models.ManyToManyField('Song', related_name='performance_videos')

@@ -13,7 +13,6 @@ from STARS import models
 # Import your filters to use them in the fields
 from . import filters, orders
 
-
 @strawberry_django.type(models.MusicGenre, fields="__all__")
 class MusicGenre(strawberry.relay.Node):
     projects: DjangoCursorConnection["Project"] = strawberry_django.connection(filters=filters.ProjectFilter, order=orders.ProjectOrder)

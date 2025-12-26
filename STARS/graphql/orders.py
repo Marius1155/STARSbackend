@@ -82,6 +82,7 @@ class MusicVideoOrder:
 class PerformanceVideoOrder:
     release_date : auto
     title : auto
+    performance_type: auto
     number_of_songs : auto
     reviews_count : auto
     star_average : auto

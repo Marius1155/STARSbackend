@@ -101,6 +101,7 @@ class MusicVideoFilter:
 class PerformanceVideoFilter:
     id: auto
     youtube_id: auto
+    performance_type: auto
     number_of_songs: auto
     title: auto
     release_date: auto
