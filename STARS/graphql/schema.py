@@ -118,6 +118,10 @@ class Query:
             models.MusicVideo.objects.filter(
                 youtube_id__in=result_ids
             ).values_list('youtube_id', flat=True)
+        ) + list(
+            models.PerformanceVideo.objects.filter(
+                youtube_id__in=result_ids
+            ).values_list('youtube_id', flat=True)
         ))()
 
         existing_ids_set = set(existing_ids)
