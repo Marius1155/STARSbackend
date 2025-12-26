@@ -341,6 +341,29 @@ class MusicVideoUpdateInput:
 
 
 @strawberry.input
+class PerformanceVideoInput:
+    youtube_id: str
+    title: str
+    thumbnail_url: str
+    channel_name: str
+    published_at: datetime
+    length_ms: int
+    youtube_url: str
+    songs_ids: list[strawberry.ID]
+
+
+@strawberry.input
+class PerformanceVideoUpdateInput:
+    id: strawberry.ID
+    title: Optional[str] = strawberry.UNSET
+    release_date: Optional[str] = strawberry.UNSET
+    youtube: Optional[str] = strawberry.UNSET
+    thumbnail: Optional[str] = strawberry.UNSET
+    is_featured: Optional[bool] = strawberry.UNSET
+    featured_message: Optional[str] = strawberry.UNSET
+
+
+@strawberry.input
 class SongUpdateInput:
     id: strawberry.ID
     title: Optional[str] = strawberry.UNSET
@@ -533,6 +556,9 @@ class Mutation:
 
     update_music_video: types.MusicVideo = strawberry_django.mutations.update(MusicVideoUpdateInput)
     delete_music_video: types.MusicVideo = strawberry_django.mutations.delete(strawberry.ID)
+    update_performance_video: types.PerformanceVideo = strawberry_django.mutations.update(PerformanceVideoUpdateInput)
+    delete_performance_video: types.PerformanceVideo = strawberry_django.mutations.delete(strawberry.ID)
+
     update_podcast: types.Podcast = strawberry_django.mutations.update(PodcastUpdateInput)
     delete_podcast: types.Podcast = strawberry_django.mutations.delete(strawberry.ID)
 
@@ -574,6 +600,42 @@ class Mutation:
                 mv.songs.set(songs)
 
             return mv
+
+        return await database_sync_to_async(_sync)()
+
+    @strawberry.mutation
+    async def add_performance_video(self, info, data: PerformanceVideoInput) -> types.PerformanceVideo:
+
+        def _sync():
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
+
+            uploaded_url, primary_color, secondary_color = process_image_from_url(data.thumbnail_url)
+
+            if not uploaded_url:
+                # Handle the case where image processing failed, or let it fail gracefully
+                # For now, we proceed, but you might want to raise an Exception here
+                pass
+
+            with transaction.atomic():
+                pv = models.PerformanceVideo.objects.create(
+                    youtube_id=data.youtube_id,
+                    title=data.title,
+                    channel_name=data.channel_name,
+                    release_date=data.published_at,
+                    length=data.length_ms,
+                    youtube=data.youtube_url,
+                    thumbnail=uploaded_url,
+                    primary_color=primary_color,
+                    secondary_color=secondary_color,
+                    number_of_songs=len(data.songs_ids)
+                )
+
+                songs = list(models.Song.objects.filter(pk__in=data.songs_ids))
+                pv.songs.set(songs)
+
+            return pv
 
         return await database_sync_to_async(_sync)()
 

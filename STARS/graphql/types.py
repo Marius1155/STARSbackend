@@ -169,12 +169,20 @@ class MusicVideo(strawberry.relay.Node):
     outfits: DjangoCursorConnection["Outfit"] = strawberry_django.connection(filters=filters.OutfitFilter, order=orders.OutfitOrder)
 
 
+@strawberry_django.type(models.PerformanceVideo, fields="__all__")
+class PerformanceVideo(strawberry.relay.Node):
+    songs: DjangoCursorConnection["Song"] = strawberry_django.connection(filters=filters.SongFilter, order=orders.SongOrder)
+    reviews: DjangoCursorConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
+    outfits: DjangoCursorConnection["Outfit"] = strawberry_django.connection(filters=filters.OutfitFilter, order=orders.OutfitOrder)
+
+
 @strawberry_django.type(models.Song, fields="__all__")
 class Song(strawberry.relay.Node):
     alternative_versions: relay.ListConnection["Song"] = strawberry_django.connection(filters=filters.SongFilter, order=orders.SongOrder)
     song_artists: relay.ListConnection["SongArtist"] = strawberry_django.connection(filters=filters.SongArtistFilter, order=orders.SongArtistOrder)
     project_songs: relay.ListConnection["ProjectSong"] = strawberry_django.connection(filters=filters.ProjectSongFilter, order=orders.ProjectSongOrder)
     music_videos: relay.ListConnection["MusicVideo"] = strawberry_django.connection(filters=filters.MusicVideoFilter, order=orders.MusicVideoOrder)
+    performance_videos: relay.ListConnection["PerformanceVideo"] = strawberry_django.connection(filters=filters.PerformanceVideoFilter, order=orders.PerformanceVideoOrder)
     reviews: relay.ListConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
     genres: relay.ListConnection["MusicGenre"] = strawberry_django.connection(filters=filters.MusicGenreFilter, order=orders.MusicGenreOrder)
 
@@ -193,6 +201,10 @@ class Song(strawberry.relay.Node):
     @sync_to_async
     def get_music_videos(self) -> relay.ListConnection["MusicVideo"]:
         return self.music_videos.all()
+
+    @sync_to_async
+    def get_performance_videos(self) -> relay.ListConnection["PerformanceVideo"]:
+        return self.performance_videos.all()
 
     @sync_to_async
     def get_reviews(self) -> List[models.Review]:
@@ -298,7 +310,7 @@ class Profile(strawberry.relay.Node):
 
 Reviewable = strawberry.union(
     "Reviewable",
-    (Event, Project, Song, MusicVideo, Podcast, Outfit, Cover),
+    (Event, Project, Song, MusicVideo, PerformanceVideo, Podcast, Outfit, Cover),
 )
 
 Coverable = strawberry.union(

@@ -194,6 +194,32 @@ class MusicVideo(models.Model):
         return self.title
 
 
+class PerformanceVideo(models.Model):
+    youtube_id = models.CharField(blank=True, null=True, max_length=255)
+    title = models.CharField(max_length=500, db_index=True)
+    channel_name = models.CharField(max_length=500, db_index=True)
+    number_of_songs = models.IntegerField()
+    songs = models.ManyToManyField('Song', related_name='performance_videos')
+    release_date = models.DateField(db_index=True)
+    length = models.IntegerField()
+    youtube = models.URLField(max_length=500, unique=True)
+    thumbnail = models.URLField(max_length=500, null=True, blank=True)
+    reviews_count = models.IntegerField(default=0)
+    reviews = GenericRelation('Review')
+    star_average = models.FloatField(default=0)
+    is_featured = models.BooleanField(default=False, db_index=True)
+    featured_message = models.TextField(blank=True)
+
+    primary_color = models.CharField(max_length=7, blank=True)  # e.g., "#FF5733"
+    secondary_color = models.CharField(max_length=7, blank=True)  # e.g., "#33A1FF"
+
+    class Meta:
+        ordering = ['-release_date']
+
+    def __str__(self):
+        return self.title
+
+
 class Song(models.Model):
     apple_music_id = models.CharField(blank=True, null=True, max_length=255)
     title = models.CharField(max_length=500, db_index=True)
@@ -225,8 +251,8 @@ class Song(models.Model):
 
 
 class SongArtist(models.Model):
-    song = models.ForeignKey(Song, on_delete=models.CASCADE, related_name='song_artists') # <-- ADDED
-    artist = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='song_artists') # <-- ADDED
+    song = models.ForeignKey(Song, on_delete=models.CASCADE, related_name='song_artists')
+    artist = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='song_artists')
     position = models.PositiveIntegerField()
 
     def __str__(self):
@@ -403,6 +429,7 @@ class Profile(models.Model):
     project_reviews_count = models.IntegerField(default=0)
     song_reviews_count = models.IntegerField(default=0)
     music_video_reviews_count = models.IntegerField(default=0)
+    performance_video_reviews_count = models.IntegerField(default=0)
     cover_reviews_count = models.IntegerField(default=0)
     podcast_reviews_count = models.IntegerField(default=0)
     outfit_reviews_count = models.IntegerField(default=0)

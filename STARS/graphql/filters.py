@@ -97,6 +97,16 @@ class MusicVideoFilter:
     is_featured: auto
 
 
+@strawberry_django.filter(models.PerformanceVideo, lookups=True)
+class PerformanceVideoFilter:
+    id: auto
+    youtube_id: auto
+    number_of_songs: auto
+    title: auto
+    release_date: auto
+    is_featured: auto
+
+
 @strawberry_django.filter(models.Song, lookups=True)
 class SongFilter:
     apple_music_id: auto
