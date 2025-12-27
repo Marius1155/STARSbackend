@@ -60,10 +60,10 @@ class EventSeries(strawberry.relay.Node):
 
 @strawberry_django.type(models.Event, fields="__all__")
 class Event(strawberry.relay.Node):
-    series: "EventSeries"
     reviews: DjangoCursorConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
     outfits: DjangoCursorConnection["Outfit"] = strawberry_django.connection(filters=filters.OutfitFilter, order=orders.OutfitOrder)
     performances: DjangoCursorConnection["PerformanceVideo"] = strawberry_django.connection(filters=filters.PerformanceVideoFilter, order=orders.PerformanceVideoOrder)
+    series: Optional["EventSeries"]
 
 
 @strawberry_django.type(
