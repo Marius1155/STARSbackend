@@ -36,6 +36,16 @@ class EventSeriesFilter:
     name: auto
     is_featured: auto
 
+    # NEW: Search functionality like SongFilter
+    @strawberry_django.filter_field
+    def search(self, queryset, value: str, prefix) -> None:
+        if value:
+            matching_ids = models.EventSeries.objects.filter(
+                Q(name__icontains=value)
+            ).values('pk')
+            return Q(pk__in=matching_ids)
+        return None
+
 @strawberry_django.filter(models.Event, lookups=True)
 class EventFilter:
     id: auto
@@ -45,6 +55,18 @@ class EventFilter:
     is_one_time: auto
     is_featured: auto
     series: Optional["EventSeriesFilter"]
+
+    # NEW: Search functionality (Name, Location, Series Name)
+    @strawberry_django.filter_field
+    def search(self, queryset, value: str, prefix) -> None:
+        if value:
+            matching_ids = models.Event.objects.filter(
+                Q(name__icontains=value) |
+                Q(location__icontains=value) |
+                Q(series__name__icontains=value)
+            ).values('pk')
+            return Q(pk__in=matching_ids)
+        return None
 
 @strawberry_django.filter(models.Comment, lookups=True)
 class CommentFilter:
