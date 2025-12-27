@@ -207,6 +207,7 @@ class PerformanceVideo(models.Model):
     youtube_id = models.CharField(blank=True, null=True, max_length=255)
     title = models.CharField(max_length=500, db_index=True)
     performance_type = models.CharField(max_length=20, choices=PerformanceType.choices, db_index=True, default=PerformanceType.OTHER)
+    event = models.ForeignKey('Event', on_delete=models.SET_NULL, related_name='performances', null=True)
     channel_name = models.CharField(max_length=500, db_index=True)
     number_of_songs = models.IntegerField()
     songs = models.ManyToManyField('Song', related_name='performance_videos')

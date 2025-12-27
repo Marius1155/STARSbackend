@@ -63,6 +63,7 @@ class Event(strawberry.relay.Node):
     series: "EventSeries"
     reviews: DjangoCursorConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
     outfits: DjangoCursorConnection["Outfit"] = strawberry_django.connection(filters=filters.OutfitFilter, order=orders.OutfitOrder)
+    performances: DjangoCursorConnection["PerformanceVideo"] = strawberry_django.connection(filters=filters.PerformanceVideoFilter, order=orders.PerformanceVideoOrder)
 
 
 @strawberry_django.type(
@@ -170,6 +171,7 @@ class MusicVideo(strawberry.relay.Node):
 
 @strawberry_django.type(models.PerformanceVideo, fields="__all__")
 class PerformanceVideo(strawberry.relay.Node):
+    event: Optional["Event"]
     songs: DjangoCursorConnection["Song"] = strawberry_django.connection(filters=filters.SongFilter, order=orders.SongOrder)
     reviews: DjangoCursorConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
     outfits: DjangoCursorConnection["Outfit"] = strawberry_django.connection(filters=filters.OutfitFilter, order=orders.OutfitOrder)

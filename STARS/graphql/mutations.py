@@ -347,6 +347,12 @@ class PerformanceVideoInput:
     length_ms: int
     youtube_url: str
     songs_ids: list[strawberry.ID]
+    event_id: Optional[str]
+    event_name: Optional[str]
+    event_date: Optional[datetime]
+    event_location: Optional[str]
+    event_series_id: Optional[str]
+    event_series_name: Optional[str]
 
 
 @strawberry.input
@@ -614,10 +620,49 @@ class Mutation:
                 # Handle the case where image processing failed, or let it fail gracefully
                 # For now, we proceed, but you might want to raise an Exception here
                 pass
+
             valid_types = models.PerformanceVideo.PerformanceType.values
             clean_type = data.type if data.type in valid_types else "OTHER"
 
             with transaction.atomic():
+                event = None
+
+                # Case 1: Connect to existing Event
+                if data.event_id:
+                    try:
+                        event = models.Event.objects.get(pk=data.event_id)
+                    except models.Event.DoesNotExist:
+                        raise Exception(f"Event with id {data.event_id} not found.")
+
+                # Case 2: Create new Event if name and date are provided
+                elif data.event_name and data.event_date:
+                    series = None
+                    is_one_time = True
+
+                    # Sub-case 2a: Connect to existing Series
+                    if data.event_series_id:
+                        try:
+                            series = models.EventSeries.objects.get(pk=data.event_series_id)
+                            is_one_time = False
+                        except models.EventSeries.DoesNotExist:
+                            raise Exception(f"Event Series with id {data.event_series_id} not found.")
+
+                    # Sub-case 2b: Create new Series
+                    elif data.event_series_name:
+                        series = models.EventSeries.objects.create(name=data.event_series_name)
+                        is_one_time = False
+
+                    # Sub-case 2c: Standalone event (is_one_time=True is default)
+
+                    event = models.Event.objects.create(
+                        name=data.event_name,
+                        date=data.event_date,  # Assuming datetime object works with DateField, or use .date()
+                        location=data.event_location or "",
+                        is_one_time=is_one_time,
+                        series=series
+                    )
+
+                # Create Performance Video
                 pv = models.PerformanceVideo.objects.create(
                     youtube_id=data.youtube_id,
                     title=data.title,
@@ -629,11 +674,13 @@ class Mutation:
                     thumbnail=uploaded_url,
                     primary_color=primary_color,
                     secondary_color=secondary_color,
-                    number_of_songs=len(data.songs_ids)
+                    number_of_songs=len(data.songs_ids),
+                    event=event
                 )
 
-                songs = list(models.Song.objects.filter(pk__in=data.songs_ids))
-                pv.songs.set(songs)
+                if data.songs_ids:
+                    songs = list(models.Song.objects.filter(pk__in=data.songs_ids))
+                    pv.songs.set(songs)
 
             return pv
 
