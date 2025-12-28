@@ -346,7 +346,7 @@ class PerformanceVideoInput:
     published_at: datetime
     length_ms: int
     youtube_url: str
-    artists_ids: list[strawberry.ID]
+    artists_apple_music_ids: list[strawberry.ID]
     songs_ids: list[strawberry.ID]
     event_id: Optional[str]
     event_name: Optional[str]
@@ -609,6 +609,52 @@ class Mutation:
 
     @strawberry.mutation
     async def add_performance_video(self, info, data: PerformanceVideoInput) -> types.PerformanceVideo:
+        am_service = AppleMusicService()
+
+        # -------------------------------------------------------
+        # 1. PREPARATION PHASE
+        # -------------------------------------------------------
+
+        # Collect all Artist Apple Music IDs (from the Project and from any New Songs)
+        # We use a set to avoid processing the same artist twice (e.g. if they are on the project AND a song)
+        all_am_ids = set(data.artists_apple_music_ids or [])
+
+        # Dictionary to store fetched data: { am_id: { name, picture, ... } }
+        artists_to_create_data = {}
+
+        # B. Fetch & Process Missing Artists
+        for am_id in all_am_ids:
+            # Check if artist exists in DB
+            exists = await sync_to_async(models.Artist.objects.filter(apple_music_id=am_id).exists)()
+
+            if not exists:
+                try:
+                    # Fetch details from Apple Music
+                    href = f"/v1/catalog/us/artists/{am_id}"
+                    artist_data = await am_service.get_artist(href)
+
+                    attrs = artist_data.get("attributes", {})
+                    name = attrs.get("name", "")
+                    url = attrs.get("url", "")
+                    raw_image_url = attrs.get("artwork", {}).get("url", "")
+
+                    # Process Artist Image
+                    pic_url, primary, secondary = await sync_to_async(process_image_from_url)(raw_image_url)
+
+                    # Store prepared data
+                    artists_to_create_data[am_id] = {
+                        "name": name,
+                        "apple_music_url": url,
+                        "picture": pic_url or "",
+                        "primary_color": primary,
+                        "secondary_color": secondary,
+                        "genres": attrs.get("genreNames", [])
+                    }
+                except Exception as e:
+                    print(f"Error fetching artist {am_id}: {e}")
+                    pass
+
+        await am_service.close()
 
         def _sync():
             user = info.context.request.user
@@ -626,6 +672,30 @@ class Mutation:
             clean_type = data.type if data.type in valid_types else "OTHER"
 
             with transaction.atomic():
+                def get_or_create_artist_node(am_id):
+                    # 1. Check DB (It might exist, or we might have just created it in a previous iteration of this loop)
+                    artist = models.Artist.objects.filter(apple_music_id=am_id).first()
+                    if artist:
+                        return artist
+
+                    # 2. If not in DB, check if we fetched data for it
+                    if am_id in artists_to_create_data:
+                        adata = artists_to_create_data[am_id]
+                        artist = models.Artist.objects.create(
+                            apple_music_id=am_id,
+                            name=adata["name"],
+                            picture=adata["picture"],
+                            primary_color=adata["primary_color"] or "",
+                            secondary_color=adata["secondary_color"] or "",
+                            apple_music=adata["apple_music_url"]
+                        )
+                        if adata["genres"]:
+                            genre_objs = get_or_create_genres(adata["genres"])
+                            artist.genres.set(genre_objs)
+                        return artist
+
+                    return None
+
                 event = None
 
                 # Case 1: Connect to existing Event
@@ -684,8 +754,13 @@ class Mutation:
                     pv.songs.set(songs)
 
                 if data.artists_ids:
-                    artists = list(models.Artist.objects.filter(pk__in=data.artists_ids))
-                    pv.artists.set(artists)
+                    artists_to_add = []
+                    for i, am_id in enumerate(data.artists_apple_music_ids or []):
+                        artist = get_or_create_artist_node(am_id)
+                        if artist:
+                            artists_to_add.append(artist)
+
+                    pv.artists.set(artists_to_add)
 
             return pv
 
