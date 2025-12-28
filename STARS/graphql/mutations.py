@@ -683,6 +683,10 @@ class Mutation:
                     songs = list(models.Song.objects.filter(pk__in=data.songs_ids))
                     pv.songs.set(songs)
 
+                if data.artists_ids:
+                    artists = list(models.Artist.objects.filter(pk__in=data.artists_ids))
+                    pv.artists.set(artists)
+
             return pv
 
         return await database_sync_to_async(_sync)()
