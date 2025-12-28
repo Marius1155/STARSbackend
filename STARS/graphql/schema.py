@@ -12,6 +12,9 @@ from STARS.services.youtube import YoutubeService
 from asgiref.sync import sync_to_async
 from datetime import datetime
 
+from STARS.services.itunes import iTunesService
+
+itunes_service = iTunesService()
 apple_music = AppleMusicService()
 youtube_service = YoutubeService()
 
@@ -105,9 +108,36 @@ class YoutubeVideoDetail:
     url: str
     primary_color: str
 
+@strawberry.type
+class iTunesPodcastLight:
+    id: str
+    title: str
+    artist_name: str
+    image_url: str
+    url: str
+    genres: List[str]
+
 # --- GraphQL Query ---
 @strawberry.type
 class Query:
+    @strawberry.field
+    async def search_itunes_podcasts(self, term: str) -> List[iTunesPodcastLight]:
+        results = await itunes_service.search_podcasts(term)
+        podcasts: List[iTunesPodcastLight] = []
+
+        for item in results:
+            podcasts.append(
+                iTunesPodcastLight(
+                    id=str(item.get("collectionId")),
+                    title=item.get("collectionName", ""),
+                    artist_name=item.get("artistName", ""),
+                    image_url=item.get("artworkUrl600", "") or item.get("artworkUrl100", ""),
+                    url=item.get("collectionViewUrl", ""),
+                    genres=item.get("genres", [])
+                )
+            )
+        return podcasts
+
     @strawberry.field
     async def search_youtube_videos(self, term: str) -> List[YoutubeVideoDetail]:
         results = await youtube_service.search_videos(term)
