@@ -27,7 +27,6 @@ class Artist(strawberry.relay.Node):
     song_artists: relay.ListConnection["SongArtist"] = strawberry_django.connection(filters=filters.SongArtistFilter, order=orders.SongArtistOrder)
     project_artists: relay.ListConnection["ProjectArtist"] = strawberry_django.connection(filters=filters.ProjectArtistFilter, order=orders.ProjectArtistOrder)
     outfits: relay.ListConnection["Outfit"] = strawberry_django.connection(filters=filters.OutfitFilter, order=orders.OutfitOrder)
-    podcasts: relay.ListConnection["Podcast"] = strawberry_django.connection(filters=filters.PodcastFilter, order=orders.PodcastOrder)
     genres: relay.ListConnection["MusicGenre"] = strawberry_django.connection(filters=filters.MusicGenreFilter, order=orders.MusicGenreOrder)
     performance_videos: relay.ListConnection["PerformanceVideo"] = strawberry_django.connection(filters=filters.PerformanceVideoFilter, order=orders.PerformanceVideoOrder)
 
@@ -44,10 +43,6 @@ class Artist(strawberry.relay.Node):
     @sync_to_async
     def get_outfits(self) -> List[models.Outfit]:
         return self.outfits.all()
-
-    @sync_to_async
-    def get_podcasts(self) -> List[models.Podcast]:
-        return self.podcasts.all()
 
     @sync_to_async
     def get_genres(self) -> List[models.MusicGenre]:
@@ -276,7 +271,6 @@ class ProjectSong(strawberry.relay.Node):
 
 @strawberry_django.type(models.Podcast, fields="__all__")
 class Podcast(strawberry.relay.Node):
-    hosts: DjangoCursorConnection["Artist"] = strawberry_django.connection(filters=filters.ArtistFilter, order=orders.ArtistOrder)
     covers: DjangoCursorConnection["Cover"] = strawberry_django.connection(filters=filters.CoverFilter, order=orders.CoverOrder)
     reviews: DjangoCursorConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
 

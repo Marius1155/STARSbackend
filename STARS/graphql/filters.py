@@ -191,7 +191,9 @@ class ProjectSongFilter:
 @strawberry_django.filter(models.Podcast, lookups=True)
 class PodcastFilter:
     id: auto
+    apple_podcasts_id: auto
     title: auto
+    host: auto
     since: auto
     is_featured: auto
 

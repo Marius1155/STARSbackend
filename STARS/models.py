@@ -340,8 +340,9 @@ class ProjectSong(models.Model):
 
 
 class Podcast(models.Model):
+    apple_podcasts_id = models.CharField(blank=True, null=True, max_length=255)
     title = models.CharField(max_length=500, db_index=True)
-    hosts = models.ManyToManyField('Artist', related_name='podcasts')
+    host = models.CharField(max_length=500, db_index=True)
     description = models.TextField(blank=True)
     since = models.DateField(db_index=True)
     covers = GenericRelation('Cover')
@@ -360,8 +361,7 @@ class Podcast(models.Model):
         ordering = ['-since']
 
     def __str__(self):
-        hosts_names = ', '.join(host.name for host in self.hosts.all())
-        return f"{self.title} - {hosts_names}"
+        return f"{self.title} - {self.host}"
 
 
 class Outfit(models.Model):

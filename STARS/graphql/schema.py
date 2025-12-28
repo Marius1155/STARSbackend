@@ -14,6 +14,14 @@ from datetime import datetime
 
 from STARS.services.itunes import iTunesService
 
+import re
+
+def get_high_res_artwork(url: str) -> str:
+    if not url:
+        return ""
+    # Regex to find the dimensions part (e.g., "600x600bb") and replace it
+    return re.sub(r"\d+x\d+bb", "3000x3000bb", url)
+
 itunes_service = iTunesService()
 apple_music = AppleMusicService()
 youtube_service = YoutubeService()
@@ -112,7 +120,7 @@ class YoutubeVideoDetail:
 class iTunesPodcastLight:
     id: str
     title: str
-    artist_name: str
+    host: str
     image_url: str
     url: str
     genres: List[str]
@@ -126,12 +134,16 @@ class Query:
         podcasts: List[iTunesPodcastLight] = []
 
         for item in results:
+            # Upgrade image quality
+            base_image = item.get("artworkUrl600", "") or item.get("artworkUrl100", "")
+            high_res_image = get_high_res_artwork(base_image)
+
             podcasts.append(
                 iTunesPodcastLight(
                     id=str(item.get("collectionId")),
                     title=item.get("collectionName", ""),
-                    artist_name=item.get("artistName", ""),
-                    image_url=item.get("artworkUrl600", "") or item.get("artworkUrl100", ""),
+                    host=item.get("artistName", ""),
+                    image_url=high_res_image,
                     url=item.get("collectionViewUrl", ""),
                     genres=item.get("genres", [])
                 )
