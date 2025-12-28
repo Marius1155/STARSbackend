@@ -346,6 +346,7 @@ class PerformanceVideoInput:
     published_at: datetime
     length_ms: int
     youtube_url: str
+    artists_ids: list[strawberry.ID]
     songs_ids: list[strawberry.ID]
     event_id: Optional[str]
     event_name: Optional[str]

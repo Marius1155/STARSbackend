@@ -29,6 +29,7 @@ class Artist(strawberry.relay.Node):
     outfits: relay.ListConnection["Outfit"] = strawberry_django.connection(filters=filters.OutfitFilter, order=orders.OutfitOrder)
     podcasts: relay.ListConnection["Podcast"] = strawberry_django.connection(filters=filters.PodcastFilter, order=orders.PodcastOrder)
     genres: relay.ListConnection["MusicGenre"] = strawberry_django.connection(filters=filters.MusicGenreFilter, order=orders.MusicGenreOrder)
+    performance_videos: relay.ListConnection["PerformanceVideo"] = strawberry_django.connection(filters=filters.PerformanceVideoFilter, order=orders.PerformanceVideoOrder)
 
     # Add these async accessors to ensure safe DB access if needed by custom resolvers
     # or simply to match your Project pattern.
@@ -52,6 +53,10 @@ class Artist(strawberry.relay.Node):
     def get_genres(self) -> List[models.MusicGenre]:
         return self.genres.all()
 
+    @sync_to_async
+    def get_performance_videos(self) -> List[models.PerformanceVideo]:
+        return self.performance_videos.all()
+
 
 @strawberry_django.type(models.EventSeries, fields="__all__")
 class EventSeries(strawberry.relay.Node):
@@ -62,7 +67,7 @@ class EventSeries(strawberry.relay.Node):
 class Event(strawberry.relay.Node):
     reviews: DjangoCursorConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
     outfits: DjangoCursorConnection["Outfit"] = strawberry_django.connection(filters=filters.OutfitFilter, order=orders.OutfitOrder)
-    performances: DjangoCursorConnection["PerformanceVideo"] = strawberry_django.connection(filters=filters.PerformanceVideoFilter, order=orders.PerformanceVideoOrder)
+    performance_videos: DjangoCursorConnection["PerformanceVideo"] = strawberry_django.connection(filters=filters.PerformanceVideoFilter, order=orders.PerformanceVideoOrder)
     series: Optional["EventSeries"]
 
 
@@ -172,6 +177,7 @@ class MusicVideo(strawberry.relay.Node):
 @strawberry_django.type(models.PerformanceVideo, fields="__all__")
 class PerformanceVideo(strawberry.relay.Node):
     event: Optional["Event"]
+    artists: DjangoCursorConnection["Artist"] = strawberry_django.connection(filters=filters.ArtistFilter, order=orders.ArtistOrder)
     songs: DjangoCursorConnection["Song"] = strawberry_django.connection(filters=filters.SongFilter, order=orders.SongOrder)
     reviews: DjangoCursorConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
     outfits: DjangoCursorConnection["Outfit"] = strawberry_django.connection(filters=filters.OutfitFilter, order=orders.OutfitOrder)
