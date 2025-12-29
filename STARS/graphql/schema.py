@@ -20,7 +20,7 @@ def get_high_res_artwork(url: str) -> str:
     if not url:
         return ""
     # Regex to find the dimensions part (e.g., "600x600bb") and replace it
-    return re.sub(r"\d+x\d+bb", "3000x3000bb", url)
+    return re.sub(r"\d+x\d+bb", "900x900bb", url)
 
 itunes_service = iTunesService()
 apple_music = AppleMusicService()
