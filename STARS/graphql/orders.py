@@ -20,6 +20,11 @@ class MusicGenreOrder:
     title: auto
     is_featured : auto
 
+@strawberry_django.order_type(models.PodcastGenre)
+class PodcastGenreOrder:
+    title: auto
+    is_featured : auto
+
 @strawberry_django.order_type(models.Artist)
 class ArtistOrder:
     name : auto

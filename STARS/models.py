@@ -19,6 +19,18 @@ class MusicGenre(models.Model):
         ordering = ['title']
 
 
+class PodcastGenre(models.Model):
+    title = models.CharField(max_length=500, db_index=True, unique=True)
+    is_featured = models.BooleanField(default=False, db_index=True)
+    featured_message = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.title} - {self.is_featured}"
+
+    class Meta:
+        ordering = ['title']
+
+
 class Artist(models.Model):
     apple_music_id = models.CharField(blank=True, null=True, max_length=255)
     name = models.CharField(max_length=100, db_index=True)
@@ -343,6 +355,7 @@ class Podcast(models.Model):
     apple_podcasts_id = models.CharField(blank=True, null=True, max_length=255)
     title = models.CharField(max_length=500, db_index=True)
     host = models.CharField(max_length=500, db_index=True)
+    genres = models.ManyToManyField('PodcastGenre', related_name='podcasts', blank=True)
     description = models.TextField(blank=True)
     since = models.DateField(db_index=True)
     covers = GenericRelation('Cover')

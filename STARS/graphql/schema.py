@@ -443,7 +443,8 @@ class Query:
         return songs
 
     artists: DjangoCursorConnection[types.Artist] = strawberry_django.connection(filters=filters.ArtistFilter, order=orders.ArtistOrder)
-    project_genres: DjangoCursorConnection[types.MusicGenre] = strawberry_django.connection(filters=filters.MusicGenreFilter, order=orders.MusicGenreOrder)
+    music_genres: DjangoCursorConnection[types.MusicGenre] = strawberry_django.connection(filters=filters.MusicGenreFilter, order=orders.MusicGenreOrder)
+    podcast_genres: DjangoCursorConnection[types.PodcastGenre] = strawberry_django.connection(filters=filters.PodcastGenreFilter, order=orders.PodcastGenreOrder)
     projects: DjangoCursorConnection[types.Project] = strawberry_django.connection(filters=filters.ProjectFilter, order=orders.ProjectOrder)
     songs: DjangoCursorConnection[types.Song] = strawberry_django.connection(filters=filters.SongFilter, order=orders.SongOrder)
     podcasts: DjangoCursorConnection[types.Podcast] = strawberry_django.connection(filters=filters.PodcastFilter, order=orders.PodcastOrder)

@@ -9,6 +9,7 @@ from django.contrib.auth.models import User as DjangoUser
 from asgiref.sync import sync_to_async
 from strawberry import relay
 from STARS import models
+from STARS.models import PodcastGenre
 
 # Import your filters to use them in the fields
 from . import filters, orders
@@ -19,6 +20,10 @@ class MusicGenre(strawberry.relay.Node):
     songs: DjangoCursorConnection["Song"] = strawberry_django.connection(filters=filters.SongFilter, order=orders.SongOrder)
     artists: DjangoCursorConnection["Artist"] = strawberry_django.connection(filters=filters.ArtistFilter, order=orders.ArtistOrder)
 
+
+@strawberry_django.type(models.PodcastGenre, fields="__all__")
+class PodcastGenre(strawberry.relay.Node):
+    podcasts: DjangoCursorConnection["Podcast"] = strawberry_django.connection(filters=filters.PodcastFilter, order=orders.PodcastOrder)
 
 
 @strawberry_django.type(models.Artist, fields="__all__")
@@ -273,6 +278,7 @@ class ProjectSong(strawberry.relay.Node):
 class Podcast(strawberry.relay.Node):
     covers: DjangoCursorConnection["Cover"] = strawberry_django.connection(filters=filters.CoverFilter, order=orders.CoverOrder)
     reviews: DjangoCursorConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
+    genres: DjangoCursorConnection["PodcastGenre"] = strawberry_django.connection(filters=filters.PodcastGenreFilter, order=orders.PodcastGenreOrder)
 
 
 @strawberry_django.type(models.Outfit, fields="__all__")

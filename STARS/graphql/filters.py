@@ -21,6 +21,12 @@ class MusicGenreFilter:
     title: auto
     is_featured: auto
 
+@strawberry_django.filter(models.PodcastGenre, lookups=True)
+class PodcastGenreFilter:
+    id: auto
+    title: auto
+    is_featured: auto
+
 @strawberry_django.filter(models.Artist, lookups=True)
 class ArtistFilter:
     id: auto # This will correctly resolve to an Int lookup
