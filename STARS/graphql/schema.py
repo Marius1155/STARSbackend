@@ -122,8 +122,6 @@ class iTunesPodcastLight:
     title: str
     host: str
     image_url: str
-    url: str
-    genres: List[str]
 
 # --- GraphQL Query ---
 @strawberry.type
@@ -143,9 +141,7 @@ class Query:
                     id=str(item.get("collectionId")),
                     title=item.get("collectionName", ""),
                     host=item.get("artistName", ""),
-                    image_url=high_res_image,
-                    url=item.get("collectionViewUrl", ""),
-                    genres=item.get("genres", [])
+                    image_url=high_res_image
                 )
             )
         return podcasts

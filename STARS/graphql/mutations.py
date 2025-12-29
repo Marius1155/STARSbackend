@@ -18,6 +18,8 @@ from django.contrib.contenttypes.models import ContentType
 import enum
 from datetime import datetime
 from .subscriptions import broadcast_conversation_update, broadcast_message_event
+from ..services.itunes import iTunesService  # Ensure this service exists from previous step
+from dateutil import parser
 import asyncio
 
 
@@ -36,6 +38,20 @@ import cloudinary.uploader
 from django.db import transaction
 from STARS import models
 from ..services.apple_music import AppleMusicService
+
+def get_high_res_artwork(url: str) -> str:
+    if not url: return ""
+    return re.sub(r"\d+x\d+bb", "3000x3000bb", url)
+
+ITUNES_GENRES = {
+    1301: "Arts", 1303: "Comedy", 1304: "Education", 1305: "Kids & Family",
+    1309: "TV & Film", 1310: "Music", 1311: "News", 1314: "Religion",
+    1315: "Science", 1316: "Sports", 1318: "Technology", 1321: "Business",
+    1323: "Games", 1324: "Society", 1325: "Government", 1482: "Health",
+    1483: "Design", 1484: "Automotive", 1485: "Performing Arts",
+    1486: "Visual Arts", 1487: "Fashion", 1488: "True Crime",
+    1511: "Fiction", 1512: "History"
+}
 
 def process_image_from_url(image_url: str):
     """
@@ -570,6 +586,127 @@ class Mutation:
     delete_outfit: types.Outfit = strawberry_django.mutations.delete(strawberry.ID)
 
     update_profile: types.Profile = strawberry_django.mutations.update(ProfileUpdateInput)
+
+
+    @strawberry.mutation
+    async def import_all_top_podcasts(self, info) -> SuccessMessage:
+        """
+        Massive import: Fetches Top 200 podcasts from every genre ~5000 total.
+        """
+        user = info.context.request.user
+        if not user.is_staff:  # Optional security check
+            pass
+
+        itunes_service = iTunesService()
+
+        # 1. Parallel Fetching
+        tasks = []
+        for genre_id in ITUNES_GENRES.keys():
+            tasks.append(itunes_service.get_podcasts_by_genre(genre_id, limit=200))
+
+        print("Starting massive iTunes fetch...")
+        all_results_lists = await asyncio.gather(*tasks)
+        await itunes_service.close()
+
+        flat_results = [item for sublist in all_results_lists for item in sublist]
+
+        # 2. Database Save (Sync Wrapper)
+        def _bulk_save():
+            created_count = 0
+            # Deduplicate by ID before hitting DB
+            unique_podcasts = {str(p.get("collectionId")): p for p in flat_results}
+
+            with transaction.atomic():
+                for collection_id, item in unique_podcasts.items():
+                    if not collection_id: continue
+
+                    # Check existence
+                    if models.Podcast.objects.filter(apple_podcasts_id=collection_id).exists():
+                        continue
+
+                    # Parse Date
+                    try:
+                        since_date = parser.parse(item.get("releaseDate", "")).date()
+                    except:
+                        since_date = datetime.now().date()
+
+                    # Create Podcast
+                    podcast = models.Podcast.objects.create(
+                        apple_podcasts_id=collection_id,
+                        title=item.get("collectionName", "Unknown")[:500],
+                        host=item.get("artistName", "Unknown")[:500],
+                        since=since_date,
+                        apple_podcasts=item.get("collectionViewUrl"),
+                        description=f"Imported from iTunes. Feed: {item.get('feedUrl', '')}"
+                    )
+
+                    # Genres
+                    for g_name in item.get("genres", []):
+                        g_obj, _ = models.PodcastGenre.objects.get_or_create(title=g_name)
+                        podcast.genres.add(g_obj)
+
+                    # Cover
+                    cover_url = get_high_res_artwork(item.get("artworkUrl600", ""))
+                    if cover_url:
+                        models.Cover.objects.create(image=cover_url, content_object=podcast, position=1)
+
+                    created_count += 1
+            return created_count
+
+        count = await database_sync_to_async(_bulk_save)()
+        return SuccessMessage(message=f"Imported {count} new podcasts.")
+
+    @strawberry.mutation
+    async def import_podcast_from_itunes(self, info, apple_podcasts_id: str) -> types.Podcast:
+        """
+        Imports a single podcast when a user clicks it in search results.
+        """
+        # 1. Check Local DB First
+        existing = await sync_to_async(models.Podcast.objects.filter(apple_podcasts_id=apple_podcasts_id).first)()
+        if existing:
+            return existing
+
+        # 2. Fetch from API
+        itunes_service = iTunesService()
+        item = await itunes_service.lookup_podcast(apple_podcasts_id)
+        await itunes_service.close()
+
+        if not item:
+            raise Exception("Podcast not found on iTunes.")
+
+        # 3. Save to DB
+        def _save_sync():
+            with transaction.atomic():
+                # Double check inside transaction
+                if models.Podcast.objects.filter(apple_podcasts_id=apple_podcasts_id).exists():
+                    return models.Podcast.objects.get(apple_podcasts_id=apple_podcasts_id)
+
+                try:
+                    since_date = parser.parse(item.get("releaseDate", "")).date()
+                except:
+                    since_date = datetime.now().date()
+
+                podcast = models.Podcast.objects.create(
+                    apple_podcasts_id=str(item.get("collectionId")),
+                    title=item.get("collectionName", "Unknown")[:500],
+                    host=item.get("artistName", "Unknown")[:500],
+                    since=since_date,
+                    apple_podcasts=item.get("collectionViewUrl"),
+                    description=item.get("feedUrl", "")
+                )
+
+                for g_name in item.get("genres", []):
+                    g_obj, _ = models.PodcastGenre.objects.get_or_create(title=g_name)
+                    podcast.genres.add(g_obj)
+
+                cover_url = get_high_res_artwork(item.get("artworkUrl600", ""))
+                if cover_url:
+                    models.Cover.objects.create(image=cover_url, content_object=podcast, position=1)
+
+                return podcast
+
+        return await database_sync_to_async(_save_sync)()
+
 
     @strawberry.mutation
     async def add_music_video(self, info, data: MusicVideoInput) -> types.MusicVideo:
