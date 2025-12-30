@@ -111,6 +111,16 @@ def get_or_create_genres(genre_names: List[str]):
         genres.append(genre_obj)
     return genres
 
+def get_or_create_podcast_genres(genre_names: List[str]):
+    if not genre_names:
+        return []
+
+    genres = []
+    for name in genre_names:
+        genre_obj, _ = models.PodcastGenre.objects.get_or_create(title=name)
+        genres.append(genre_obj)
+    return genres
+
 # -----------------------------------------------------------------------------
 # Input Types
 # -----------------------------------------------------------------------------
@@ -640,10 +650,9 @@ class Mutation:
                         description=f"Imported from iTunes. Feed: {item.get('feedUrl', '')}"
                     )
 
-                    # Genres
-                    for g_name in item.get("genres", []):
-                        g_obj, _ = models.PodcastGenre.objects.get_or_create(title=g_name)
-                        podcast.genres.add(g_obj)
+                    genre_objects = get_or_create_podcast_genres(item.get("genres", []))
+                    if genre_objects:
+                        podcast.genres.set(genre_objects)
 
                     # Cover
                     cover_url = get_high_res_artwork(item.get("artworkUrl600", ""))
@@ -674,6 +683,10 @@ class Mutation:
         if not item:
             raise Exception("Podcast not found on iTunes.")
 
+        # -------------------------------------------------------
+        # 2. ASYNC PHASE: Network Operations (Apple Music + Images)
+        # -------------------------------------------------------
+
         # 3. Save to DB
         def _save_sync():
             with transaction.atomic():
@@ -691,17 +704,29 @@ class Mutation:
                     title=item.get("collectionName", "Unknown")[:500],
                     host=item.get("artistName", "Unknown")[:500],
                     since=since_date,
-                    apple_podcasts=item.get("collectionViewUrl"),
-                    description=item.get("feedUrl", "")
+                    apple_podcasts=item.get("collectionViewUrl")
                 )
 
-                for g_name in item.get("genres", []):
-                    g_obj, _ = models.PodcastGenre.objects.get_or_create(title=g_name)
-                    podcast.genres.add(g_obj)
+                genre_objects = get_or_create_podcast_genres(item.get("genres", []))
+                if genre_objects:
+                    podcast.genres.set(genre_objects)
 
                 cover_url = get_high_res_artwork(item.get("artworkUrl600", ""))
+
                 if cover_url:
-                    models.Cover.objects.create(image=cover_url, content_object=podcast, position=1)
+                    try:
+                        cover_image_url, cover_primary, cover_secondary = process_image_from_url(cover_url)
+                    except Exception as e:
+                        print(f"Error processing podcast cover image: {e}")
+
+                if cover_image_url:
+                    models.Cover.objects.create(
+                        image=cover_image_url,
+                        content_object=podcast,
+                        position=1,
+                        primary_color=cover_primary,
+                        secondary_color=cover_secondary
+                    )
 
                 return podcast
 
