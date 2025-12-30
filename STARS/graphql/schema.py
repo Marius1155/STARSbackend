@@ -338,7 +338,7 @@ class Query:
             songs.append(
                 AppleMusicSongDetail(
                     id=song.get("id"),
-                    type=song_attrs.get("type", ""),
+                    type=song.get("type", ""),
                     name=song_attrs.get("name", ""),
                     length_ms=song_attrs.get("durationInMillis", 0),
                     disc_number=song_attrs.get("discNumber"),
