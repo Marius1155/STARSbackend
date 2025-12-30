@@ -278,17 +278,21 @@ class Query:
         number_of_songs = 0
 
         for song in album.get("relationships", {}).get("tracks", {}).get("data", []):
+            song_type = song.get("type", "")
+
+            if song_type != "songs":
+                continue
+
             song_href = song.get("href", "")
             song_attrs = song.get("attributes", {})
 
             # KEY FIX: Check if song is released/playable.
             is_released = song_attrs.get("playParams") is not None
-            song_type = song.get("type", "")
 
             full_song = None
 
             # Only fetch full details if the song is actually out
-            if is_released and song_href and song_type == "songs":
+            if is_released and song_href:
                 try:
                     full_song = await apple_music.get_song(song_href)
                 except Exception:
