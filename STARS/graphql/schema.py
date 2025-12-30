@@ -130,9 +130,22 @@ class Query:
     @strawberry.field
     async def search_itunes_podcasts(self, term: str) -> List[iTunesPodcastLight]:
         results = await itunes_service.search_podcasts(term)
+
+        result_ids = [podcast.get("collectionId") for podcast in results if podcast.get("collectionId")]
+
+        existing_ids = await sync_to_async(lambda: list(
+            models.Podcast.objects.filter(
+                apple_podcasts_id__in=result_ids
+            ).values_list('apple_podcasts_id', flat=True)
+        ))()
+
+        # Convert to a set for O(1) lookup speed
+        existing_ids_set = set(existing_ids)
         podcasts: List[iTunesPodcastLight] = []
 
         for item in results:
+            if item.get("collectionId") in existing_ids_set:
+                continue
             # Upgrade image quality
             base_image = item.get("artworkUrl600", "") or item.get("artworkUrl100", "")
             high_res_image = get_high_res_artwork(base_image)

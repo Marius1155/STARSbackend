@@ -605,7 +605,7 @@ class Mutation:
         """
         user = info.context.request.user
         if not user.is_staff:  # Optional security check
-            pass
+            raise Exception("Unauthorized access.")
 
         itunes_service = iTunesService()
 
@@ -646,18 +646,29 @@ class Mutation:
                         title=item.get("collectionName", "Unknown")[:500],
                         host=item.get("artistName", "Unknown")[:500],
                         since=since_date,
-                        apple_podcasts=item.get("collectionViewUrl"),
-                        description=f"Imported from iTunes. Feed: {item.get('feedUrl', '')}"
+                        apple_podcasts=item.get("collectionViewUrl")
                     )
 
                     genre_objects = get_or_create_podcast_genres(item.get("genres", []))
                     if genre_objects:
                         podcast.genres.set(genre_objects)
 
-                    # Cover
                     cover_url = get_high_res_artwork(item.get("artworkUrl600", ""))
+
                     if cover_url:
-                        models.Cover.objects.create(image=cover_url, content_object=podcast, position=1)
+                        try:
+                            cover_image_url, cover_primary, cover_secondary = process_image_from_url(cover_url)
+                        except Exception as e:
+                            print(f"Error processing podcast cover image: {e}")
+
+                    if cover_image_url:
+                        models.Cover.objects.create(
+                            image=cover_image_url,
+                            content_object=podcast,
+                            position=1,
+                            primary_color=cover_primary,
+                            secondary_color=cover_secondary
+                        )
 
                     created_count += 1
             return created_count
@@ -689,6 +700,10 @@ class Mutation:
 
         # 3. Save to DB
         def _save_sync():
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
+
             with transaction.atomic():
                 # Double check inside transaction
                 if models.Podcast.objects.filter(apple_podcasts_id=apple_podcasts_id).exists():
@@ -741,14 +756,14 @@ class Mutation:
             if not user.is_authenticated:
                 raise Exception("Authentication required.")
 
-            uploaded_url, primary_color, secondary_color = process_image_from_url(data.thumbnail_url)
-
-            if not uploaded_url:
-                # Handle the case where image processing failed, or let it fail gracefully
-                # For now, we proceed, but you might want to raise an Exception here
-                pass
-
             with transaction.atomic():
+                uploaded_url, primary_color, secondary_color = process_image_from_url(data.thumbnail_url)
+
+                if not uploaded_url:
+                    # Handle the case where image processing failed, or let it fail gracefully
+                    # For now, we proceed, but you might want to raise an Exception here
+                    pass
+
                 mv = models.MusicVideo.objects.create(
                     youtube_id=data.youtube_id,
                     title=data.title,
@@ -823,16 +838,6 @@ class Mutation:
             if not user.is_authenticated:
                 raise Exception("Authentication required.")
 
-            uploaded_url, primary_color, secondary_color = process_image_from_url(data.thumbnail_url)
-
-            if not uploaded_url:
-                # Handle the case where image processing failed, or let it fail gracefully
-                # For now, we proceed, but you might want to raise an Exception here
-                pass
-
-            valid_types = models.PerformanceVideo.PerformanceType.values
-            clean_type = data.type if data.type in valid_types else "OTHER"
-
             with transaction.atomic():
                 def get_or_create_artist_node(am_id):
                     # 1. Check DB (It might exist, or we might have just created it in a previous iteration of this loop)
@@ -857,6 +862,16 @@ class Mutation:
                         return artist
 
                     return None
+
+                uploaded_url, primary_color, secondary_color = process_image_from_url(data.thumbnail_url)
+
+                if not uploaded_url:
+                    # Handle the case where image processing failed, or let it fail gracefully
+                    # For now, we proceed, but you might want to raise an Exception here
+                    pass
+
+                valid_types = models.PerformanceVideo.PerformanceType.values
+                clean_type = data.type if data.type in valid_types else "OTHER"
 
                 event = None
 
