@@ -66,6 +66,7 @@ class AppleMusicAlbumLight:
 @strawberry.type
 class AppleMusicSongDetail:
     id: str
+    type: str
     name: str
     disc_number: int
     length_ms: int
@@ -337,6 +338,7 @@ class Query:
             songs.append(
                 AppleMusicSongDetail(
                     id=song.get("id"),
+                    type=song_attrs.get("type"),
                     name=song_attrs.get("name", ""),
                     length_ms=song_attrs.get("durationInMillis", 0),
                     disc_number=song_attrs.get("discNumber"),
