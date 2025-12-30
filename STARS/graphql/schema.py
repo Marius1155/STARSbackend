@@ -275,6 +275,7 @@ class Query:
 
         # ✅ Songs
         songs: List[AppleMusicSongDetail] = []
+        number_of_songs = 0
 
         for song in album.get("relationships", {}).get("tracks", {}).get("data", []):
             song_href = song.get("href", "")
@@ -282,11 +283,12 @@ class Query:
 
             # KEY FIX: Check if song is released/playable.
             is_released = song_attrs.get("playParams") is not None
+            song_type = song.get("type", "")
 
             full_song = None
 
             # Only fetch full details if the song is actually out
-            if is_released and song_href:
+            if is_released and song_href and song_type == "songs":
                 try:
                     full_song = await apple_music.get_song(song_href)
                 except Exception:
@@ -351,12 +353,12 @@ class Query:
                     is_out = is_released,
                 )
             )
+            number_of_songs += 1
 
         # ✅ Album cover & metadata
         artwork = album_attrs.get("artwork", {})
         cover_url = artwork.get("url", "") if artwork else ""
         bg_color = artwork.get("bgColor", "") if artwork else ""
-        track_count = album_attrs.get("trackCount", 0)
         genre_names = album_attrs.get("genreNames", [])
         kind = album_attrs.get("playParams", {}).get("kind", "")
         url = album_attrs.get("url", "")
@@ -373,7 +375,7 @@ class Query:
             bg_color=bg_color,
             songs=songs,
             artists=album_artists,
-            track_count=track_count,
+            track_count=number_of_songs,
             genre_names=genre_names,
             record_label=record_label,
             kind=kind,
