@@ -14,6 +14,14 @@ from STARS.models import PodcastGenre
 # Import your filters to use them in the fields
 from . import filters, orders
 
+@strawberry.type
+class MusicSearchResponse:
+    artists: List["Artist"]
+    projects: List["Project"]
+    songs: List["Song"]
+    music_videos: List["MusicVideo"]
+    performance_videos: List["PerformanceVideo"]
+
 @strawberry_django.type(models.MusicGenre, fields="__all__")
 class MusicGenre(strawberry.relay.Node):
     projects: DjangoCursorConnection["Project"] = strawberry_django.connection(filters=filters.ProjectFilter, order=orders.ProjectOrder)

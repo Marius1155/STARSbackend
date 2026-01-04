@@ -34,12 +34,14 @@ class ArtistOrder:
 @strawberry_django.order_type(models.EventSeries)
 class EventSeriesOrder:
     name : auto
+    series_type: auto
     is_featured : auto
 
 @strawberry_django.order_type(models.Event)
 class EventOrder:
     date : auto
     name : auto
+    event_type: auto
     is_one_time :  auto
     reviews_count : auto
     star_average : auto
@@ -87,7 +89,6 @@ class MusicVideoOrder:
 class PerformanceVideoOrder:
     release_date : auto
     title : auto
-    performance_type: auto
     number_of_songs : auto
     reviews_count : auto
     star_average : auto

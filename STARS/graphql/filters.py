@@ -2,7 +2,7 @@
 
 import strawberry
 import strawberry_django
-from django.db.models import Q
+from django.db.models import OuterRef, Subquery, Exists, Q
 from strawberry import auto
 from typing import Optional
 
@@ -41,6 +41,7 @@ class EventSeriesFilter:
     id: auto
     name: auto
     is_featured: auto
+    series_type: auto
 
     # NEW: Search functionality like SongFilter
     @strawberry_django.filter_field
@@ -61,6 +62,7 @@ class EventFilter:
     is_one_time: auto
     is_featured: auto
     series: Optional["EventSeriesFilter"]
+    event_type: auto
 
     # NEW: Search functionality (Name, Location, Series Name)
     @strawberry_django.filter_field
@@ -129,7 +131,6 @@ class MusicVideoFilter:
 class PerformanceVideoFilter:
     id: auto
     youtube_id: auto
-    performance_type: auto
     event: Optional["EventFilter"]
     number_of_songs: auto
     title: auto

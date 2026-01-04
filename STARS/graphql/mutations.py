@@ -366,7 +366,6 @@ class MusicVideoUpdateInput:
 class PerformanceVideoInput:
     youtube_id: str
     title: str
-    type: str
     thumbnail_url: str
     channel_name: str
     published_at: datetime
@@ -377,6 +376,7 @@ class PerformanceVideoInput:
     event_id: Optional[str]
     event_name: Optional[str]
     event_date: Optional[datetime]
+    event_type: Optional[str]
     event_location: Optional[str]
     event_series_id: Optional[str]
     event_series_name: Optional[str]
@@ -870,9 +870,6 @@ class Mutation:
                     # For now, we proceed, but you might want to raise an Exception here
                     pass
 
-                valid_types = models.PerformanceVideo.PerformanceType.values
-                clean_type = data.type if data.type in valid_types else "OTHER"
-
                 event = None
 
                 # Case 1: Connect to existing Event
@@ -886,35 +883,51 @@ class Mutation:
                 elif data.event_name and data.event_date:
                     series = None
                     is_one_time = True
+                    clean_type = None
 
-                    # Sub-case 2a: Connect to existing Series
+                    # 2a: Connect to existing Series
                     if data.event_series_id:
                         try:
                             series = models.EventSeries.objects.get(pk=data.event_series_id)
                             is_one_time = False
+                            clean_type = series.series_type
                         except models.EventSeries.DoesNotExist:
                             raise Exception(f"Event Series with id {data.event_series_id} not found.")
 
-                    # Sub-case 2b: Create new Series
+                    # 2b: Create new Series
                     elif data.event_series_name:
-                        series = models.EventSeries.objects.create(name=data.event_series_name)
+                        if data.event_type:
+                            valid_types = models.EventSeries.EventType.values  # Assuming you have this Enum in models
+                            clean_type = data.event_type if data.event_type in valid_types else "OTHER"
+
+                        series = models.EventSeries.objects.create(
+                            name=data.event_series_name,
+                            series_type=clean_type,  # Save type to series
+                        )
                         is_one_time = False
 
-                    # Sub-case 2c: Standalone event (is_one_time=True is default)
+                    # 2c: Standalone / One-Time Event (THE FIX)
+                    else:
+                        # It's a one-time event, so we use the type directly for the event
+                        if data.event_type:
+                            # You might want to validate against Event.EventType.values here too if it exists
+                            clean_type = data.event_type
+                        else:
+                            clean_type = "OTHER"  # Or handle default/error
 
+                    # Create the Event
                     event = models.Event.objects.create(
+                        event_type=clean_type,  # Now this will be populated correctly in all 3 cases
                         name=data.event_name,
-                        date=data.event_date,  # Assuming datetime object works with DateField, or use .date()
+                        date=data.event_date,
                         location=data.event_location or "",
                         is_one_time=is_one_time,
                         series=series
                     )
 
-                # Create Performance Video
                 pv = models.PerformanceVideo.objects.create(
                     youtube_id=data.youtube_id,
                     title=data.title,
-                    performance_type=clean_type,
                     channel_name=data.channel_name,
                     release_date=data.published_at,
                     length=data.length_ms,
@@ -930,9 +943,9 @@ class Mutation:
                     songs = list(models.Song.objects.filter(pk__in=data.songs_ids))
                     pv.songs.set(songs)
 
-                if data.artists_ids:
+                if data.artists_apple_music_ids:
                     artists_to_add = []
-                    for i, am_id in enumerate(data.artists_apple_music_ids or []):
+                    for am_id in data.artists_apple_music_ids:
                         artist = get_or_create_artist_node(am_id)
                         if artist:
                             artists_to_add.append(artist)

@@ -5,7 +5,7 @@ from strawberry_django.relay import DjangoCursorConnection
 from typing import List, Dict
 
 from . import types, filters, mutations, subscriptions, orders
-from django.db.models import OuterRef, Subquery, Exists
+from django.db.models import OuterRef, Subquery, Exists, Q
 from STARS import models
 from STARS.services.apple_music import AppleMusicService
 from STARS.services.youtube import YoutubeService
@@ -127,6 +127,57 @@ class iTunesPodcastLight:
 # --- GraphQL Query ---
 @strawberry.type
 class Query:
+    @strawberry.field
+    def search_music(self, query: str) -> types.MusicSearchResponse:
+        """
+        Search for Artists, Projects, Songs, Music Videos, and Performances.
+        Returns results based on simple matching logic (no forced popularity ordering).
+        """
+        if not query:
+            return types.MusicSearchResponse(
+                artists=[], projects=[], songs=[], music_videos=[], performance_videos=[]
+            )
+
+        limit = 5
+
+        # 1. Artists
+        artists = models.Artist.objects.filter(
+            name__icontains=query
+        )[:limit]
+
+        # 2. Projects (Matches Title OR Artist Name)
+        # Note: Default model ordering (e.g., release_date) will apply automatically
+        projects = models.Project.objects.filter(
+            Q(title__icontains=query) |
+            Q(project_artists__artist__name__icontains=query)
+        ).distinct()[:limit]
+
+        # 3. Songs (Matches Title OR Artist Name)
+        songs = models.Song.objects.filter(
+            Q(title__icontains=query) |
+            Q(song_artists__artist__name__icontains=query)
+        ).distinct()[:limit]
+
+        # 4. Music Videos (Matches Title OR Artist Name)
+        music_videos = models.MusicVideo.objects.filter(
+            Q(title__icontains=query) |
+            Q(songs__song_artists__artist__name__icontains=query)
+        ).distinct()[:limit]
+
+        # 5. Performance Videos (Matches Title OR Artist Name)
+        performance_videos = models.PerformanceVideo.objects.filter(
+            Q(title__icontains=query) |
+            Q(outfits__artist__name__icontains=query)
+        ).distinct()[:limit]
+
+        return types.MusicSearchResponse(
+            artists=list(artists),
+            projects=list(projects),
+            songs=list(songs),
+            music_videos=list(music_videos),
+            performance_videos=list(performance_videos)
+        )
+
     @strawberry.field
     async def search_itunes_podcasts(self, term: str) -> List[iTunesPodcastLight]:
         results = await itunes_service.search_podcasts(term)

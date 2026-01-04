@@ -64,6 +64,17 @@ class Artist(models.Model):
 
 
 class EventSeries(models.Model):
+    class EventType(models.TextChoices):
+        AWARD_SHOW = "AWARD_SHOW", "Award Show"
+        TOUR = "TOUR", "Tour"
+        FESTIVAL = "FESTIVAL", "Festival"
+        TV_APPEARANCE = "TV_APPEARANCE", "TV Appearance"
+        LIVE_SESSION = "LIVE_SESSION", "Live Session"
+        RESIDENCY = "RESIDENCY", "Residency"
+        OTHER = "OTHER", "Other"
+
+    series_type = models.CharField(max_length=20, choices=EventType.choices, db_index=True, default=EventType.OTHER)
+
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     picture = models.URLField(max_length=500, null=True, blank=True)
@@ -78,6 +89,17 @@ class EventSeries(models.Model):
 
 
 class Event(models.Model):
+    class EventType(models.TextChoices):
+        AWARD_SHOW = "AWARD_SHOW", "Award Show"
+        TOUR = "TOUR", "Tour"
+        FESTIVAL = "FESTIVAL", "Festival"
+        TV_APPEARANCE = "TV_APPEARANCE", "TV Appearance"
+        LIVE_SESSION = "LIVE_SESSION", "Live Session"
+        RESIDENCY = "RESIDENCY", "Residency"
+        OTHER = "OTHER", "Other"
+
+    event_type = models.CharField(max_length=20, choices=EventType.choices, db_index=True, default=EventType.OTHER)
+
     series = models.ForeignKey('EventSeries', on_delete=models.SET_NULL, null=True, blank=True, related_name='events')
     name = models.CharField(max_length=255)
     date = models.DateField()
@@ -207,18 +229,8 @@ class MusicVideo(models.Model):
 
 
 class PerformanceVideo(models.Model):
-    class PerformanceType(models.TextChoices):
-        AWARD_SHOW = "AWARD_SHOW", "Award Show"
-        TOUR = "TOUR", "Tour"
-        FESTIVAL = "FESTIVAL", "Festival"
-        TV_APPEARANCE = "TV_APPEARANCE", "TV Appearance"
-        LIVE_SESSION = "LIVE_SESSION", "Live Session"
-        RESIDENCY = "RESIDENCY", "Residency"
-        OTHER = "OTHER", "Other"
-
     youtube_id = models.CharField(blank=True, null=True, max_length=255)
     title = models.CharField(max_length=500, db_index=True)
-    performance_type = models.CharField(max_length=20, choices=PerformanceType.choices, db_index=True, default=PerformanceType.OTHER)
     artists = models.ManyToManyField('Artist', related_name='performance_videos')
     event = models.ForeignKey('Event', on_delete=models.SET_NULL, related_name='performance_videos', null=True)
     channel_name = models.CharField(max_length=500, db_index=True)
