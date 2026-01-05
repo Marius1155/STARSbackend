@@ -1,5 +1,4 @@
 import httpx
-import re
 from typing import Dict, Any, List
 from .apple_music_token import get_apple_music_token
 
@@ -8,87 +7,103 @@ APPLE_MUSIC_API_URL = "https://api.music.apple.com/v1"
 
 class AppleMusicService:
     def __init__(self):
-        self.client = httpx.AsyncClient()  # reusable async client
+        self.client = httpx.AsyncClient()
 
-    def _fix_censored_title(self, item: Dict[str, Any]) -> Dict[str, Any]:
+    async def get_albums_by_ids(self, album_ids: List[str], country: str = "us") -> List[Dict[str, Any]]:
         """
-        Attempts to uncensor the album title using the URL slug if the name contains asterisks.
-        Example:
-        Name: "S********"
-        URL: "https://music.apple.com/us/album/starfucker/..."
-        Result Name: "Starfucker"
+        Bulk fetches album details.
+        We include 'other-versions' to find explicit counterparts for clean albums.
         """
-        if item.get("type") != "albums":
-            return item
+        if not album_ids:
+            return []
 
-        attributes = item.get("attributes", {})
-        name = attributes.get("name", "")
+        # Join IDs with comma (limit is usually 100, our search limit is small enough)
+        ids_str = ",".join(album_ids)
+        url = f"{APPLE_MUSIC_API_URL}/catalog/{country}/albums"
+        params = {"ids": ids_str, "include": "other-versions"}
+        headers = {"Authorization": f"Bearer {get_apple_music_token()}"}
 
-        # Only attempt to fix if it looks censored
-        if "*" in name:
-            url = attributes.get("url", "")
-            # Extract slug from URL: /album/slug-name/id
-            match = re.search(r"/album/([^/]+)/", url)
-            if match:
-                slug = match.group(1)
-                # Convert slug to Title Case (e.g., "starfucker" -> "Starfucker", "my-album" -> "My Album")
-                clean_title = slug.replace("-", " ").title()
-                item["attributes"]["name"] = clean_title
+        response = await self.client.get(url, headers=headers, params=params)
+        # We don't raise status here to avoid crashing the whole search if one ID fails,
+        # but usually for a valid search list it works fine.
+        if response.status_code != 200:
+            return []
 
-        return item
+        return response.json().get("data", [])
 
-    def _filter_and_deduplicate(self, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _process_albums(self, albums: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
-        1. Fixes censored titles.
-        2. Groups albums by (Artist, Name).
-        3. Keeps only the 'best' version (Explicit > Standard > Clean).
+        Deduplicates and prioritizes Explicit versions.
+        If a Clean album has an Explicit 'other-version', we prefer the Explicit one.
         """
-        # 1. Fix titles first so we can match "S********" (Clean) with "Starfucker" (Explicit)
-        processed_items = [self._fix_censored_title(item) for item in items]
+        # Map to store the best version of each album (keyed by Artist + Album Name)
+        # Using a dictionary automatically handles basic deduplication
+        processed_map: Dict[tuple, Dict[str, Any]] = {}
 
-        grouped: Dict[tuple, List[Dict[str, Any]]] = {}
+        for album in albums:
+            attributes = album.get("attributes", {})
 
-        for item in processed_items:
-            attrs = item.get("attributes", {})
-            # Create a key based on Artist and Album Name to identify duplicates
-            artist = attrs.get("artistName", "").lower().strip()
-            name = attrs.get("name", "").lower().strip()
+            # 1. Check if this is a Clean album with an Explicit alternative
+            if attributes.get("contentRating") == "clean":
+                other_versions = album.get("relationships", {}).get("other-versions", {}).get("data", [])
+                explicit_candidate = None
 
+                for version in other_versions:
+                    if version.get("attributes", {}).get("contentRating") == "explicit":
+                        explicit_candidate = version
+                        break
+
+                # If we found an explicit version in the relationships, USE IT.
+                # Note: The 'other-versions' relationship usually contains the full attributes
+                # needed for a list view (Name, Artist, Artwork).
+                if explicit_candidate:
+                    album = explicit_candidate
+                    attributes = album.get("attributes", {})
+
+            # 2. Create a unique key for deduplication
+            artist = attributes.get("artistName", "").lower().strip()
+            name = attributes.get("name", "").lower().strip()
             key = (artist, name)
-            if key not in grouped:
-                grouped[key] = []
-            grouped[key].append(item)
 
-        results = []
-        for key, group in grouped.items():
-            # 2. Sort priority: Explicit (0) > Standard/Unrated (1) > Clean (2)
-            def priority(i):
-                rating = i.get("attributes", {}).get("contentRating")
-                if rating == "explicit":
-                    return 0
-                if rating == "clean":
-                    return 2
-                return 1  # Unrated or Standard
+            # 3. Decision Logic:
+            # If we haven't seen this album, add it.
+            # If we HAVE seen it, only replace it if the new one is Explicit and the old one wasn't.
+            if key not in processed_map:
+                processed_map[key] = album
+            else:
+                existing_rating = processed_map[key].get("attributes", {}).get("contentRating")
+                new_rating = attributes.get("contentRating")
 
-            group.sort(key=priority)
+                if existing_rating != "explicit" and new_rating == "explicit":
+                    processed_map[key] = album
 
-            # 3. Pick the top one.
-            # If an explicit version exists (index 0), the clean version (index > 0) is ignored completely.
-            results.append(group[0])
-
-        return results
+        # Convert back to list
+        return list(processed_map.values())
 
     async def search_albums(self, term: str, limit: int = 20, country: str = "us") -> List[Dict[str, Any]]:
+        # 1. Perform the Search
         url = f"{APPLE_MUSIC_API_URL}/catalog/{country}/search"
         params = {"term": term, "types": "albums", "limit": limit}
         headers = {"Authorization": f"Bearer {get_apple_music_token()}"}
 
         response = await self.client.get(url, headers=headers, params=params)
         response.raise_for_status()
-        data = response.json()
+        search_data = response.json()
 
-        albums = data.get("results", {}).get("albums", {}).get("data", [])
-        return self._filter_and_deduplicate(albums)
+        raw_albums = search_data.get("results", {}).get("albums", {}).get("data", [])
+        if not raw_albums:
+            return []
+
+        # 2. Extract IDs from search results
+        album_ids = [album["id"] for album in raw_albums]
+
+        # 3. Bulk Fetch full details (Uncensored metadata + Relationships)
+        # This fixes "S R" because the direct resource endpoint is authoritative.
+        detailed_albums = await self.get_albums_by_ids(album_ids, country=country)
+
+        # 4. Filter and Deduplicate (Swap Clean for Explicit)
+        # This fixes flickering because we return the final list.
+        return self._process_albums(detailed_albums)
 
     async def search_artists(self, term: str, limit: int = 20, country: str = "us") -> List[Dict[str, Any]]:
         url = f"{APPLE_MUSIC_API_URL}/catalog/{country}/search"
@@ -101,7 +116,7 @@ class AppleMusicService:
 
     async def get_album_with_songs(self, album_id: str, country: str = "us") -> Dict[str, Any]:
         url = f"{APPLE_MUSIC_API_URL}/catalog/{country}/albums/{album_id}"
-        # Request 'other-versions' to check for explicit alternatives
+        # Include 'other-versions' to handle direct lookups of clean IDs
         params = {"include": "other-versions"}
         headers = {"Authorization": f"Bearer {get_apple_music_token()}"}
 
@@ -115,16 +130,15 @@ class AppleMusicService:
         album = data[0]
         attributes = album.get("attributes", {})
 
-        # If Clean, try to switch to Explicit via relationships
+        # If Clean, try to switch to Explicit
         if attributes.get("contentRating") == "clean":
             other_versions = album.get("relationships", {}).get("other-versions", {}).get("data", [])
             for version in other_versions:
                 if version.get("attributes", {}).get("contentRating") == "explicit":
-                    # Recursively fetch the explicit version
+                    # Recursive call for the explicit version
                     return await self.get_album_with_songs(version["id"], country)
 
-        # Fix title if it's still censored (even if it's the explicit version)
-        return self._fix_censored_title(album)
+        return album
 
     async def get_artist(self, href: str) -> Dict[str, Any]:
         url = f"https://api.music.apple.com{href}"
@@ -144,7 +158,6 @@ class AppleMusicService:
     async def get_song(self, href: str) -> Dict[str, Any]:
         if not href:
             return {}
-
         url = f"https://api.music.apple.com{href}"
         headers = {"Authorization": f"Bearer {get_apple_music_token()}"}
         response = await self.client.get(url, headers=headers)
@@ -156,14 +169,9 @@ class AppleMusicService:
         url = f"{APPLE_MUSIC_API_URL}/catalog/{country}/artists/{artist_id}/view/top-songs"
         params = {"limit": limit}
         headers = {"Authorization": f"Bearer {get_apple_music_token()}"}
-
         response = await self.client.get(url, headers=headers, params=params)
         response.raise_for_status()
         data = response.json()
-
-        # We don't use _filter_and_deduplicate here as it is optimized for Albums (URL slug logic),
-        # but you could implement similar song-specific logic if needed.
-        # For now, we return the raw list or just sort them if you prefer.
         return data.get("data", [])
 
     async def close(self):
