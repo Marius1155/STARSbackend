@@ -132,10 +132,6 @@ class iTunesPodcastLight:
 class Query:
     @strawberry.field
     def search_music(self, query: str) -> types.MusicSearchResponse:
-        """
-        Search for Artists, Projects, Songs, Music Videos, and Performances.
-        Returns results based on simple matching logic (no forced popularity ordering).
-        """
         if not query:
             return types.MusicSearchResponse(
                 artists=[], projects=[], songs=[], music_videos=[], performance_videos=[]
@@ -143,34 +139,29 @@ class Query:
 
         limit = 5
 
-        # 1. Artists
+        # 1. Artists (Name only)
         artists = models.Artist.objects.filter(
-            name__icontains=query
+            filters.ArtistFilter().search(None, query, "")
         )[:limit]
 
-        # 2. Projects (Matches Title OR Artist Name)
-        # Note: Default model ordering (e.g., release_date) will apply automatically
+        # 2. Projects (Title, Artists, Song Titles)
         projects = models.Project.objects.filter(
-            Q(title__icontains=query) |
-            Q(project_artists__artist__name__icontains=query)
+            filters.ProjectFilter().search(None, query, "")
         ).distinct()[:limit]
 
-        # 3. Songs (Matches Title OR Artist Name)
+        # 3. Songs (Title, Artists)
         songs = models.Song.objects.filter(
-            Q(title__icontains=query) |
-            Q(song_artists__artist__name__icontains=query)
+            filters.SongFilter().search(None, query, "")
         ).distinct()[:limit]
 
-        # 4. Music Videos (Matches Title OR Artist Name)
+        # 4. Music Videos (Title, Song Titles, Artists)
         music_videos = models.MusicVideo.objects.filter(
-            Q(title__icontains=query) |
-            Q(songs__song_artists__artist__name__icontains=query)
+            filters.MusicVideoFilter().search(None, query, "")
         ).distinct()[:limit]
 
-        # 5. Performance Videos (Matches Title OR Artist Name)
+        # 5. Performance Videos (Title only)
         performance_videos = models.PerformanceVideo.objects.filter(
-            Q(title__icontains=query) |
-            Q(outfits__artist__name__icontains=query)
+            filters.PerformanceVideoFilter().search(None, query, "")
         ).distinct()[:limit]
 
         return types.MusicSearchResponse(
@@ -284,7 +275,7 @@ class Query:
 
             artwork = album_attrs.get("artwork", {})
             cover_url = artwork.get("url", "") if artwork else ""
-            bg_color = album_attrs.get("bgColor", "")
+            bg_color = artwork.get("bgColor", "") if artwork else ""
             track_count = album_attrs.get("trackCount", 0)
             kind = album_attrs.get("playParams", {}).get("kind", "")
             is_single = album_attrs.get("isSingle", False)

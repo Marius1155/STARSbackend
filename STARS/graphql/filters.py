@@ -36,6 +36,13 @@ class ArtistFilter:
     is_featured: auto
     genre: Optional["MusicGenreFilter"]
 
+    @strawberry_django.filter_field
+    def search(self, queryset, value: str, prefix) -> Optional[Q]:
+        if value:
+            # For artist: name is enough
+            return Q(name__icontains=value)
+        return None
+
 @strawberry_django.filter(models.EventSeries, lookups=True)
 class EventSeriesFilter:
     id: auto
@@ -126,6 +133,14 @@ class MusicVideoFilter:
     release_date: auto
     is_featured: auto
 
+    @strawberry_django.filter_field
+    def search(self, queryset, value: str, prefix) -> Optional[Q]:
+        if value:
+            return Q(title__icontains=value) | \
+                Q(songs__title__icontains=value) | \
+                Q(songs__song_artists__artist__name__icontains=value)
+        return None
+
 
 @strawberry_django.filter(models.PerformanceVideo, lookups=True)
 class PerformanceVideoFilter:
@@ -136,6 +151,12 @@ class PerformanceVideoFilter:
     title: auto
     release_date: auto
     is_featured: auto
+
+    @strawberry_django.filter_field
+    def search(self, queryset, value: str, prefix) -> Optional[Q]:
+        if value:
+            return Q(title__icontains=value)
+        return None
 
 
 @strawberry_django.filter(models.Song, lookups=True)
@@ -150,14 +171,19 @@ class SongFilter:
     song_artists: Optional["SongArtistFilter"]
 
     @strawberry_django.filter_field
-    def search(self, queryset, value: str, prefix) -> None:
+    def search(self, queryset, value: str, prefix) -> Optional[Q]:
         if value:
-            matching_ids = models.Song.objects.filter(
-                Q(title__icontains=value) |
+            # Filter based on title and song artists names
+            return Q(title__icontains=value) | \
                 Q(song_artists__artist__name__icontains=value)
-            ).values('pk')
+        return None
 
-            return Q(pk__in=matching_ids)
+    @strawberry_django.filter_field
+    def search(self, queryset, value: str, prefix) -> Optional[Q]:
+        if value:
+            # Filter based on title and song artists names
+            return Q(title__icontains=value) | \
+                Q(song_artists__artist__name__icontains=value)
         return None
 
 @strawberry_django.filter(models.SongArtist, lookups=True)
@@ -179,6 +205,14 @@ class ProjectFilter:
     record_label: auto
     is_featured: auto
     genre: Optional["MusicGenreFilter"]
+
+    @strawberry_django.filter_field
+    def search(self, queryset, value: str, prefix) -> Optional[Q]:
+        if value:
+            return Q(title__icontains=value) | \
+                Q(project_artists__artist__name__icontains=value) | \
+                Q(project_songs__song__title__icontains=value)
+        return None
 
 @strawberry_django.filter(models.ProjectArtist, lookups=True)
 class ProjectArtistFilter:
@@ -203,6 +237,14 @@ class PodcastFilter:
     host: auto
     since: auto
     is_featured: auto
+
+    @strawberry_django.filter_field
+    def search(self, queryset, value: str, prefix) -> Optional[Q]:
+        if value:
+            # Filter based on title and hosts names
+            return Q(title__icontains=value) | \
+                Q(host__icontains=value)
+        return None
 
 @strawberry_django.filter(models.Outfit, lookups=True)
 class OutfitFilter:
