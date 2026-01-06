@@ -1175,9 +1175,18 @@ class Mutation:
                                 s_genres = get_or_create_genres(song_input.genres)
                                 song_obj.genres.set(s_genres)
 
-                            # Link Artists to Song
+                            # Link Artists to Song (with Duplicate Protection + Order Preservation)
                             if song_input.artists_apple_music_ids:
-                                for j, s_am_id in enumerate(song_input.artists_apple_music_ids):
+                                seen_artist_ids = set()
+                                # Create a list that only contains the first occurrence of each ID
+                                unique_ordered_am_ids = []
+                                for s_am_id in song_input.artists_apple_music_ids:
+                                    if s_am_id not in seen_artist_ids:
+                                        unique_ordered_am_ids.append(s_am_id)
+                                        seen_artist_ids.add(s_am_id)
+
+                                # Now iterate through the unique list to create database links
+                                for j, s_am_id in enumerate(unique_ordered_am_ids):
                                     s_artist = get_or_create_artist_node(s_am_id)
                                     if s_artist:
                                         models.SongArtist.objects.create(
