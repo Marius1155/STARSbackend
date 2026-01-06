@@ -62,7 +62,8 @@ class AppleMusicService:
             # 2. Create a unique key for deduplication (Artist + Name)
             artist = attributes.get("artistName", "").lower().strip()
             name = attributes.get("name", "").lower().strip()
-            key = (artist, name)
+            track_count = attributes.get("trackCount", 0)
+            key = (artist, name, track_count)
 
             # 3. Decision Logic:
             # - If new, add it.
@@ -73,7 +74,10 @@ class AppleMusicService:
                 existing_rating = processed_map[key].get("attributes", {}).get("contentRating")
                 new_rating = attributes.get("contentRating")
 
-                if existing_rating != "explicit" and new_rating == "explicit":
+                existing_tracks = processed_map[key].get("attributes", {}).get("trackCount", 0)
+                new_tracks = attributes.get("trackCount", 0)
+
+                if (existing_rating != "explicit" and new_rating == "explicit") or (new_tracks > existing_tracks):
                     processed_map[key] = album
 
         return list(processed_map.values())
