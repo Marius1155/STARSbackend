@@ -62,8 +62,7 @@ class AppleMusicService:
             # 2. Create a unique key for deduplication (Artist + Name)
             artist = attributes.get("artistName", "").lower().strip()
             name = attributes.get("name", "").lower().strip()
-            track_count = attributes.get("trackCount", 0)
-            key = (artist, name, track_count)
+            key = (artist, name)
 
             # 3. Decision Logic:
             # - If new, add it.
