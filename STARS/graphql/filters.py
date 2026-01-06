@@ -229,6 +229,14 @@ class ProfileFilter:
     user: Optional["UserFilter"]
     has_premium: auto
 
+@strawberry_django.filter(models.SearchHistory, lookups=True)
+class SearchHistoryFilter:
+    id: auto
+    user: Optional["UserFilter"]
+    query: auto
+    category: auto
+    timestamp: auto
+
 @strawberry_django.filter(User, lookups=True)
 class UserFilter:
     id: auto

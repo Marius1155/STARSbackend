@@ -16,6 +16,9 @@ from STARS.services.itunes import iTunesService
 
 import re
 
+from .orders import SearchHistoryOrder
+
+
 def get_high_res_artwork(url: str) -> str:
     if not url:
         return ""
@@ -541,6 +544,7 @@ class Query:
     music_videos: DjangoCursorConnection[types.MusicVideo] = strawberry_django.connection(filters=filters.MusicVideoFilter, order=orders.MusicVideoOrder)
     performance_videos: DjangoCursorConnection[types.MusicVideo] = strawberry_django.connection(filters=filters.PerformanceVideoFilter, order=orders.PerformanceVideoOrder)
     users: DjangoCursorConnection[types.User] = strawberry_django.connection(filters=filters.UserFilter, order=orders.UserOrder)
+    search_history: DjangoCursorConnection[types.SearchHistory] = strawberry_django.connection(filters=filters.SearchHistoryFilter, order=orders.SearchHistoryOrder)
 
     def resolve_users(self, info, **kwargs):
         current_user = info.context["user"]

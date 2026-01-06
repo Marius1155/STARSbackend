@@ -164,3 +164,10 @@ class ProfileOrder:
     cover_reviews_count : auto
     podcast_reviews_count : auto
     outfit_reviews_count : auto
+
+@strawberry_django.filter(models.SearchHistory, lookups=True)
+class SearchHistoryOrder:
+    user: Optional["UserOrder"]
+    query: auto
+    category: auto
+    timestamp: auto

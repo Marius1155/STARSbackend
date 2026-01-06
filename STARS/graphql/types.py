@@ -323,6 +323,11 @@ class Profile(strawberry.relay.Node):
     following: DjangoCursorConnection["Profile"] = strawberry_django.connection(filters=filters.ProfileFilter, order=orders.ProfileOrder)
 
 
+@strawberry_django.type(models.SearchHistory, fields="__all__")
+class SearchHistory(strawberry.relay.Node):
+    user: "User"
+
+
 Reviewable = strawberry.union(
     "Reviewable",
     (Event, Project, Song, MusicVideo, PerformanceVideo, Podcast, Outfit, Cover),

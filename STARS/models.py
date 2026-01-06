@@ -482,6 +482,28 @@ class Profile(models.Model):
         return f"Profile of {self.user.username}"
 
 
+class SearchHistory(models.Model):
+    class SearchCategory(models.TextChoices):
+        MUSIC = "MUSIC", "Music"
+        PODCAST = "PODCAST", "Podcast"
+        OUTFIT = "OUTFIT", "Outfit"
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='search_history')
+    query = models.CharField(max_length=255)
+    category = models.CharField(
+        max_length=10,
+        choices=SearchCategory.choices,
+        db_index=True
+    )
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"{self.user.username} searched '{self.query}' in {self.category}"
+
+
 class UnresolvedImportTask(models.Model):
     class TaskStatus(models.TextChoices):
         PENDING_USER = "PENDING_USER", "Awaiting User Resolution"

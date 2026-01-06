@@ -563,6 +563,12 @@ class LikeAction(enum.Enum):
     DISLIKE = "dislike"
 
 
+@strawberry_django.input(models.SearchHistory)
+class SearchHistoryCreateInput:
+    query: str
+    category: str
+
+
 @strawberry.type
 class Mutation:
     update_artist: types.Artist = strawberry_django.mutations.update(ArtistUpdateInput)
@@ -574,7 +580,6 @@ class Mutation:
     update_song: types.Song = strawberry_django.mutations.update(SongUpdateInput)
     delete_song: types.Song = strawberry_django.mutations.delete(strawberry.ID)
 
-    create_event_series: types.EventSeries = strawberry_django.mutations.create(EventSeriesCreateInput)
     update_event_series: types.EventSeries = strawberry_django.mutations.update(EventSeriesUpdateInput)
     delete_event_series: types.EventSeries = strawberry_django.mutations.delete(strawberry.ID)
 
@@ -597,6 +602,22 @@ class Mutation:
 
     update_profile: types.Profile = strawberry_django.mutations.update(ProfileUpdateInput)
 
+    @strawberry.mutation
+    async def create_search_history(self, info: strawberry.Info, data: SearchHistoryCreateInput) -> types.SearchHistory:
+        def _sync():
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required")
+
+            # Manually create so we can attach the logged-in user
+            search_entry = models.SearchHistory.objects.create(
+                user=user,
+                query=data.query,
+                category=data.category.upper()
+            )
+            return search_entry
+
+        return await database_sync_to_async(_sync)()
 
     @strawberry.mutation
     async def import_all_top_podcasts(self, info) -> SuccessMessage:
