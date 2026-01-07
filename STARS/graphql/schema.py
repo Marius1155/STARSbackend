@@ -131,7 +131,7 @@ class iTunesPodcastLight:
 @strawberry.type
 class Query:
     @strawberry.field
-    def search_music(self, query: str) -> types.MusicSearchResponse:
+    async def search_music(self, query: str) -> types.MusicSearchResponse:
         if not query:
             return types.MusicSearchResponse(
                 artists=[], projects=[], songs=[], music_videos=[], performance_videos=[]
@@ -139,42 +139,56 @@ class Query:
 
         limit = 5
 
-        # 1. Artists: Search by name
-        artists = models.Artist.objects.filter(
-            Q(name__icontains=query)
-        )[:limit]
+        # Define a helper to run the sync ORM queries
+        def get_music_results():
+            # 1. Artists: Search by name
+            artists_qs = models.Artist.objects.filter(
+                Q(name__icontains=query)
+            )[:limit]
 
-        # 2. Projects: Search by Title, Artist Name, or Song Titles
-        projects = models.Project.objects.filter(
-            Q(title__icontains=query) |
-            Q(project_artists__artist__name__icontains=query) |
-            Q(project_songs__song__title__icontains=query)
-        ).distinct()[:limit]
+            # 2. Projects: Search by Title, Artist Name, or Song Titles
+            projects_qs = models.Project.objects.filter(
+                Q(title__icontains=query) |
+                Q(project_artists__artist__name__icontains=query) |
+                Q(project_songs__song__title__icontains=query)
+            ).distinct()[:limit]
 
-        # 3. Songs: Search by Title or Artist Name
-        songs = models.Song.objects.filter(
-            Q(title__icontains=query) |
-            Q(song_artists__artist__name__icontains=query)
-        ).distinct()[:limit]
+            # 3. Songs: Search by Title or Artist Name
+            songs_qs = models.Song.objects.filter(
+                Q(title__icontains=query) |
+                Q(song_artists__artist__name__icontains=query)
+            ).distinct()[:limit]
 
-        # 4. Music Videos: Search by Title, Song Titles, or Song Artist Names
-        music_videos = models.MusicVideo.objects.filter(
-            Q(title__icontains=query) |
-            Q(songs__title__icontains=query) |
-            Q(songs__song_artists__artist__name__icontains=query)
-        ).distinct()[:limit]
+            # 4. Music Videos: Search by Title, Song Titles, or Song Artist Names
+            music_videos_qs = models.MusicVideo.objects.filter(
+                Q(title__icontains=query) |
+                Q(songs__title__icontains=query) |
+                Q(songs__song_artists__artist__name__icontains=query)
+            ).distinct()[:limit]
 
-        # 5. Performance Videos: Search by Title
-        performance_videos = models.PerformanceVideo.objects.filter(
-            Q(title__icontains=query)
-        ).distinct()[:limit]
+            # 5. Performance Videos: Search by Title
+            performance_videos_qs = models.PerformanceVideo.objects.filter(
+                Q(title__icontains=query)
+            ).distinct()[:limit]
+
+            # Convert QuerySets to lists while still inside the sync context
+            return (
+                list(artists_qs),
+                list(projects_qs),
+                list(songs_qs),
+                list(music_videos_qs),
+                list(performance_videos_qs)
+            )
+
+        # Run the sync helper in an async thread
+        artists, projects, songs, music_videos, performance_videos = await sync_to_async(get_music_results)()
 
         return types.MusicSearchResponse(
-            artists=list(artists),
-            projects=list(projects),
-            songs=list(songs),
-            music_videos=list(music_videos),
-            performance_videos=list(performance_videos)
+            artists=artists,
+            projects=projects,
+            songs=songs,
+            music_videos=music_videos,
+            performance_videos=performance_videos
         )
 
     @strawberry.field
