@@ -139,29 +139,34 @@ class Query:
 
         limit = 5
 
-        # 1. Artists (Name only)
+        # 1. Artists: Search by name
         artists = models.Artist.objects.filter(
-            filters.ArtistFilter().search(None, query, "")
+            Q(name__icontains=query)
         )[:limit]
 
-        # 2. Projects (Title, Artists, Song Titles)
+        # 2. Projects: Search by Title, Artist Name, or Song Titles
         projects = models.Project.objects.filter(
-            filters.ProjectFilter().search(None, query, "")
+            Q(title__icontains=query) |
+            Q(project_artists__artist__name__icontains=query) |
+            Q(project_songs__song__title__icontains=query)
         ).distinct()[:limit]
 
-        # 3. Songs (Title, Artists)
+        # 3. Songs: Search by Title or Artist Name
         songs = models.Song.objects.filter(
-            filters.SongFilter().search(None, query, "")
+            Q(title__icontains=query) |
+            Q(song_artists__artist__name__icontains=query)
         ).distinct()[:limit]
 
-        # 4. Music Videos (Title, Song Titles, Artists)
+        # 4. Music Videos: Search by Title, Song Titles, or Song Artist Names
         music_videos = models.MusicVideo.objects.filter(
-            filters.MusicVideoFilter().search(None, query, "")
+            Q(title__icontains=query) |
+            Q(songs__title__icontains=query) |
+            Q(songs__song_artists__artist__name__icontains=query)
         ).distinct()[:limit]
 
-        # 5. Performance Videos (Title only)
+        # 5. Performance Videos: Search by Title
         performance_videos = models.PerformanceVideo.objects.filter(
-            filters.PerformanceVideoFilter().search(None, query, "")
+            Q(title__icontains=query)
         ).distinct()[:limit]
 
         return types.MusicSearchResponse(
