@@ -124,9 +124,13 @@ ASGI_APPLICATION = 'STARSbackend.asgi.application' # <-- THIS IS NOW ADDED
 DATABASES = {
     'default': dj_database_url.config(
         default=config('DATABASE_URL'),
-        conn_max_age=600
+        conn_max_age=600,
+        # Force the engine to the psycopg driver for native async support
+        engine='django.db.backends.postgresql'
     )
 }
+
+DATABASES['default']['CONN_HEALTH_CHECKS'] = True
 
 
 # --- Password validation ---

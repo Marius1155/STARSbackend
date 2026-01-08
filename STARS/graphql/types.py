@@ -288,18 +288,6 @@ class Podcast(strawberry.relay.Node):
     reviews: DjangoCursorConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
     genres: DjangoCursorConnection["PodcastGenre"] = strawberry_django.connection(filters=filters.PodcastGenreFilter, order=orders.PodcastGenreOrder)
 
-    @sync_to_async
-    def get_covers(self) -> List[models.Cover]:
-        return self.covers.all()
-
-    @sync_to_async
-    def get_reviews(self) -> List[models.Review]:
-        return self.reviews.all()
-
-    @sync_to_async
-    def get_genres(self) -> List[models.PodcastGenre]:
-        return self.genres.all()
-
 @strawberry_django.type(models.Outfit, fields="__all__")
 class Outfit(strawberry.relay.Node):
     artist: "Artist"
