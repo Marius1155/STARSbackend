@@ -106,6 +106,8 @@ class SongOrder:
 @strawberry_django.order_type(models.SongArtist)
 class SongArtistOrder:
     position : auto
+    song: Optional["SongOrder"]
+    artist: Optional["ArtistOrder"]
 
 @strawberry_django.order_type(models.Project)
 class ProjectOrder:
@@ -121,11 +123,15 @@ class ProjectOrder:
 @strawberry_django.order_type(models.ProjectArtist)
 class ProjectArtistOrder:
     position : auto
+    project: Optional["ProjectOrder"]
+    artist: Optional["ArtistOrder"]
 
 @strawberry_django.order_type(models.ProjectSong)
 class ProjectSongOrder:
     position : auto
     disc_number: auto
+    project: Optional["ProjectOrder"]
+    song: Optional["SongOrder"]
 
 @strawberry_django.order_type(models.Podcast)
 class PodcastOrder:
