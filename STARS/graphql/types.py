@@ -285,31 +285,101 @@ class ProjectSong(strawberry.relay.Node):
 @strawberry_django.type(models.Podcast, fields="__all__")
 class Podcast(strawberry.relay.Node):
 
-    # Define the connection with explicit resolver
-    @strawberry_django.connection(
-        filters=filters.CoverFilter,
-        order=orders.CoverOrder
-    )
-    @staticmethod
-    async def covers(root, info: Info) -> DjangoCursorConnection["Cover"]:
-        # Wrap the queryset access in sync_to_async
-        return await sync_to_async(lambda: root.covers.all())()
+    @strawberry.field
+    async def covers(
+            self,
+            info: Info,
+            first: Optional[int] = None,
+            after: Optional[str] = None,
+            before: Optional[str] = None,
+            last: Optional[int] = None,
+            filters: Optional[filters.CoverFilter] = None,
+            order: Optional[orders.CoverOrder] = None,
+    ) -> DjangoCursorConnection["Cover"]:
+        """Async-wrapped cursor connection for podcast covers."""
 
-    @strawberry_django.connection(
-        filters=filters.ReviewFilter,
-        order=orders.ReviewOrder
-    )
-    @staticmethod
-    async def reviews(root, info: Info) -> DjangoCursorConnection["Review"]:
-        return await sync_to_async(lambda: root.reviews.all())()
+        # Create the connection resolver using strawberry_django's API
+        connection_field = strawberry_django.connection(
+            filters=filters.CoverFilter,
+            order=orders.CoverOrder,
+        )
 
-    @strawberry_django.connection(
-        filters=filters.PodcastGenreFilter,
-        order=orders.PodcastGenreOrder
-    )
-    @staticmethod
-    async def genres(root, info: Info) -> DjangoCursorConnection["PodcastGenre"]:
-        return await sync_to_async(lambda: root.genres.all())()
+        # Get the resolver function
+        resolver = connection_field.base_resolver.wrapped_func
+
+        # Wrap it in sync_to_async and call it
+        return await sync_to_async(resolver)(
+            root=self,
+            info=info,
+            first=first,
+            after=after,
+            before=before,
+            last=last,
+            filters=filters,
+            order=order,
+        )
+
+    @strawberry.field
+    async def reviews(
+            self,
+            info: Info,
+            first: Optional[int] = None,
+            after: Optional[str] = None,
+            before: Optional[str] = None,
+            last: Optional[int] = None,
+            filters: Optional[filters.ReviewFilter] = None,
+            order: Optional[orders.ReviewOrder] = None,
+    ) -> DjangoCursorConnection["Review"]:
+        """Async-wrapped cursor connection for podcast reviews."""
+
+        connection_field = strawberry_django.connection(
+            filters=filters.ReviewFilter,
+            order=orders.ReviewOrder,
+        )
+
+        resolver = connection_field.base_resolver.wrapped_func
+
+        return await sync_to_async(resolver)(
+            root=self,
+            info=info,
+            first=first,
+            after=after,
+            before=before,
+            last=last,
+            filters=filters,
+            order=order,
+        )
+
+    @strawberry.field
+    async def genres(
+            self,
+            info: Info,
+            first: Optional[int] = None,
+            after: Optional[str] = None,
+            before: Optional[str] = None,
+            last: Optional[int] = None,
+            filters: Optional[filters.PodcastGenreFilter] = None,
+            order: Optional[orders.PodcastGenreOrder] = None,
+    ) -> DjangoCursorConnection["PodcastGenre"]:
+        """Async-wrapped cursor connection for podcast genres."""
+
+        connection_field = strawberry_django.connection(
+            filters=filters.PodcastGenreFilter,
+            order=orders.PodcastGenreOrder,
+        )
+
+        resolver = connection_field.base_resolver.wrapped_func
+
+        return await sync_to_async(resolver)(
+            root=self,
+            info=info,
+            first=first,
+            after=after,
+            before=before,
+            last=last,
+            filters=filters,
+            order=order,
+        )
 
 @strawberry_django.type(models.Outfit, fields="__all__")
 class Outfit(strawberry.relay.Node):
