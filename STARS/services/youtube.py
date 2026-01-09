@@ -16,6 +16,70 @@ class YoutubeService:
     def __init__(self):
         self.client = httpx.AsyncClient()
 
+    async def get_video_by_url(self, url: str) -> Dict[str, Any]:
+        """
+        Parses the URL to extract the video ID and fetches its details.
+        """
+        video_id = self._extract_video_id(url)
+        if not video_id:
+            return None  # Or raise a specific exception
+
+        return await self.get_video_by_id(video_id)
+
+    async def get_video_by_id(self, video_id: str) -> Dict[str, Any]:
+        """
+        Fetches full details for a single video ID.
+        """
+        videos_url = f"{YOUTUBE_API_URL}/videos"
+        videos_params = {
+            "part": "snippet,contentDetails,statistics",
+            "id": video_id,
+            "key": YOUTUBE_API_KEY
+        }
+
+        response = await self.client.get(videos_url, params=videos_params)
+        response.raise_for_status()
+        data = response.json()
+
+        items = data.get("items", [])
+        if not items:
+            return None
+
+        item = items[0]
+        snippet = item.get("snippet", {})
+        content_details = item.get("contentDetails", {})
+        statistics = item.get("statistics", {})
+
+        # Duration and Thumbnails
+        duration_ms = self._parse_duration_to_ms(content_details.get("duration", ""))
+        thumbnails = snippet.get("thumbnails", {})
+        thumbnail_url = (thumbnails.get("maxres", {}).get("url") or
+                         thumbnails.get("high", {}).get("url") or
+                         thumbnails.get("medium", {}).get("url"))
+
+        # Primary Color Extraction
+        primary_color = await self._get_primary_color(thumbnail_url)
+
+        return {
+            "id": video_id,
+            "title": snippet.get("title"),
+            "thumbnail": thumbnail_url,
+            "channel_title": snippet.get("channelTitle"),
+            "published_at": snippet.get("publishedAt"),
+            "length_ms": duration_ms,
+            "view_count": int(statistics.get("viewCount", 0)),
+            "url": f"https://www.youtube.com/watch?v={video_id}",
+            "primary_color": primary_color,
+        }
+
+    def _extract_video_id(self, url: str) -> str:
+        """
+        Extracts the video ID from various YouTube URL formats.
+        """
+        regex = r'(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/|youtube\.com\/shorts\/)([^"&?\/\s]{11})'
+        match = re.search(regex, url)
+        return match.group(1) if match else None
+
     async def search_videos(self, term: str, limit: int = 20) -> List[Dict[str, Any]]:
         # 1. Call Search API to get Video IDs
         search_url = f"{YOUTUBE_API_URL}/search"

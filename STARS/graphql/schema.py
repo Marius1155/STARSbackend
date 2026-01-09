@@ -225,6 +225,40 @@ class Query:
         return podcasts
 
     @strawberry.field
+    async def get_youtube_video_by_url(self, url: str) -> YoutubeVideoDetail:
+        # 1. Fetch data from service
+        vid = await youtube_service.get_video_by_url(url)
+
+        if not vid:
+            return None
+
+        video_id = vid.get("id")
+
+        # 2. Check if it already exists in DB (to avoid duplicates or handle logic)
+        existing_exists = await sync_to_async(lambda:
+                                              models.MusicVideo.objects.filter(youtube_id=video_id).exists() or
+                                              models.PerformanceVideo.objects.filter(youtube_id=video_id).exists()
+                                              )()
+
+        # If it already exists, you might want to return None or handle as you see fit
+        # For now, following your pattern of filtering out existing ones:
+        if existing_exists:
+            return None
+
+        # 3. Map to GraphQL Type
+        return YoutubeVideoDetail(
+            id=video_id,
+            title=vid.get("title", ""),
+            thumbnail_url=vid.get("thumbnail", ""),
+            channel_name=vid.get("channel_title", ""),
+            published_at=vid.get("published_at", ""),
+            length_ms=vid.get("length_ms", 0),
+            view_count=vid.get("view_count", 0),
+            url=vid.get("url", ""),
+            primary_color=vid.get("primary_color", "#000000")
+        )
+
+    @strawberry.field
     async def search_youtube_videos(self, term: str) -> List[YoutubeVideoDetail]:
         results = await youtube_service.search_videos(term)
 
