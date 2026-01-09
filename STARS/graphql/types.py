@@ -293,16 +293,21 @@ class Podcast(strawberry.relay.Node):
             after: Optional[str] = None,
             before: Optional[str] = None,
             last: Optional[int] = None,
+            filters: Optional[filters.CoverFilter] = None,
+            order: Optional[orders.CoverOrder] = None,
     ) -> DjangoCursorConnection["Cover"]:
         """Async-wrapped cursor connection for podcast covers."""
+        # Capture the filter/order values before the inner function
+        filter_arg = filters
+        order_arg = order
 
         def resolve_connection():
             from strawberry_django.relay import resolve_connection
             return resolve_connection(
                 info=info,
                 nodes=self.covers.all(),
-                filters=filters.CoverFilter,
-                order=orders.CoverOrder,
+                filters=filter_arg,  # Use the captured value
+                order=order_arg,  # Use the captured value
                 first=first,
                 after=after,
                 before=before,
@@ -319,16 +324,20 @@ class Podcast(strawberry.relay.Node):
             after: Optional[str] = None,
             before: Optional[str] = None,
             last: Optional[int] = None,
+            filters: Optional[filters.ReviewFilter] = None,
+            order: Optional[orders.ReviewOrder] = None,
     ) -> DjangoCursorConnection["Review"]:
         """Async-wrapped cursor connection for podcast reviews."""
+        filter_arg = filters
+        order_arg = order
 
         def resolve_connection():
             from strawberry_django.relay import resolve_connection
             return resolve_connection(
                 info=info,
                 nodes=self.reviews.all(),
-                filters=filters.ReviewFilter,
-                order=orders.ReviewOrder,
+                filters=filter_arg,
+                order=order_arg,
                 first=first,
                 after=after,
                 before=before,
@@ -345,16 +354,20 @@ class Podcast(strawberry.relay.Node):
             after: Optional[str] = None,
             before: Optional[str] = None,
             last: Optional[int] = None,
+            filters: Optional[filters.PodcastGenreFilter] = None,
+            order: Optional[orders.PodcastGenreOrder] = None,
     ) -> DjangoCursorConnection["PodcastGenre"]:
         """Async-wrapped cursor connection for podcast genres."""
+        filter_arg = filters
+        order_arg = order
 
         def resolve_connection():
             from strawberry_django.relay import resolve_connection
             return resolve_connection(
                 info=info,
                 nodes=self.genres.all(),
-                filters=filters.PodcastGenreFilter,
-                order=orders.PodcastGenreOrder,
+                filters=filter_arg,
+                order=order_arg,
                 first=first,
                 after=after,
                 before=before,
