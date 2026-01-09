@@ -119,18 +119,19 @@ TEMPLATES = [
 WSGI_APPLICATION = 'STARSbackend.wsgi.application'
 ASGI_APPLICATION = 'STARSbackend.asgi.application' # <-- THIS IS NOW ADDED
 
-
-# --- Database ---
 DATABASES = {
-    'default': dj_database_url.config(
-        default=config('DATABASE_URL'),
-        conn_max_age=600,
-        # Force the engine to the psycopg driver for native async support
-        engine='django.db.backends.postgresql'
-    )
+    'default': {
+        **dj_database_url.config(
+            default=config('DATABASE_URL'),
+            conn_max_age=0,
+        ),
+        'CONN_HEALTH_CHECKS': True,
+        'OPTIONS': {
+            'connect_timeout': 10,
+            'options': '-c statement_timeout=60000',  # Generous at first
+        }
+    }
 }
-
-DATABASES['default']['CONN_HEALTH_CHECKS'] = True
 
 
 # --- Password validation ---

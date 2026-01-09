@@ -236,9 +236,9 @@ class Query:
 
         # 2. Check if it already exists in DB (to avoid duplicates or handle logic)
         existing_exists = await sync_to_async(lambda:
-                                              models.MusicVideo.objects.filter(youtube_id=video_id).exists() or
-                                              models.PerformanceVideo.objects.filter(youtube_id=video_id).exists()
-                                              )()
+            models.MusicVideo.objects.filter(youtube_id=video_id).exists() or
+            models.PerformanceVideo.objects.filter(youtube_id=video_id).exists()
+        )()
 
         # If it already exists, you might want to return None or handle as you see fit
         # For now, following your pattern of filtering out existing ones:
