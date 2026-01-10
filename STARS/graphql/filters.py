@@ -220,12 +220,10 @@ class ProjectFilter:
     genre: Optional["MusicGenreFilter"]
 
     @strawberry_django.filter_field
-    def search(self, queryset, value: str, prefix) -> tuple[QuerySet, Optional[Q]]:
+    def search(self, queryset: QuerySet, value: str, prefix) -> tuple[QuerySet, Q]:  # Change return type hint
         if value:
-            # Check if project title matches
             title_match = Q(title__icontains=value)
 
-            # Efficiently check for artist matches without joins
             artist_exists = Exists(
                 ProjectArtist.objects.filter(
                     project=OuterRef('pk'),
@@ -233,7 +231,6 @@ class ProjectFilter:
                 )
             )
 
-            # Efficiently check for song matches without joins
             song_exists = Exists(
                 ProjectSong.objects.filter(
                     project=OuterRef('pk'),
@@ -241,10 +238,10 @@ class ProjectFilter:
                 )
             )
 
-            # Filter projects that match title OR have matching artists OR have matching songs
-            return queryset.filter(title_match | Q(artist_exists) | Q(song_exists)), None
+            # Return the filtered queryset and an empty Q() object
+            return queryset.filter(title_match | Q(artist_exists) | Q(song_exists)), Q()
 
-        return queryset, None
+        return queryset, Q()  # Return empty Q() here as well
 
 @strawberry_django.filter(models.ProjectArtist, lookups=True)
 class ProjectArtistFilter:
