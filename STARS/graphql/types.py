@@ -284,102 +284,22 @@ class ProjectSong(strawberry.relay.Node):
 
 @strawberry_django.type(models.Podcast, fields="__all__")
 class Podcast(strawberry.relay.Node):
+    covers: relay.ListConnection["Cover"] = strawberry_django.connection(filters=filters.CoverFilter, order=orders.CoverOrder)
+    reviews: relay.ListConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
+    genres: relay.ListConnection["PodcastGenre"] = strawberry_django.connection(filters=filters.PodcastGenreFilter, order=orders.PodcastGenreOrder)
 
-    @strawberry.field
-    async def covers(
-            self,
-            info: Info,
-            first: Optional[int] = None,
-            after: Optional[str] = None,
-            before: Optional[str] = None,
-            last: Optional[int] = None,
-            filters: Optional[filters.CoverFilter] = None,
-            order: Optional[orders.CoverOrder] = None,
-    ) -> DjangoCursorConnection["Cover"]:
-        """Async-wrapped cursor connection for podcast covers."""
+    @sync_to_async
+    def get_covers(self) -> List[models.Cover]:
+        return self.covers.all()
 
-        # Create the connection resolver using strawberry_django's API
-        connection_field = strawberry_django.connection(
-            filters=filters.CoverFilter,
-            order=orders.CoverOrder,
-        )
+    @sync_to_async
+    def get_reviews(self) -> List[models.Review]:
+        return self.reviews.all()
 
-        # Get the resolver function
-        resolver = connection_field.base_resolver.wrapped_func
+    @sync_to_async
+    def get_genres(self) -> List[models.PodcastGenre]:
+        return self.genres.all()
 
-        # Wrap it in sync_to_async and call it
-        return await sync_to_async(resolver)(
-            root=self,
-            info=info,
-            first=first,
-            after=after,
-            before=before,
-            last=last,
-            filters=filters,
-            order=order,
-        )
-
-    @strawberry.field
-    async def reviews(
-            self,
-            info: Info,
-            first: Optional[int] = None,
-            after: Optional[str] = None,
-            before: Optional[str] = None,
-            last: Optional[int] = None,
-            filters: Optional[filters.ReviewFilter] = None,
-            order: Optional[orders.ReviewOrder] = None,
-    ) -> DjangoCursorConnection["Review"]:
-        """Async-wrapped cursor connection for podcast reviews."""
-
-        connection_field = strawberry_django.connection(
-            filters=filters.ReviewFilter,
-            order=orders.ReviewOrder,
-        )
-
-        resolver = connection_field.base_resolver.wrapped_func
-
-        return await sync_to_async(resolver)(
-            root=self,
-            info=info,
-            first=first,
-            after=after,
-            before=before,
-            last=last,
-            filters=filters,
-            order=order,
-        )
-
-    @strawberry.field
-    async def genres(
-            self,
-            info: Info,
-            first: Optional[int] = None,
-            after: Optional[str] = None,
-            before: Optional[str] = None,
-            last: Optional[int] = None,
-            filters: Optional[filters.PodcastGenreFilter] = None,
-            order: Optional[orders.PodcastGenreOrder] = None,
-    ) -> DjangoCursorConnection["PodcastGenre"]:
-        """Async-wrapped cursor connection for podcast genres."""
-
-        connection_field = strawberry_django.connection(
-            filters=filters.PodcastGenreFilter,
-            order=orders.PodcastGenreOrder,
-        )
-
-        resolver = connection_field.base_resolver.wrapped_func
-
-        return await sync_to_async(resolver)(
-            root=self,
-            info=info,
-            first=first,
-            after=after,
-            before=before,
-            last=last,
-            filters=filters,
-            order=order,
-        )
 
 @strawberry_django.type(models.Outfit, fields="__all__")
 class Outfit(strawberry.relay.Node):
