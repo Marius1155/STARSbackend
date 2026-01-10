@@ -16,6 +16,7 @@ from STARS.services.itunes import iTunesService
 
 import re
 
+from STARS.utils.cache import cache_graphql_query, CacheKeys
 from .orders import SearchHistoryOrder
 
 
@@ -131,6 +132,11 @@ class iTunesPodcastLight:
 @strawberry.type
 class Query:
     @strawberry.field
+    @cache_graphql_query(
+        CacheKeys.MUSIC_SEARCH,
+        timeout=300,  # 5 minutes
+        key_params=["query"]
+    )
     async def search_music(self, query: str) -> types.MusicSearchResponse:
         if not query:
             return types.MusicSearchResponse(
@@ -557,9 +563,25 @@ class Query:
             )
         return songs
 
+    @strawberry_django.connection(filters=filters.MusicGenreFilter, order=orders.MusicGenreOrder)
+    @cache_graphql_query(
+        CacheKeys.MUSIC_GENRES,
+        timeout=3600  # 1 hour - genres rarely change
+    )
+    async def music_genres(self) -> DjangoCursorConnection[types.MusicGenre]:
+        """CACHED: Genre list (rarely changes)."""
+        return await sync_to_async(lambda: models.MusicGenre.objects.all())()
+
+    @strawberry_django.connection(filters=filters.PodcastGenreFilter, order=orders.PodcastGenreOrder)
+    @cache_graphql_query(
+        CacheKeys.PODCAST_GENRES,
+        timeout=3600  # 1 hour - genres rarely change
+    )
+    async def podcast_genres(self) -> DjangoCursorConnection[types.PodcastGenre]:
+        """CACHED: Genre list (rarely changes)."""
+        return await sync_to_async(lambda: models.PodcastGenre.objects.all())()
+
     artists: DjangoCursorConnection[types.Artist] = strawberry_django.connection(filters=filters.ArtistFilter, order=orders.ArtistOrder)
-    music_genres: DjangoCursorConnection[types.MusicGenre] = strawberry_django.connection(filters=filters.MusicGenreFilter, order=orders.MusicGenreOrder)
-    podcast_genres: DjangoCursorConnection[types.PodcastGenre] = strawberry_django.connection(filters=filters.PodcastGenreFilter, order=orders.PodcastGenreOrder)
     projects: DjangoCursorConnection[types.Project] = strawberry_django.connection(filters=filters.ProjectFilter, order=orders.ProjectOrder)
     songs: DjangoCursorConnection[types.Song] = strawberry_django.connection(filters=filters.SongFilter, order=orders.SongOrder)
     podcasts: DjangoCursorConnection[types.Podcast] = strawberry_django.connection(filters=filters.PodcastFilter, order=orders.PodcastOrder)
