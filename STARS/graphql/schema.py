@@ -156,11 +156,10 @@ class Query:
         )
         async def get_cached_podcast_ids(query: str):
             def fetch_ids():
-                # Filter by title OR host name (icontains)
                 return list(
                     models.Podcast.objects.filter(
                         Q(title__icontains=query) |
-                        Q(hosts__name__icontains=query)
+                        Q(host__icontains=query)
                     ).distinct().values_list('id', flat=True)[:limit]
                 )
 
