@@ -2,7 +2,6 @@
 
 import strawberry
 import strawberry_django
-from django.db.models import OuterRef, Subquery, Exists, Q
 from strawberry import auto
 from typing import Optional
 
@@ -11,6 +10,9 @@ from STARS import models
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from strawberry_django.filters import FilterLookup
+from django.db.models import Q, Exists, OuterRef, QuerySet
+from STARS.models import ProjectArtist, ProjectSong
+
 
 # For Relay Nodes, the `id` filter should accept a simple integer,
 # which the resolver will then use to find the object.
@@ -171,20 +173,31 @@ class SongFilter:
     song_artists: Optional["SongArtistFilter"]
 
     @strawberry_django.filter_field
-    def search(self, queryset, value: str, prefix) -> Optional[Q]:
+    def search(self, queryset, value: str, prefix) -> tuple[QuerySet, Optional[Q]]:
         if value:
-            # Filter based on title and song artists names
-            return Q(title__icontains=value) | \
-                Q(song_artists__artist__name__icontains=value)
-        return None
+            # Check if project title matches
+            title_match = Q(title__icontains=value)
 
-    @strawberry_django.filter_field
-    def search(self, queryset, value: str, prefix) -> Optional[Q]:
-        if value:
-            # Filter based on title and song artists names
-            return Q(title__icontains=value) | \
-                Q(song_artists__artist__name__icontains=value)
-        return None
+            # Efficiently check for artist matches without joins
+            artist_exists = Exists(
+                ProjectArtist.objects.filter(
+                    project=OuterRef('pk'),
+                    artist__name__icontains=value
+                )
+            )
+
+            # Efficiently check for song matches without joins
+            song_exists = Exists(
+                ProjectSong.objects.filter(
+                    project=OuterRef('pk'),
+                    song__title__icontains=value
+                )
+            )
+
+            # Filter projects that match title OR have matching artists OR have matching songs
+            return queryset.filter(title_match | Q(artist_exists) | Q(song_exists)), None
+
+        return queryset, None
 
 @strawberry_django.filter(models.SongArtist, lookups=True)
 class SongArtistFilter:
@@ -206,13 +219,7 @@ class ProjectFilter:
     is_featured: auto
     genre: Optional["MusicGenreFilter"]
 
-    @strawberry_django.filter_field
-    def search(self, queryset, value: str, prefix) -> Optional[Q]:
-        if value:
-            return Q(title__icontains=value) | \
-                Q(project_artists__artist__name__icontains=value) | \
-                Q(project_songs__song__title__icontains=value)
-        return None
+
 
 @strawberry_django.filter(models.ProjectArtist, lookups=True)
 class ProjectArtistFilter:
