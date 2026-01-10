@@ -10,6 +10,7 @@ from STARS import models
 from STARS.services.apple_music import AppleMusicService
 from STARS.services.youtube import YoutubeService
 from asgiref.sync import sync_to_async
+from strawberry import relay
 from datetime import datetime
 
 from STARS.services.itunes import iTunesService
@@ -563,24 +564,8 @@ class Query:
             )
         return songs
 
-    @strawberry_django.connection(filters=filters.MusicGenreFilter, order=orders.MusicGenreOrder)
-    async def music_genres(self) -> List[types.MusicGenre]:
-        # Define the inner function to fetch data
-        @cache_graphql_query(CacheKeys.MUSIC_GENRES, timeout=3600)
-        async def get_cached_genres():
-            # We return a list because QuerySets are hard to cache directly
-            # and Relay can handle a list of objects just fine.
-            return await sync_to_async(lambda: list(models.MusicGenre.objects.all()))()
-
-        return await get_cached_genres()
-
-    @strawberry_django.connection(filters=filters.PodcastGenreFilter, order=orders.PodcastGenreOrder)
-    async def podcast_genres(self) -> List[types.PodcastGenre]:
-        @cache_graphql_query(CacheKeys.PODCAST_GENRES, timeout=3600)
-        async def get_cached_genres():
-            return await sync_to_async(lambda: list(models.PodcastGenre.objects.all()))()
-
-        return await get_cached_genres()
+    music_genres: DjangoCursorConnection[types.MusicGenre] = strawberry_django.connection(filters=filters.MusicGenreFilter, order=orders.MusicGenreOrder)
+    podcast_genres: DjangoCursorConnection[types.PodcastGenre] = strawberry_django.connection(filters=filters.PodcastGenreFilter, order=orders.PodcastGenreOrder)
 
     artists: DjangoCursorConnection[types.Artist] = strawberry_django.connection(filters=filters.ArtistFilter, order=orders.ArtistOrder)
     projects: DjangoCursorConnection[types.Project] = strawberry_django.connection(filters=filters.ProjectFilter, order=orders.ProjectOrder)
