@@ -288,7 +288,7 @@ class Podcast(strawberry.relay.Node):
     reviews: relay.ListConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
     genres: relay.ListConnection["PodcastGenre"] = strawberry_django.connection(filters=filters.PodcastGenreFilter, order=orders.PodcastGenreOrder)
 
-    @sync_to_async
+    '''@sync_to_async
     def get_covers(self) -> List[models.Cover]:
         return self.covers.all()
 
@@ -298,7 +298,7 @@ class Podcast(strawberry.relay.Node):
 
     @sync_to_async
     def get_genres(self) -> List[models.PodcastGenre]:
-        return self.genres.all()
+        return self.genres.all()'''
 
 
 @strawberry_django.type(models.Outfit, fields="__all__")
