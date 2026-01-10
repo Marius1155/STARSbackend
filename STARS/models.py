@@ -115,8 +115,6 @@ class Event(models.Model):
     primary_color = models.CharField(max_length=7, blank=True)  # e.g., "#FF5733"
     secondary_color = models.CharField(max_length=7, blank=True)  # e.g., "#33A1FF"
 
-    class Meta:
-        ordering = ['-date']
 
     def __str__(self):
         return f"{self.name} ({self.date})"
@@ -134,9 +132,6 @@ class Comment (models.Model):
     dislikes_count = models.IntegerField(default=0)
     liked_by = models.ManyToManyField(User, blank=True, related_name='liked_comments')
     disliked_by = models.ManyToManyField(User, blank=True, related_name='disliked_comments')
-
-    class Meta:
-        ordering = ['-date_created']
 
     def __str__(self):
         return f"Comment from {self.user.username} saying {self.text}"
@@ -158,9 +153,6 @@ class Review(models.Model):
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')
-
-    class Meta:
-        ordering = ['-date_created']
 
     def __str__(self):
         return f"Review by {self.user.username} on {self.content_object}"
@@ -221,9 +213,6 @@ class MusicVideo(models.Model):
     primary_color = models.CharField(max_length=7, blank=True)  # e.g., "#FF5733"
     secondary_color = models.CharField(max_length=7, blank=True)  # e.g., "#33A1FF"
 
-    class Meta:
-        ordering = ['-release_date']
-
     def __str__(self):
         return self.title
 
@@ -248,9 +237,6 @@ class PerformanceVideo(models.Model):
 
     primary_color = models.CharField(max_length=7, blank=True)  # e.g., "#FF5733"
     secondary_color = models.CharField(max_length=7, blank=True)  # e.g., "#33A1FF"
-
-    class Meta:
-        ordering = ['-release_date']
 
     def __str__(self):
         return self.title
@@ -277,9 +263,6 @@ class Song(models.Model):
     bandcamp = models.URLField(max_length=500, blank=True, null=True)
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
-
-    class Meta:
-        ordering = ['-release_date']
 
     def __str__(self):
         release_info = self.release_date if self.is_out else "Unreleased"
@@ -379,9 +362,6 @@ class Podcast(models.Model):
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
 
-    class Meta:
-        ordering = ['-since']
-
     def __str__(self):
         return f"{self.title} - {self.host}"
 
@@ -404,9 +384,6 @@ class Outfit(models.Model):
 
     primary_color = models.CharField(max_length=7, blank=True)  # e.g., "#FF5733"
     secondary_color = models.CharField(max_length=7, blank=True)  # e.g., "#33A1FF"
-
-    class Meta:
-        ordering = ['-date']
 
     def __str__(self):
         artist_name = self.artist.name if self.artist else "Unknown Artist"
@@ -493,9 +470,6 @@ class SearchHistory(models.Model):
         db_index=True
     )
     timestamp = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['-timestamp']
 
     def __str__(self):
         return f"{self.user.username} searched '{self.query}' in {self.category}"
