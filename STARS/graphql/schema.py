@@ -10,6 +10,9 @@ from STARS import models
 from STARS.services.apple_music import AppleMusicService
 from STARS.services.youtube import YoutubeService
 from asgiref.sync import sync_to_async
+from django.core.cache import cache
+from django.db.models import Q
+from STARS.utils.cache import make_cache_key
 from strawberry import relay
 from datetime import datetime
 
@@ -133,6 +136,48 @@ class iTunesPodcastLight:
 @strawberry.type
 class Query:
     @strawberry.field
+    async def search_podcasts(self, query: str) -> types.PodcastSearchResponse:
+        if not query:
+            return types.PodcastSearchResponse(is_cached=False, podcasts=[])
+
+        limit = 5
+
+        # Generate the cache key for podcast search
+        cache_key = make_cache_key(CacheKeys.PODCAST_SEARCH, query=query)
+
+        # Check if results are already in Redis
+        cached_data = await sync_to_async(cache.get)(cache_key)
+        was_in_cache = cached_data is not None
+
+        @cache_graphql_query(
+            CacheKeys.PODCAST_SEARCH,
+            timeout=300,
+            key_params=["query"]
+        )
+        async def get_cached_podcast_ids(query: str):
+            def fetch_ids():
+                # Filter by title OR host name (icontains)
+                return list(
+                    models.Podcast.objects.filter(
+                        Q(title__icontains=query) |
+                        Q(hosts__name__icontains=query)
+                    ).distinct().values_list('id', flat=True)[:limit]
+                )
+
+            return await sync_to_async(fetch_ids)()
+
+        # Get the IDs (either from cache or fresh DB hit)
+        podcast_ids = await get_cached_podcast_ids(query=query)
+
+        def hydrate_results():
+            return types.PodcastSearchResponse(
+                is_cached=was_in_cache,
+                podcasts=list(models.Podcast.objects.filter(id__in=podcast_ids))
+            )
+
+        return await sync_to_async(hydrate_results)()
+
+    @strawberry.field
     async def search_music(self, query: str) -> types.MusicSearchResponse:
         if not query:
             return types.MusicSearchResponse(
@@ -140,10 +185,6 @@ class Query:
             )
 
         limit = 5
-
-        # FIX: Import the actual Django cache object, not your utility module
-        from django.core.cache import cache
-        from STARS.utils.cache import make_cache_key
 
         # Generate the key to check manually
         cache_key = make_cache_key(CacheKeys.MUSIC_SEARCH, query=query)
@@ -593,7 +634,7 @@ class Query:
     events: DjangoCursorConnection[types.Event] = strawberry_django.connection(filters=filters.EventFilter, order=orders.EventOrder)
     event_series: DjangoCursorConnection[types.EventSeries] = strawberry_django.connection(filters=filters.EventSeriesFilter, order=orders.EventSeriesOrder)
     music_videos: DjangoCursorConnection[types.MusicVideo] = strawberry_django.connection(filters=filters.MusicVideoFilter, order=orders.MusicVideoOrder)
-    performance_videos: DjangoCursorConnection[types.MusicVideo] = strawberry_django.connection(filters=filters.PerformanceVideoFilter, order=orders.PerformanceVideoOrder)
+    performance_videos: DjangoCursorConnection[types.PerformanceVideo] = strawberry_django.connection(filters=filters.PerformanceVideoFilter, order=orders.PerformanceVideoOrder)
     users: DjangoCursorConnection[types.User] = strawberry_django.connection(filters=filters.UserFilter, order=orders.UserOrder)
     search_history: DjangoCursorConnection[types.SearchHistory] = strawberry_django.connection(filters=filters.SearchHistoryFilter, order=orders.SearchHistoryOrder)
 

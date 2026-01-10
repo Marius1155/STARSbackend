@@ -23,6 +23,11 @@ class MusicSearchResponse:
     music_videos: List["MusicVideo"]
     performance_videos: List["PerformanceVideo"]
 
+@strawberry.type
+class PodcastSearchResponse:
+    is_cached: bool
+    podcasts: List["Podcast"]
+
 @strawberry_django.type(models.MusicGenre, fields="__all__")
 class MusicGenre(strawberry.relay.Node):
     projects: DjangoCursorConnection["Project"] = strawberry_django.connection(filters=filters.ProjectFilter, order=orders.ProjectOrder)
