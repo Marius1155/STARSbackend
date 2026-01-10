@@ -19,7 +19,6 @@ import re
 
 from STARS.utils.cache import cache_graphql_query, CacheKeys
 from .orders import SearchHistoryOrder
-from ..utils import cache
 
 
 def get_high_res_artwork(url: str) -> str:
@@ -142,11 +141,14 @@ class Query:
 
         limit = 5
 
-        # Generate the exact same key the decorator uses to check it manually first
+        # FIX: Import the actual Django cache object, not your utility module
+        from django.core.cache import cache
         from STARS.utils.cache import make_cache_key
+
+        # Generate the key to check manually
         cache_key = make_cache_key(CacheKeys.MUSIC_SEARCH, query=query)
 
-        # Check if it exists in Redis right now
+        # Check if it exists in Redis (using sync_to_async for the Django cache)
         cached_data = await sync_to_async(cache.get)(cache_key)
         was_in_cache = cached_data is not None
 
@@ -157,7 +159,6 @@ class Query:
         )
         async def get_cached_search_ids(query: str):
             def fetch_ids():
-                # This only runs on MISS
                 return {
                     "artists": list(
                         models.Artist.objects.filter(Q(name__icontains=query)).values_list('id', flat=True)[:limit]),
@@ -182,12 +183,11 @@ class Query:
 
             return await sync_to_async(fetch_ids)()
 
-        # This call handles the actual caching logic
         data_ids = await get_cached_search_ids(query=query)
 
         def hydrate_results():
             return types.MusicSearchResponse(
-                is_cached=was_in_cache,  # This is now accurately based on the pre-check
+                is_cached=was_in_cache,
                 artists=list(models.Artist.objects.filter(id__in=data_ids["artists"])),
                 projects=list(models.Project.objects.filter(id__in=data_ids["projects"])),
                 songs=list(models.Song.objects.filter(id__in=data_ids["songs"])),
