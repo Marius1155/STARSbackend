@@ -329,9 +329,6 @@ class Project(models.Model):
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
 
-    class Meta:
-        ordering = ['-release_date']
-
     def __str__(self):
         return f"{self.title} - {self.release_date}"
 
