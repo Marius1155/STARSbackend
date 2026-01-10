@@ -136,7 +136,7 @@ class Query:
     async def search_music(self, query: str) -> types.MusicSearchResponse:
         if not query:
             return types.MusicSearchResponse(
-                artists=[], projects=[], songs=[], music_videos=[], performance_videos=[]
+                is_cached = False, artists=[], projects=[], songs=[], music_videos=[], performance_videos=[]
             )
 
         limit = 5
@@ -150,9 +150,8 @@ class Query:
         )
         async def get_cached_search_ids(query: str):
             def fetch_ids():
-                # We fetch only the IDs. These are just integers/strings.
-                # Redis handles these perfectly.
-                return {
+                # This code ONLY runs on a CACHE MISS
+                data = {
                     "artists": list(
                         models.Artist.objects.filter(Q(name__icontains=query)).values_list('id', flat=True)[:limit]),
                     "projects": list(models.Project.objects.filter(
@@ -173,6 +172,8 @@ class Query:
                         Q(title__icontains=query)
                     ).distinct().values_list('id', flat=True)[:limit])
                 }
+                # Wrap the data and mark it as cached for future hits
+                return {"ids": data, "is_cached": True}
 
             return await sync_to_async(fetch_ids)()
 
