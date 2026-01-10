@@ -19,6 +19,7 @@ import re
 
 from STARS.utils.cache import cache_graphql_query, CacheKeys
 from .orders import SearchHistoryOrder
+from ..utils import cache
 
 
 def get_high_res_artwork(url: str) -> str:
@@ -136,13 +137,19 @@ class Query:
     async def search_music(self, query: str) -> types.MusicSearchResponse:
         if not query:
             return types.MusicSearchResponse(
-                is_cached = False, artists=[], projects=[], songs=[], music_videos=[], performance_videos=[]
+                is_cached=False, artists=[], projects=[], songs=[], music_videos=[], performance_videos=[]
             )
 
         limit = 5
 
-        # 1. This helper is what we cache.
-        # It returns ONLY plain Python lists/dicts (serializable).
+        # Generate the exact same key the decorator uses to check it manually first
+        from STARS.utils.cache import make_cache_key
+        cache_key = make_cache_key(CacheKeys.MUSIC_SEARCH, query=query)
+
+        # Check if it exists in Redis right now
+        cached_data = await sync_to_async(cache.get)(cache_key)
+        was_in_cache = cached_data is not None
+
         @cache_graphql_query(
             CacheKeys.MUSIC_SEARCH,
             timeout=300,
@@ -150,8 +157,8 @@ class Query:
         )
         async def get_cached_search_ids(query: str):
             def fetch_ids():
-                # This code ONLY runs on a CACHE MISS
-                data = {
+                # This only runs on MISS
+                return {
                     "artists": list(
                         models.Artist.objects.filter(Q(name__icontains=query)).values_list('id', flat=True)[:limit]),
                     "projects": list(models.Project.objects.filter(
@@ -172,22 +179,15 @@ class Query:
                         Q(title__icontains=query)
                     ).distinct().values_list('id', flat=True)[:limit])
                 }
-                # Wrap the data and mark it as cached for future hits
-                return {"ids": data, "is_cached": True}
 
             return await sync_to_async(fetch_ids)()
 
-        # 2. Get the IDs (either from Redis or by running fetch_ids)
-        data_payload = await get_cached_search_ids(query=query)
-        data_ids = data_payload["ids"]
-        # This will be True if it was retrieved from Redis (since it was saved with True)
-        was_it_cached = data_payload.get("is_cached", False)
+        # This call handles the actual caching logic
+        data_ids = await get_cached_search_ids(query=query)
 
-        # 3. "Hydrate" the IDs back into real Django objects.
-        # This part is NOT cached, but it's lightning fast because it's a PK lookup.
         def hydrate_results():
             return types.MusicSearchResponse(
-                is_cached=was_it_cached,
+                is_cached=was_in_cache,  # This is now accurately based on the pre-check
                 artists=list(models.Artist.objects.filter(id__in=data_ids["artists"])),
                 projects=list(models.Project.objects.filter(id__in=data_ids["projects"])),
                 songs=list(models.Song.objects.filter(id__in=data_ids["songs"])),
