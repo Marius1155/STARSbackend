@@ -564,22 +564,23 @@ class Query:
         return songs
 
     @strawberry_django.connection(filters=filters.MusicGenreFilter, order=orders.MusicGenreOrder)
-    @cache_graphql_query(
-        CacheKeys.MUSIC_GENRES,
-        timeout=3600  # 1 hour - genres rarely change
-    )
-    async def music_genres(self) -> DjangoCursorConnection[types.MusicGenre]:
-        """CACHED: Genre list (rarely changes)."""
-        return await sync_to_async(lambda: models.MusicGenre.objects.all())()
+    async def music_genres(self) -> List[types.MusicGenre]:
+        # Define the inner function to fetch data
+        @cache_graphql_query(CacheKeys.MUSIC_GENRES, timeout=3600)
+        async def get_cached_genres():
+            # We return a list because QuerySets are hard to cache directly
+            # and Relay can handle a list of objects just fine.
+            return await sync_to_async(lambda: list(models.MusicGenre.objects.all()))()
+
+        return await get_cached_genres()
 
     @strawberry_django.connection(filters=filters.PodcastGenreFilter, order=orders.PodcastGenreOrder)
-    @cache_graphql_query(
-        CacheKeys.PODCAST_GENRES,
-        timeout=3600  # 1 hour - genres rarely change
-    )
-    async def podcast_genres(self) -> DjangoCursorConnection[types.PodcastGenre]:
-        """CACHED: Genre list (rarely changes)."""
-        return await sync_to_async(lambda: models.PodcastGenre.objects.all())()
+    async def podcast_genres(self) -> List[types.PodcastGenre]:
+        @cache_graphql_query(CacheKeys.PODCAST_GENRES, timeout=3600)
+        async def get_cached_genres():
+            return await sync_to_async(lambda: list(models.PodcastGenre.objects.all()))()
+
+        return await get_cached_genres()
 
     artists: DjangoCursorConnection[types.Artist] = strawberry_django.connection(filters=filters.ArtistFilter, order=orders.ArtistOrder)
     projects: DjangoCursorConnection[types.Project] = strawberry_django.connection(filters=filters.ProjectFilter, order=orders.ProjectOrder)
