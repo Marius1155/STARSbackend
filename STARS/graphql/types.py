@@ -43,28 +43,6 @@ class Artist(strawberry.relay.Node):
     genres: relay.ListConnection["MusicGenre"] = strawberry_django.connection(filters=filters.MusicGenreFilter, order=orders.MusicGenreOrder)
     performance_videos: relay.ListConnection["PerformanceVideo"] = strawberry_django.connection(filters=filters.PerformanceVideoFilter, order=orders.PerformanceVideoOrder)
 
-    # Add these async accessors to ensure safe DB access if needed by custom resolvers
-    # or simply to match your Project pattern.
-    @sync_to_async
-    def get_song_artists(self) -> List[models.SongArtist]:
-        return self.song_artists.all()
-
-    @sync_to_async
-    def get_project_artists(self) -> List[models.ProjectArtist]:
-        return self.project_artists.all()
-
-    @sync_to_async
-    def get_outfits(self) -> List[models.Outfit]:
-        return self.outfits.all()
-
-    @sync_to_async
-    def get_genres(self) -> List[models.MusicGenre]:
-        return self.genres.all()
-
-    @sync_to_async
-    def get_performance_videos(self) -> List[models.PerformanceVideo]:
-        return self.performance_videos.all()
-
 
 @strawberry_django.type(models.EventSeries, fields="__all__")
 class EventSeries(strawberry.relay.Node):
@@ -201,35 +179,6 @@ class Song(strawberry.relay.Node):
     reviews: relay.ListConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
     genres: relay.ListConnection["MusicGenre"] = strawberry_django.connection(filters=filters.MusicGenreFilter, order=orders.MusicGenreOrder)
 
-    @sync_to_async
-    def get_alternative_versions(self) -> relay.ListConnection["Song"]:
-        return self.alternative_versions.all()
-
-    @sync_to_async
-    def get_song_artists(self) -> relay.ListConnection["SongArtist"]:
-        return self.song_artists.all()
-
-    @sync_to_async
-    def get_project_songs(self) -> relay.ListConnection["ProjectSong"]:
-        return self.project_songs.all()
-
-    @sync_to_async
-    def get_music_videos(self) -> relay.ListConnection["MusicVideo"]:
-        return self.music_videos.all()
-
-    @sync_to_async
-    def get_performance_videos(self) -> relay.ListConnection["PerformanceVideo"]:
-        return self.performance_videos.all()
-
-    @sync_to_async
-    def get_reviews(self) -> List[models.Review]:
-        return self.reviews.all()
-
-    @sync_to_async
-    def get_genres(self) -> List[models.MusicGenre]:
-        return self.genres.all()
-
-
 @strawberry_django.type(models.SongArtist, fields="__all__")
 class SongArtist(strawberry.relay.Node):
     song: "Song"
@@ -244,31 +193,6 @@ class Project(relay.Node):
     reviews: relay.ListConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
     alternative_versions: relay.ListConnection["Project"] = strawberry_django.connection(filters=filters.ProjectFilter, order=orders.ProjectOrder)
     genres: relay.ListConnection["MusicGenre"] = strawberry_django.connection(filters=filters.MusicGenreFilter, order=orders.MusicGenreOrder)
-
-    @sync_to_async
-    def get_covers(self) -> List[models.Cover]:
-        return self.covers.all()
-
-    @sync_to_async
-    def get_project_songs(self) -> List[models.ProjectSong]:
-        return self.project_songs.all()
-
-    @sync_to_async
-    def get_project_artists(self) -> List[models.ProjectArtist]:
-        return self.project_artists.all()
-
-    @sync_to_async
-    def get_reviews(self) -> List[models.Review]:
-        return self.reviews.all()
-
-    @sync_to_async
-    def get_alternative_versions(self) -> List[models.Project]:
-        return self.alternative_versions.all()
-
-    @sync_to_async
-    def get_genres(self) -> List[models.MusicGenre]:
-        return self.genres.all()
-
 
 @strawberry_django.type(models.ProjectArtist, fields="__all__")
 class ProjectArtist(strawberry.relay.Node):
@@ -287,19 +211,6 @@ class Podcast(strawberry.relay.Node):
     covers: relay.ListConnection["Cover"] = strawberry_django.connection(filters=filters.CoverFilter, order=orders.CoverOrder)
     reviews: relay.ListConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
     genres: relay.ListConnection["PodcastGenre"] = strawberry_django.connection(filters=filters.PodcastGenreFilter, order=orders.PodcastGenreOrder)
-
-    '''@sync_to_async
-    def get_covers(self) -> List[models.Cover]:
-        return self.covers.all()
-
-    @sync_to_async
-    def get_reviews(self) -> List[models.Review]:
-        return self.reviews.all()
-
-    @sync_to_async
-    def get_genres(self) -> List[models.PodcastGenre]:
-        return self.genres.all()'''
-
 
 @strawberry_django.type(models.Outfit, fields="__all__")
 class Outfit(strawberry.relay.Node):
