@@ -16,6 +16,7 @@ from . import filters, orders
 
 @strawberry.type
 class MusicSearchResponse:
+    is_cached: bool
     artists: List["Artist"]
     projects: List["Project"]
     songs: List["Song"]

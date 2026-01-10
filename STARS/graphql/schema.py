@@ -178,12 +178,16 @@ class Query:
             return await sync_to_async(fetch_ids)()
 
         # 2. Get the IDs (either from Redis or by running fetch_ids)
-        data_ids = await get_cached_search_ids(query=query)
+        data_payload = await get_cached_search_ids(query=query)
+        data_ids = data_payload["ids"]
+        # This will be True if it was retrieved from Redis (since it was saved with True)
+        was_it_cached = data_payload.get("is_cached", False)
 
         # 3. "Hydrate" the IDs back into real Django objects.
         # This part is NOT cached, but it's lightning fast because it's a PK lookup.
         def hydrate_results():
             return types.MusicSearchResponse(
+                is_cached=was_it_cached,
                 artists=list(models.Artist.objects.filter(id__in=data_ids["artists"])),
                 projects=list(models.Project.objects.filter(id__in=data_ids["projects"])),
                 songs=list(models.Song.objects.filter(id__in=data_ids["songs"])),
