@@ -173,7 +173,7 @@ class SubReview(models.Model):
 
 
 class Cover(models.Model):
-    image = models.URLField(max_length=500)
+    image = models.URLField(max_length=500, unique=True)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')
@@ -195,7 +195,7 @@ class Cover(models.Model):
 
 
 class MusicVideo(models.Model):
-    youtube_id = models.CharField(blank=True, null=True, max_length=255)
+    youtube_id = models.CharField(blank=True, null=True, max_length=255, unique=True)
     title = models.CharField(max_length=500, db_index=True)
     channel_name = models.CharField(max_length=500, db_index=True)
     number_of_songs = models.IntegerField()
@@ -218,7 +218,7 @@ class MusicVideo(models.Model):
 
 
 class PerformanceVideo(models.Model):
-    youtube_id = models.CharField(blank=True, null=True, max_length=255)
+    youtube_id = models.CharField(blank=True, null=True, max_length=255, unique=True)
     title = models.CharField(max_length=500, db_index=True)
     artists = models.ManyToManyField('Artist', related_name='performance_videos')
     event = models.ForeignKey('Event', on_delete=models.SET_NULL, related_name='performance_videos', null=True)
@@ -243,7 +243,7 @@ class PerformanceVideo(models.Model):
 
 
 class Song(models.Model):
-    apple_music_id = models.CharField(blank=True, null=True, max_length=255)
+    apple_music_id = models.CharField(blank=True, null=True, max_length=255, unique=True)
     title = models.CharField(max_length=500, db_index=True)
     genres = models.ManyToManyField('MusicGenre', related_name='songs', blank=True)
     length = models.IntegerField()
@@ -289,7 +289,7 @@ class Project(models.Model):
         MIXTAPE = "MIXTAPE", "Mixtape"
         SINGLE = "SINGLE", "Single"
 
-    apple_music_id = models.CharField(blank=True, null=True, max_length=255)
+    apple_music_id = models.CharField(blank=True, null=True, max_length=255, unique=True)
     title = models.CharField(max_length=500, db_index=True)
     length = models.IntegerField()
     genres = models.ManyToManyField('MusicGenre', related_name='projects', blank=True)
@@ -344,7 +344,7 @@ class ProjectSong(models.Model):
 
 
 class Podcast(models.Model):
-    apple_podcasts_id = models.CharField(blank=True, null=True, max_length=255)
+    apple_podcasts_id = models.CharField(blank=True, null=True, max_length=255, unique=True)
     title = models.CharField(max_length=500, db_index=True)
     host = models.CharField(max_length=500, db_index=True)
     genres = models.ManyToManyField('PodcastGenre', related_name='podcasts', blank=True)

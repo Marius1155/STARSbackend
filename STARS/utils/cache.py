@@ -117,8 +117,13 @@ class CacheKeys:
 
     # Detail pages
     PODCAST_DETAIL = "podcast_detail"
+    MUSIC_VIDEO_DETAIL = "music_video_detail"
+    PERFORMANCE_VIDEO_DETAIL = "performance_video_detail"
     PROJECT_DETAIL = "project_detail"
     ARTIST_DETAIL = "artist_detail"
+    OUTFIT_DETAIL = "outfit_detail"
+    EVENT_DETAIL = "events_detail"
+    EVENT_SERIES_DETAIL = "event_series_detail"
 
     # Aggregations
     PODCAST_STATS = "podcast_stats"

@@ -2,7 +2,7 @@ import strawberry
 import strawberry_django
 from strawberry_django.optimizer import DjangoOptimizerExtension
 from strawberry_django.relay import DjangoCursorConnection
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from . import types, filters, mutations, subscriptions, orders
 from django.db.models import OuterRef, Subquery, Exists, Q
@@ -656,6 +656,166 @@ class Query:
     sub_reviews: DjangoCursorConnection[types.SubReview] = strawberry_django.connection(filters=filters.SubReviewFilter, order=orders.SubReviewOrder)
     profiles: DjangoCursorConnection[types.Profile] = strawberry_django.connection(filters=filters.ProfileFilter, order=orders.ProfileOrder)
     covers: DjangoCursorConnection[types.Cover] = strawberry_django.connection(filters=filters.CoverFilter, order=orders.CoverOrder)
+
+    @strawberry.field
+    @cache_graphql_query(
+        CacheKeys.PROJECT_DETAIL,
+        timeout=300,  # 5 minutes
+        key_params=["id"]
+    )
+    async def project_detail(self, id: strawberry.ID) -> Optional[types.Project]:
+        """
+        Get a single project by ID with caching.
+        Cached for 5 minutes - good for detail pages.
+        """
+
+        def fetch_project():
+            try:
+                return models.Project.objects.get(id=id)
+            except models.Project.DoesNotExist:
+                return None
+
+        return await sync_to_async(fetch_project)()
+
+    @strawberry.field
+    @cache_graphql_query(
+        CacheKeys.ARTIST_DETAIL,
+        timeout=300,  # 5 minutes
+        key_params=["id"]
+    )
+    async def artist_detail(self, id: strawberry.ID) -> Optional[types.Artist]:
+        """
+        Get a single artist by ID with caching.
+        Cached for 5 minutes.
+        """
+
+        def fetch_artist():
+            try:
+                return models.Artist.objects.get(id=id)
+            except models.Artist.DoesNotExist:
+                return None
+
+        return await sync_to_async(fetch_artist)()
+
+    @strawberry.field
+    @cache_graphql_query(
+        CacheKeys.PODCAST_DETAIL,
+        timeout=300,  # 5 minutes
+        key_params=["id"]
+    )
+    async def podcast_detail(self, id: strawberry.ID) -> Optional[types.Podcast]:
+        """
+        Get a single podcast by ID with caching.
+        Cached for 5 minutes.
+        """
+
+        def fetch_podcast():
+            try:
+                return models.Podcast.objects.get(id=id)
+            except models.Podcast.DoesNotExist:
+                return None
+
+        return await sync_to_async(fetch_podcast)()
+
+    @strawberry.field
+    @cache_graphql_query(
+        CacheKeys.MUSIC_VIDEO_DETAIL,
+        timeout=300,  # 5 minutes
+        key_params=["id"]
+    )
+    async def music_video_detail(self, id: strawberry.ID) -> Optional[types.MusicVideo]:
+        """
+        Get a single music video by ID with caching.
+        Cached for 5 minutes.
+        """
+
+        def fetch_music_video():
+            try:
+                return models.MusicVideo.objects.get(id=id)
+            except models.MusicVideo.DoesNotExist:
+                return None
+
+        return await sync_to_async(fetch_music_video)()
+
+    @strawberry.field
+    @cache_graphql_query(
+        CacheKeys.PERFORMANCE_VIDEO_DETAIL,
+        timeout=300,  # 5 minutes
+        key_params=["id"]
+    )
+    async def performance_video_detail(self, id: strawberry.ID) -> Optional[types.PerformanceVideo]:
+        """
+        Get a single performance video by ID with caching.
+        Cached for 5 minutes.
+        """
+
+        def fetch_performance_video():
+            try:
+                return models.PerformanceVideo.objects.get(id=id)
+            except models.PerformanceVideo.DoesNotExist:
+                return None
+
+        return await sync_to_async(fetch_performance_video)()
+
+    @strawberry.field
+    @cache_graphql_query(
+        CacheKeys.OUTFIT_DETAIL,
+        timeout=300,  # 5 minutes
+        key_params=["id"]
+    )
+    async def outfit_detail(self, id: strawberry.ID) -> Optional[types.Outfit]:
+        """
+        Get a single outfit by ID with caching.
+        Cached for 5 minutes.
+        """
+
+        def fetch_outfit():
+            try:
+                return models.Outfit.objects.get(id=id)
+            except models.Outfit.DoesNotExist:
+                return None
+
+        return await sync_to_async(fetch_outfit)()
+
+    @strawberry.field
+    @cache_graphql_query(
+        CacheKeys.EVENT_DETAIL,
+        timeout=300,  # 5 minutes
+        key_params=["id"]
+    )
+    async def event_detail(self, id: strawberry.ID) -> Optional[types.Event]:
+        """
+        Get a single event by ID with caching.
+        Cached for 5 minutes.
+        """
+
+        def fetch_event():
+            try:
+                return models.Event.objects.get(id=id)
+            except models.Event.DoesNotExist:
+                return None
+
+        return await sync_to_async(fetch_event)()
+
+    @strawberry.field
+    @cache_graphql_query(
+        CacheKeys.EVENT_SERIES_DETAIL,
+        timeout=300,  # 5 minutes
+        key_params=["id"]
+    )
+    async def event_series_detail(self, id: strawberry.ID) -> Optional[types.EventSeries]:
+        """
+        Get a single event series by ID with caching.
+        Cached for 5 minutes.
+        """
+
+        def fetch_event_series():
+            try:
+                return models.EventSeries.objects.get(id=id)
+            except models.EventSeries.DoesNotExist:
+                return None
+
+        return await sync_to_async(fetch_event_series)()
 
 schema = strawberry.Schema(
     query=Query,
