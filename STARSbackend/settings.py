@@ -49,6 +49,36 @@ CHANNEL_LAYERS = {
     },
 }
 
+# Redis Configuration for Caching
+REDIS_URL = config('REDIS_URL', default='redis://127.0.0.1:6379')
+
+# Cache Configuration
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": REDIS_URL,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "CONNECTION_POOL_KWARGS": {
+                "max_connections": 50,
+                "retry_on_timeout": True,
+            },
+            "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
+            "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
+        },
+        "KEY_PREFIX": "stars",
+        "TIMEOUT": 300,
+    }
+}
+
+# Use Redis for sessions (optional but recommended)
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
+
+# Optional: Use Redis for sessions too (faster than database)
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
+
 AUTHENTICATION_BACKENDS = [
     # Needed to login by username in Django admin, regardless of `allauth`
     'django.contrib.auth.backends.ModelBackend',
