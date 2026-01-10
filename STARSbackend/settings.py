@@ -59,9 +59,11 @@ CACHES = {
         "LOCATION": REDIS_URL,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "CONNECTION_POOL_CLASS": "redis.connection.ConnectionPool",
             "CONNECTION_POOL_KWARGS": {
-                "max_connections": 50,
+                "max_connections": 45,
                 "retry_on_timeout": True,
+                "health_check_interval": 30,
             },
             "SERIALIZER": "django_redis.serializers.json.JSONSerializer",
             "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",
