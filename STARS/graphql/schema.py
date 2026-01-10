@@ -133,11 +133,6 @@ class iTunesPodcastLight:
 @strawberry.type
 class Query:
     @strawberry.field
-    @cache_graphql_query(
-        CacheKeys.MUSIC_SEARCH,
-        timeout=300,  # 5 minutes
-        key_params=["query"]
-    )
     async def search_music(self, query: str) -> types.MusicSearchResponse:
         if not query:
             return types.MusicSearchResponse(
@@ -146,57 +141,56 @@ class Query:
 
         limit = 5
 
-        # Define a helper to run the sync ORM queries
-        def get_music_results():
-            # 1. Artists: Search by name
-            artists_qs = models.Artist.objects.filter(
-                Q(name__icontains=query)
-            )[:limit]
+        # 1. This helper is what we cache.
+        # It returns ONLY plain Python lists/dicts (serializable).
+        @cache_graphql_query(
+            CacheKeys.MUSIC_SEARCH,
+            timeout=300,
+            key_params=["query"]
+        )
+        async def get_cached_search_ids(query: str):
+            def fetch_ids():
+                # We fetch only the IDs. These are just integers/strings.
+                # Redis handles these perfectly.
+                return {
+                    "artists": list(
+                        models.Artist.objects.filter(Q(name__icontains=query)).values_list('id', flat=True)[:limit]),
+                    "projects": list(models.Project.objects.filter(
+                        Q(title__icontains=query) |
+                        Q(project_artists__artist__name__icontains=query) |
+                        Q(project_songs__song__title__icontains=query)
+                    ).distinct().values_list('id', flat=True)[:limit]),
+                    "songs": list(models.Song.objects.filter(
+                        Q(title__icontains=query) |
+                        Q(song_artists__artist__name__icontains=query)
+                    ).distinct().values_list('id', flat=True)[:limit]),
+                    "music_videos": list(models.MusicVideo.objects.filter(
+                        Q(title__icontains=query) |
+                        Q(songs__title__icontains=query) |
+                        Q(songs__song_artists__artist__name__icontains=query)
+                    ).distinct().values_list('id', flat=True)[:limit]),
+                    "performance_videos": list(models.PerformanceVideo.objects.filter(
+                        Q(title__icontains=query)
+                    ).distinct().values_list('id', flat=True)[:limit])
+                }
 
-            # 2. Projects: Search by Title, Artist Name, or Song Titles
-            projects_qs = models.Project.objects.filter(
-                Q(title__icontains=query) |
-                Q(project_artists__artist__name__icontains=query) |
-                Q(project_songs__song__title__icontains=query)
-            ).distinct()[:limit]
+            return await sync_to_async(fetch_ids)()
 
-            # 3. Songs: Search by Title or Artist Name
-            songs_qs = models.Song.objects.filter(
-                Q(title__icontains=query) |
-                Q(song_artists__artist__name__icontains=query)
-            ).distinct()[:limit]
+        # 2. Get the IDs (either from Redis or by running fetch_ids)
+        data_ids = await get_cached_search_ids(query=query)
 
-            # 4. Music Videos: Search by Title, Song Titles, or Song Artist Names
-            music_videos_qs = models.MusicVideo.objects.filter(
-                Q(title__icontains=query) |
-                Q(songs__title__icontains=query) |
-                Q(songs__song_artists__artist__name__icontains=query)
-            ).distinct()[:limit]
-
-            # 5. Performance Videos: Search by Title
-            performance_videos_qs = models.PerformanceVideo.objects.filter(
-                Q(title__icontains=query)
-            ).distinct()[:limit]
-
-            # Convert QuerySets to lists while still inside the sync context
-            return (
-                list(artists_qs),
-                list(projects_qs),
-                list(songs_qs),
-                list(music_videos_qs),
-                list(performance_videos_qs)
+        # 3. "Hydrate" the IDs back into real Django objects.
+        # This part is NOT cached, but it's lightning fast because it's a PK lookup.
+        def hydrate_results():
+            return types.MusicSearchResponse(
+                artists=list(models.Artist.objects.filter(id__in=data_ids["artists"])),
+                projects=list(models.Project.objects.filter(id__in=data_ids["projects"])),
+                songs=list(models.Song.objects.filter(id__in=data_ids["songs"])),
+                music_videos=list(models.MusicVideo.objects.filter(id__in=data_ids["music_videos"])),
+                performance_videos=list(models.PerformanceVideo.objects.filter(id__in=data_ids["performance_videos"]))
             )
 
-        # Run the sync helper in an async thread
-        artists, projects, songs, music_videos, performance_videos = await sync_to_async(get_music_results)()
-
-        return types.MusicSearchResponse(
-            artists=artists,
-            projects=projects,
-            songs=songs,
-            music_videos=music_videos,
-            performance_videos=performance_videos
-        )
+        return await sync_to_async(hydrate_results)()
 
     @strawberry.field
     async def search_itunes_podcasts(self, term: str) -> List[iTunesPodcastLight]:
