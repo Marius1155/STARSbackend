@@ -64,7 +64,8 @@ class AppleMusicAlbumLight:
     name: str
     release_date: str
     cover_url: str
-    bg_color: str
+    primary_color: str
+    secondary_color: str
     artists_names: str
     track_count: int
     kind: str
@@ -92,7 +93,8 @@ class AppleMusicAlbumDetail:
     name: str
     release_date: str
     cover_url: str
-    bg_color: str
+    primary_color: str
+    secondary_color: str
     track_count: int
     kind: str
     url: str
@@ -374,7 +376,8 @@ class Query:
 
             artwork = album_attrs.get("artwork", {})
             cover_url = artwork.get("url", "") if artwork else ""
-            bg_color = artwork.get("bgColor", "") if artwork else ""
+            primary_color = artwork.get("bgColor", "") if artwork else ""
+            secondary_color = artwork.get("textColor1", "") if artwork else ""
             track_count = album_attrs.get("trackCount", 0)
             kind = album_attrs.get("playParams", {}).get("kind", "")
             is_single = album_attrs.get("isSingle", False)
@@ -386,7 +389,8 @@ class Query:
                     name=album_attrs.get("name", ""),
                     release_date=album_attrs.get("releaseDate", ""),
                     cover_url=cover_url,
-                    bg_color=bg_color,
+                    primary_color=primary_color,
+                    secondary_color=secondary_color,
                     artists_names=artists_names,
                     track_count=track_count,
                     kind=kind,
@@ -519,7 +523,8 @@ class Query:
         # ✅ Album cover & metadata
         artwork = album_attrs.get("artwork", {})
         cover_url = artwork.get("url", "") if artwork else ""
-        bg_color = artwork.get("bgColor", "") if artwork else ""
+        primary_color = artwork.get("bgColor", "") if artwork else ""
+        secondary_color = artwork.get("textColor1", "") if artwork else ""
         genre_names = album_attrs.get("genreNames", [])
         kind = album_attrs.get("playParams", {}).get("kind", "")
         url = album_attrs.get("url", "")
@@ -533,7 +538,8 @@ class Query:
             name=album_attrs.get("name", ""),
             release_date=album_attrs.get("releaseDate", ""),
             cover_url=cover_url,
-            bg_color=bg_color,
+            primary_color=primary_color,
+            secondary_color=secondary_color,
             songs=songs,
             artists=album_artists,
             track_count=number_of_songs,
