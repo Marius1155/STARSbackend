@@ -339,7 +339,7 @@ class ProjectSong(models.Model):
         return f"{self.project.title} - {self.position}. {self.song.title}"
 
     class Meta:
-        ordering = ['position']
+        ordering = ['disc_number', 'position']
         unique_together = ('project', 'song')
 
 
