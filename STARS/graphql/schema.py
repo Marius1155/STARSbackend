@@ -123,7 +123,7 @@ class YoutubeVideoDetail:
     channel_name: str
     published_at: str
     length_ms: int
-    view_count: int
+    view_count: str
     url: str
     primary_color: str
 
@@ -301,7 +301,7 @@ class Query:
             channel_name=vid.get("channel_title", ""),
             published_at=vid.get("published_at", ""),
             length_ms=vid.get("length_ms", 0),
-            view_count=vid.get("view_count", 0),
+            view_count=vid.get("view_count", "0"),
             url=vid.get("url", ""),
             primary_color=vid.get("primary_color", "#000000")
         )
