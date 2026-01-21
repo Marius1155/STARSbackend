@@ -21,8 +21,11 @@ class YoutubeService:
         Parses the URL to extract the video ID and fetches its details.
         """
         video_id = self._extract_video_id(url)
+        print(f"DEBUG: Extracted video_id: {video_id} from URL: {url}")  # Add this
+
         if not video_id:
-            return None  # Or raise a specific exception
+            print(f"DEBUG: Failed to extract video_id from URL: {url}")  # Add this
+            return None
 
         return await self.get_video_by_id(video_id)
 
@@ -76,9 +79,19 @@ class YoutubeService:
         """
         Extracts the video ID from various YouTube URL formats.
         """
-        regex = r'(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/|youtube\.com\/shorts\/)([^"&?\/\s]{11})'
-        match = re.search(regex, url)
-        return match.group(1) if match else None
+        # Try multiple patterns
+        patterns = [
+            r'(?:youtube\.com\/watch\?v=|youtu\.be\/)([0-9A-Za-z_-]{11})',
+            r'youtube\.com\/embed\/([0-9A-Za-z_-]{11})',
+            r'youtube\.com\/shorts\/([0-9A-Za-z_-]{11})',
+        ]
+
+        for pattern in patterns:
+            match = re.search(pattern, url)
+            if match:
+                return match.group(1)
+
+        return None
 
     async def search_videos(self, term: str, limit: int = 20) -> List[Dict[str, Any]]:
         # 1. Call Search API to get Video IDs
