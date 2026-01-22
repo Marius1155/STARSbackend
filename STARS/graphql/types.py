@@ -71,7 +71,7 @@ class Artist(strawberry.relay.Node):
     project_artists: relay.ListConnection["ProjectArtist"] = strawberry_django.connection(filters=filters.ProjectArtistFilter, order=orders.ProjectArtistOrder)
     outfits: relay.ListConnection["Outfit"] = strawberry_django.connection(filters=filters.OutfitFilter, order=orders.OutfitOrder)
     performance_videos: relay.ListConnection["PerformanceVideo"] = strawberry_django.connection(filters=filters.PerformanceVideoFilter, order=orders.PerformanceVideoOrder)
-    artist_genres_ordered: DjangoCursorConnection["ArtistGenresOrdered"] = strawberry_django.connection(filters=filters.ArtistGenresOrderedFilter, order=orders.ArtistGenresOrderedOrder)
+    artist_genres_ordered: relay.ListConnection["ArtistGenresOrdered"] = strawberry_django.connection(filters=filters.ArtistGenresOrderedFilter, order=orders.ArtistGenresOrderedOrder)
 
 
 @strawberry_django.type(models.EventSeries, fields="__all__")
@@ -233,7 +233,7 @@ class Song(strawberry.relay.Node):
     music_videos: relay.ListConnection["MusicVideo"] = strawberry_django.connection(filters=filters.MusicVideoFilter, order=orders.MusicVideoOrder)
     performance_videos: relay.ListConnection["PerformanceVideo"] = strawberry_django.connection(filters=filters.PerformanceVideoFilter, order=orders.PerformanceVideoOrder)
     reviews: relay.ListConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
-    song_genres_ordered: DjangoCursorConnection["SongGenresOrdered"] = strawberry_django.connection(filters=filters.SongGenresOrderedFilter, order=orders.SongGenresOrderedOrder)
+    song_genres_ordered: relay.ListConnection["SongGenresOrdered"] = strawberry_django.connection(filters=filters.SongGenresOrderedFilter, order=orders.SongGenresOrderedOrder)
 
 @strawberry_django.type(models.SongArtist, fields="__all__")
 class SongArtist(strawberry.relay.Node):
@@ -248,7 +248,7 @@ class Project(relay.Node):
     project_artists: relay.ListConnection["ProjectArtist"] = strawberry_django.connection(filters=filters.ProjectArtistFilter, order=orders.ProjectArtistOrder)
     reviews: relay.ListConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
     alternative_versions: relay.ListConnection["Project"] = strawberry_django.connection(filters=filters.ProjectFilter, order=orders.ProjectOrder)
-    project_genres_ordered: DjangoCursorConnection["ProjectGenresOrdered"] = strawberry_django.connection(filters=filters.ProjectGenresOrderedFilter, order=orders.ProjectGenresOrderedOrder)
+    project_genres_ordered: relay.ListConnection["ProjectGenresOrdered"] = strawberry_django.connection(filters=filters.ProjectGenresOrderedFilter, order=orders.ProjectGenresOrderedOrder)
 
 @strawberry_django.type(models.ProjectArtist, fields="__all__")
 class ProjectArtist(strawberry.relay.Node):
@@ -266,16 +266,16 @@ class ProjectSong(strawberry.relay.Node):
 class Podcast(strawberry.relay.Node):
     covers: relay.ListConnection["Cover"] = strawberry_django.connection(filters=filters.CoverFilter, order=orders.CoverOrder)
     reviews: relay.ListConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
-    podcast_genres_ordered: DjangoCursorConnection["PodcastGenresOrdered"] = strawberry_django.connection(filters=filters.PodcastGenresOrderedFilter, order=orders.PodcastGenresOrderedOrder)
+    podcast_genres_ordered: relay.ListConnection["PodcastGenresOrdered"] = strawberry_django.connection(filters=filters.PodcastGenresOrderedFilter, order=orders.PodcastGenresOrderedOrder)
 
 @strawberry_django.type(models.Outfit, fields="__all__")
 class Outfit(strawberry.relay.Node):
     artist: "Artist"
-    music_videos: DjangoCursorConnection["MusicVideo"] = strawberry_django.connection(filters=filters.MusicVideoFilter, order=orders.MusicVideoOrder)
-    covers: DjangoCursorConnection["Cover"] = strawberry_django.connection(filters=filters.CoverFilter, order=orders.CoverOrder)
-    matches: DjangoCursorConnection["Outfit"] = strawberry_django.connection(filters=filters.OutfitFilter, order=orders.OutfitOrder)
-    events: DjangoCursorConnection["Event"] = strawberry_django.connection(filters=filters.EventFilter, order=orders.EventOrder)
-    reviews: DjangoCursorConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
+    music_videos: relay.ListConnection["MusicVideo"] = strawberry_django.connection(filters=filters.MusicVideoFilter, order=orders.MusicVideoOrder)
+    covers: relay.ListConnection["Cover"] = strawberry_django.connection(filters=filters.CoverFilter, order=orders.CoverOrder)
+    matches: relay.ListConnection["Outfit"] = strawberry_django.connection(filters=filters.OutfitFilter, order=orders.OutfitOrder)
+    events: relay.ListConnection["Event"] = strawberry_django.connection(filters=filters.EventFilter, order=orders.EventOrder)
+    reviews: relay.ListConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
 
 
 @strawberry_django.type(models.Conversation, fields="__all__")
