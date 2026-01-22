@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'django.contrib.postgres',
     'daphne',
     'django.contrib.staticfiles',
     'rest_framework',
@@ -37,7 +38,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
     'allauth.socialaccount.providers.apple',
     'STARS.apps.StarsConfig',
-    'strawberry_django', # <-- THIS IS THE CRITICAL FIX
+    'strawberry_django',
 ]
 
 CHANNEL_LAYERS = {

@@ -4,14 +4,15 @@ from strawberry_django.optimizer import DjangoOptimizerExtension
 from strawberry_django.relay import DjangoCursorConnection
 from typing import List, Dict, Optional
 
+from django.contrib.postgres.search import TrigramSimilarity
 from . import types, filters, mutations, subscriptions, orders
-from django.db.models import OuterRef, Subquery, Exists, Q
+from django.db.models import OuterRef, Subquery, Exists, Q, Value
+from django.db.models.functions import Concat
 from STARS import models
 from STARS.services.apple_music import AppleMusicService
 from STARS.services.youtube import YoutubeService
 from asgiref.sync import sync_to_async
 from django.core.cache import cache
-from django.db.models import Q
 from STARS.utils.cache import make_cache_key
 from strawberry import relay
 from datetime import datetime
@@ -164,38 +165,38 @@ class Query:
             return types.PodcastSearchResponse(is_cached=False, podcasts=[])
 
         limit = 5
-
-        # Generate the cache key for podcast search
-        cache_key = make_cache_key(CacheKeys.PODCAST_SEARCH, query=query)
-
-        # Check if results are already in Redis
+        # Update cache key to differentiate this new search logic if needed
+        cache_key = make_cache_key(CacheKeys.PODCAST_SEARCH, query=query, type="fuzzy")
         cached_data = await sync_to_async(cache.get)(cache_key)
         was_in_cache = cached_data is not None
 
-        @cache_graphql_query(
-            CacheKeys.PODCAST_SEARCH,
-            timeout=300,
-            key_params=["query"]
-        )
+        @cache_graphql_query(CacheKeys.PODCAST_SEARCH, timeout=300, key_params=["query"])
         async def get_cached_podcast_ids(query: str):
             def fetch_ids():
+                # 1. Annotate a single string containing Title + Host
+                # 2. Calculate similarity of that string to the user's query
                 return list(
-                    models.Podcast.objects.filter(
-                        Q(title__icontains=query) |
-                        Q(host__icontains=query)
-                    ).distinct().values_list('id', flat=True)[:limit]
+                    models.Podcast.objects.annotate(
+                        search_text=Concat('title', Value(' '), 'hosts__name'),
+                        similarity=TrigramSimilarity('search_text', query),
+                    )
+                    # 0.1 is a good starting threshold (10% match).
+                    # For "Gagx" vs "Gaga", similarity is ~0.6, so this easily passes.
+                    .filter(similarity__gt=0.1)
+                    .order_by('-similarity')  # Most similar first
+                    .values_list('id', flat=True)[:limit]
                 )
 
             return await sync_to_async(fetch_ids)()
 
-        # Get the IDs (either from cache or fresh DB hit)
         podcast_ids = await get_cached_podcast_ids(query=query)
 
         def hydrate_results():
-            return types.PodcastSearchResponse(
-                is_cached=was_in_cache,
-                podcasts=list(models.Podcast.objects.filter(id__in=podcast_ids))
-            )
+            # We must preserve the specific order returned by the similarity search
+            # 'filter(id__in=...)' does not guarantee order, so we sort manually in Python
+            objects = list(models.Podcast.objects.filter(id__in=podcast_ids))
+            objects.sort(key=lambda x: podcast_ids.index(x.id))
+            return types.PodcastSearchResponse(is_cached=was_in_cache, podcasts=objects)
 
         return await sync_to_async(hydrate_results)()
 
@@ -207,41 +208,54 @@ class Query:
             )
 
         limit = 5
-
-        # Generate the key to check manually
-        cache_key = make_cache_key(CacheKeys.MUSIC_SEARCH, query=query)
-
-        # Check if it exists in Redis (using sync_to_async for the Django cache)
+        cache_key = make_cache_key(CacheKeys.MUSIC_SEARCH, query=query, type="fuzzy")
         cached_data = await sync_to_async(cache.get)(cache_key)
         was_in_cache = cached_data is not None
 
-        @cache_graphql_query(
-            CacheKeys.MUSIC_SEARCH,
-            timeout=300,
-            key_params=["query"]
-        )
+        @cache_graphql_query(CacheKeys.MUSIC_SEARCH, timeout=300, key_params=["query"])
         async def get_cached_search_ids(query: str):
             def fetch_ids():
+                # Helper to perform the fuzzy search on a model
+                def fuzzy_search(queryset, *field_names):
+                    # Combine all fields into one searchable string
+                    # e.g. "Bad Romance Lady Gaga"
+                    search_expression = field_names[0]
+                    for field in field_names[1:]:
+                        search_expression = Concat(search_expression, Value(' '), field)
+
+                    return list(
+                        queryset.annotate(
+                            similarity=TrigramSimilarity(search_expression, query)
+                        )
+                        .filter(similarity__gt=0.1)  # Threshold: 0.1 to 0.3 is standard
+                        .order_by('-similarity')
+                        .values_list('id', flat=True)[:limit]
+                    )
+
                 return {
-                    "artists": list(
-                        models.Artist.objects.filter(Q(name__icontains=query)).values_list('id', flat=True)[:limit]),
-                    "projects": list(models.Project.objects.filter(
-                        Q(title__icontains=query) |
-                        Q(project_artists__artist__name__icontains=query) |
-                        Q(project_songs__song__title__icontains=query)
-                    ).distinct().values_list('id', flat=True)[:limit]),
-                    "songs": list(models.Song.objects.filter(
-                        Q(title__icontains=query) |
-                        Q(song_artists__artist__name__icontains=query)
-                    ).distinct().values_list('id', flat=True)[:limit]),
-                    "music_videos": list(models.MusicVideo.objects.filter(
-                        Q(title__icontains=query) |
-                        Q(songs__title__icontains=query) |
-                        Q(songs__song_artists__artist__name__icontains=query)
-                    ).distinct().values_list('id', flat=True)[:limit]),
-                    "performance_videos": list(models.PerformanceVideo.objects.filter(
-                        Q(title__icontains=query)
-                    ).distinct().values_list('id', flat=True)[:limit])
+                    "artists": fuzzy_search(models.Artist.objects.all(), 'name'),
+
+                    # Search Project Title + Artist Name
+                    "projects": fuzzy_search(
+                        models.Project.objects.all(),
+                        'title', 'project_artists__artist__name'
+                    ),
+
+                    # Search Song Title + Artist Name
+                    "songs": fuzzy_search(
+                        models.Song.objects.all(),
+                        'title', 'song_artists__artist__name'
+                    ),
+
+                    # Search Music Video Title + Song Title + Artist
+                    "music_videos": fuzzy_search(
+                        models.MusicVideo.objects.all(),
+                        'title', 'songs__title', 'songs__song_artists__artist__name'
+                    ),
+
+                    "performance_videos": fuzzy_search(
+                        models.PerformanceVideo.objects.all(), 'title'
+                    )
                 }
 
             return await sync_to_async(fetch_ids)()
@@ -249,13 +263,19 @@ class Query:
         data_ids = await get_cached_search_ids(query=query)
 
         def hydrate_results():
+            # Helper to fetch and resort objects
+            def fetch_and_sort(model, ids):
+                objs = list(model.objects.filter(id__in=ids))
+                objs.sort(key=lambda x: ids.index(x.id))
+                return objs
+
             return types.MusicSearchResponse(
                 is_cached=was_in_cache,
-                artists=list(models.Artist.objects.filter(id__in=data_ids["artists"])),
-                projects=list(models.Project.objects.filter(id__in=data_ids["projects"])),
-                songs=list(models.Song.objects.filter(id__in=data_ids["songs"])),
-                music_videos=list(models.MusicVideo.objects.filter(id__in=data_ids["music_videos"])),
-                performance_videos=list(models.PerformanceVideo.objects.filter(id__in=data_ids["performance_videos"]))
+                artists=fetch_and_sort(models.Artist, data_ids["artists"]),
+                projects=fetch_and_sort(models.Project, data_ids["projects"]),
+                songs=fetch_and_sort(models.Song, data_ids["songs"]),
+                music_videos=fetch_and_sort(models.MusicVideo, data_ids["music_videos"]),
+                performance_videos=fetch_and_sort(models.PerformanceVideo, data_ids["performance_videos"])
             )
 
         return await sync_to_async(hydrate_results)()
