@@ -20,16 +20,38 @@ class MusicGenreOrder:
     title: auto
     is_featured : auto
 
+@strawberry_django.order_type(models.ProjectGenresOrdered)
+class ProjectGenresOrderedOrder:
+    position: auto
+
+@strawberry_django.order_type(models.SongGenresOrdered)
+class SongGenresOrderedOrder:
+    position: auto
+
+@strawberry_django.order_type(models.ArtistGenresOrdered)
+class ArtistGenresOrderedOrder:
+    position: auto
+
 @strawberry_django.order_type(models.PodcastGenre)
 class PodcastGenreOrder:
     title: auto
     is_featured : auto
+
+@strawberry_django.order_type(models.PodcastGenresOrdered)
+class PodcastGenresOrderedOrder:
+    position: auto
 
 @strawberry_django.order_type(models.Artist)
 class ArtistOrder:
     name : auto
     birthdate : auto
     is_featured : auto
+    projects_star_average: auto
+    songs_star_average: auto
+    music_videos_star_average: auto
+    performances_star_average: auto
+    covers_star_average: auto
+    outfits_star_average: auto
 
 @strawberry_django.order_type(models.EventSeries)
 class EventSeriesOrder:

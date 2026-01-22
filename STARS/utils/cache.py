@@ -137,3 +137,5 @@ class CacheKeys:
     # Genres
     PODCAST_GENRES = "podcast_genres"
     MUSIC_GENRES = "music_genres"
+
+    REVIEW_TOPIC_CONFIG = "review_topic_configuration"

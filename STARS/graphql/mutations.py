@@ -100,26 +100,60 @@ def process_image_from_url(image_url: str):
         return None, None, None
 
 
-def get_or_create_genres(genre_names: List[str]):
+def get_or_create_project_genres(genre_names: List[str], project: types.Project):
     if not genre_names:
-        return []
+        return
 
-    genres = []
-    for name in genre_names:
-        # get_or_create returns (object, created)
-        genre_obj, _ = models.MusicGenre.objects.get_or_create(title=name)
-        genres.append(genre_obj)
-    return genres
+    for i, name in enumerate(genre_names):
+        if name != "Music":
+            genre_obj, _ = models.MusicGenre.objects.get_or_create(title=name)
+            models.ProjectGenresOrdered.objects.create(
+                project=project,
+                genre=genre_obj,
+                position=i + 1
+            )
 
-def get_or_create_podcast_genres(genre_names: List[str]):
+
+def get_or_create_song_genres(genre_names: List[str], song: types.Song):
     if not genre_names:
-        return []
+        return
 
-    genres = []
-    for name in genre_names:
-        genre_obj, _ = models.PodcastGenre.objects.get_or_create(title=name)
-        genres.append(genre_obj)
-    return genres
+    for i, name in enumerate(genre_names):
+        if name != "Music":
+            genre_obj, _ = models.MusicGenre.objects.get_or_create(title=name)
+            models.SongGenresOrdered.objects.create(
+                song=song,
+                genre=genre_obj,
+                position=i + 1
+            )
+
+
+def get_or_create_artist_genres(genre_names: List[str], artist: types.Artist):
+    if not genre_names:
+        return
+
+    for i, name in enumerate(genre_names):
+        if name != "Music":
+            genre_obj, _ = models.MusicGenre.objects.get_or_create(title=name)
+            models.ArtistGenresOrdered.objects.create(
+                artist=artist,
+                genre=genre_obj,
+                position=i + 1
+            )
+
+
+def get_or_create_podcast_genres(genre_names: List[str], podcast: types.Podcast):
+    if not genre_names:
+        return
+
+    for i, name in enumerate(genre_names):
+        if name != "Podcasts":
+            genre_obj, _ = models.PodcastGenre.objects.get_or_create(title=name)
+            models.PodcastGenresOrdered.objects.create(
+                podcast=podcast,
+                genre=genre_obj,
+                position=i + 1
+            )
 
 # -----------------------------------------------------------------------------
 # Input Types
@@ -670,9 +704,7 @@ class Mutation:
                         apple_podcasts=item.get("collectionViewUrl")
                     )
 
-                    genre_objects = get_or_create_podcast_genres(item.get("genres", []))
-                    if genre_objects:
-                        podcast.genres.set(genre_objects)
+                    get_or_create_podcast_genres(item.get("genres", []), podcast)
 
                     cover_url = get_high_res_artwork(item.get("artworkUrl600", ""))
 
@@ -743,9 +775,7 @@ class Mutation:
                     apple_podcasts=item.get("collectionViewUrl")
                 )
 
-                genre_objects = get_or_create_podcast_genres(item.get("genres", []))
-                if genre_objects:
-                    podcast.genres.set(genre_objects)
+                get_or_create_podcast_genres(item.get("genres", []), podcast)
 
                 cover_url = get_high_res_artwork(item.get("artworkUrl600", ""))
 
@@ -878,8 +908,7 @@ class Mutation:
                             apple_music=adata["apple_music_url"]
                         )
                         if adata["genres"]:
-                            genre_objs = get_or_create_genres(adata["genres"])
-                            artist.genres.set(genre_objs)
+                            get_or_create_artist_genres(adata["genres"], artist)
                         return artist
 
                     return None
@@ -1005,9 +1034,7 @@ class Mutation:
                 )
 
                 # 4. Handle Genres
-                genre_objects = get_or_create_genres(data.genres)
-                if genre_objects:
-                    artist.genres.set(genre_objects)
+                get_or_create_artist_genres(data.genres, artist)
 
                 return artist
 
@@ -1115,8 +1142,7 @@ class Mutation:
                             apple_music=adata["apple_music_url"]
                         )
                         if adata["genres"]:
-                            genre_objs = get_or_create_genres(adata["genres"])
-                            artist.genres.set(genre_objs)
+                            get_or_create_artist_genres(adata["genres"], artist)
                         return artist
 
                     return None
@@ -1144,9 +1170,7 @@ class Mutation:
 
                 # Handle Genres
                 if data.genres:
-                    genre_objects = get_or_create_genres(data.genres)
-                    if genre_objects:
-                        project.genres.set(genre_objects)
+                    get_or_create_project_genres(data.genres, project)
 
                 # Create Cover
                 if cover_image_url:
@@ -1193,8 +1217,7 @@ class Mutation:
 
                             # Add Genres to Song
                             if song_input.genres:
-                                s_genres = get_or_create_genres(song_input.genres)
-                                song_obj.genres.set(s_genres)
+                                get_or_create_song_genres(song_input.genres, song_obj)
 
                             # Link Artists to Song (with Duplicate Protection + Order Preservation)
                             if song_input.artists_apple_music_ids:

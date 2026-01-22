@@ -1,5 +1,5 @@
 # STARS/models.py
-
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
@@ -7,34 +7,9 @@ from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelatio
 from django.db.models import JSONField
 
 
-class MusicGenre(models.Model):
-    title = models.CharField(max_length=500, db_index=True, unique=True)
-    is_featured = models.BooleanField(default=False, db_index=True)
-    featured_message = models.TextField(blank=True)
-
-    def __str__(self):
-        return f"{self.title} - {self.is_featured}"
-
-    class Meta:
-        ordering = ['title']
-
-
-class PodcastGenre(models.Model):
-    title = models.CharField(max_length=500, db_index=True, unique=True)
-    is_featured = models.BooleanField(default=False, db_index=True)
-    featured_message = models.TextField(blank=True)
-
-    def __str__(self):
-        return f"{self.title} - {self.is_featured}"
-
-    class Meta:
-        ordering = ['title']
-
-
 class Artist(models.Model):
     apple_music_id = models.CharField(blank=True, null=True, max_length=255)
     name = models.CharField(max_length=100, db_index=True)
-    genres = models.ManyToManyField('MusicGenre', related_name='artists', blank=True)
     picture = models.URLField(max_length=500)
     bio = models.TextField(blank=True)
     wikipedia = models.URLField(max_length=500, blank=True, null=True)
@@ -53,6 +28,12 @@ class Artist(models.Model):
     deezer = models.URLField(max_length=500, blank=True, null=True)
     soundcloud = models.URLField(max_length=500, blank=True, null=True)
     bandcamp = models.URLField(max_length=500, blank=True, null=True)
+    projects_star_average = models.FloatField(default=0)
+    songs_star_average = models.FloatField(default=0)
+    music_videos_star_average = models.FloatField(default=0)
+    performances_star_average = models.FloatField(default=0)
+    covers_star_average = models.FloatField(default=0)
+    outfits_star_average = models.FloatField(default=0)
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
 
@@ -78,6 +59,7 @@ class EventSeries(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     picture = models.URLField(max_length=500, null=True, blank=True)
+    star_average = models.FloatField(default=0)
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
 
@@ -137,10 +119,38 @@ class Comment (models.Model):
         return f"Comment from {self.user.username} saying {self.text}"
 
 
+class RankedList(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"RankedList {self.pk}"
+
+
+class RankedItem(models.Model):
+    ranked_list = models.ForeignKey(RankedList, on_delete=models.CASCADE, related_name='items')
+    position = models.PositiveIntegerField()
+
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
+
+    description = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['position']
+        unique_together = ('ranked_list', 'position')
+
+    def __str__(self):
+        return f"{self.position}. {self.content_object} in Ranked List {self.ranked_list_id}"
+
+
 class Review(models.Model):
-    stars = models.DecimalField(max_digits=3, decimal_places=2)
-    title = models.CharField(max_length=255)
+    stars = models.DecimalField(max_digits=3, decimal_places=2, null=True, blank=True)
+
+    title = models.CharField(max_length=255, blank=True)
+
     text = models.TextField(blank=True)
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews')
     date_created = models.DateTimeField(auto_now_add=True)
     date_updated = models.DateTimeField(auto_now=True)
@@ -150,23 +160,77 @@ class Review(models.Model):
     dislikes_count = models.IntegerField(default=0)
     liked_by = models.ManyToManyField(User, blank=True, related_name='liked_reviews')
     disliked_by = models.ManyToManyField(User, blank=True, related_name='disliked_reviews')
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    object_id = models.PositiveIntegerField()
+
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, null=True, blank=True)
+    object_id = models.PositiveIntegerField(null=True, blank=True)
     content_object = GenericForeignKey('content_type', 'object_id')
 
+    ranked_list = models.OneToOneField(RankedList, null=True, blank=True, on_delete=models.SET_NULL, related_name='review')
+
+    class Meta:
+        ordering = ['-date_created']
+
+    def clean(self):
+        super().clean()
+
+        if self.content_type or self.object_id:
+            if self.stars is None:
+                raise ValidationError("Reviews must have a star rating.")
+            if not self.title:
+                raise ValidationError("Reviews must have a title.")
+
+        else:
+            if not self.text:
+                raise ValidationError("Posts must have text content.")
+
+    @property
+    def is_post(self):
+        return self.content_type is None
+
     def __str__(self):
-        return f"Review by {self.user.username} on {self.content_object}"
+        if self.content_object:
+            return f"Review by {self.user.username} on {self.content_object}"
+        return f"Post by {self.user.username}: {self.text[:30]}"
 
 
 class SubReview(models.Model):
+    class Topic(models.TextChoices):
+        LYRICS = "LYRICS", "Lyrics"
+        PRODUCTION = "PRODUCTION", "Production"
+        COLOR_PALETTE = "COLOR_PALETTE", "Color Palette"
+        DIRECTION = "DIRECTION", "Direction"
+        VOCAL_PERFORMANCE = "VOCAL_PERFORMANCE", "Vocal Performance"
+        STYLING = "STYLING", "Styling"
+
+    TOPIC_MAPPING = {
+        'song': [Topic.LYRICS, Topic.PRODUCTION, Topic.VOCAL_PERFORMANCE],
+        'project': [Topic.LYRICS, Topic.PRODUCTION],
+        'cover': [Topic.COLOR_PALETTE],
+        'outfit': [Topic.COLOR_PALETTE, Topic.STYLING],
+        'musicvideo': [Topic.COLOR_PALETTE, Topic.DIRECTION],
+    }
+
     review = models.ForeignKey('Review', on_delete=models.CASCADE, related_name='subreviews')
-    topic = models.CharField(max_length=255)
+    topic = models.CharField(max_length=50, choices=Topic.choices)
     text = models.TextField(blank=True)
     stars = models.DecimalField(max_digits=3, decimal_places=2)
     position = models.PositiveIntegerField(default=1)
 
     class Meta:
         ordering = ['position']
+
+    def clean(self):
+        super().clean()
+        if not self.review or not self.review.content_type:
+            return
+
+        model_name = self.review.content_type.model.lower()
+        allowed_topics = self.TOPIC_MAPPING.get(model_name, [])
+
+        if self.topic and self.topic not in allowed_topics:
+            raise ValidationError(
+                f"Topic '{self.topic}' is not a valid option for a {model_name} review."
+            )
 
     def __str__(self):
         return f"Subreview of {self.review} – {self.topic}"
@@ -188,7 +252,7 @@ class Cover(models.Model):
     secondary_color = models.CharField(max_length=7, blank=True)  # e.g., "#33A1FF"
 
     class Meta:
-        ordering = ['position']
+        unique_together = ('content_type', 'object_id', 'position')
 
     def __str__(self):
         return f"Cover for {self.content_object} ({self.image})"
@@ -245,7 +309,6 @@ class PerformanceVideo(models.Model):
 class Song(models.Model):
     apple_music_id = models.CharField(blank=True, null=True, max_length=255, unique=True)
     title = models.CharField(max_length=500, db_index=True)
-    genres = models.ManyToManyField('MusicGenre', related_name='songs', blank=True)
     length = models.IntegerField()
     preview = models.URLField(max_length=500, blank=True, null=True)
     release_date = models.DateField(db_index=True)
@@ -279,7 +342,10 @@ class SongArtist(models.Model):
 
     class Meta:
         ordering = ['position']
-        unique_together = ('song', 'artist')
+        unique_together = (
+            ('song', 'artist'),
+            ('song', 'position'),
+        )
 
 
 class Project(models.Model):
@@ -292,7 +358,6 @@ class Project(models.Model):
     apple_music_id = models.CharField(blank=True, null=True, max_length=255, unique=True)
     title = models.CharField(max_length=500, db_index=True)
     length = models.IntegerField()
-    genres = models.ManyToManyField('MusicGenre', related_name='projects', blank=True)
     number_of_songs = models.IntegerField()
     release_date = models.DateField(db_index=True)
     project_type = models.CharField(max_length=10, choices=ProjectType.choices, db_index=True)
@@ -326,7 +391,10 @@ class ProjectArtist(models.Model):
 
     class Meta:
         ordering = ['position']
-        unique_together = ('project', 'artist')
+        unique_together = (
+            ('project', 'artist'),
+            ('project', 'position'),
+        )
 
 
 class ProjectSong(models.Model):
@@ -340,14 +408,16 @@ class ProjectSong(models.Model):
 
     class Meta:
         ordering = ['disc_number', 'position']
-        unique_together = ('project', 'song')
+        unique_together = (
+            ('project', 'song'),
+            ('project', 'disc_number', 'position'),
+        )
 
 
 class Podcast(models.Model):
     apple_podcasts_id = models.CharField(blank=True, null=True, max_length=255, unique=True)
     title = models.CharField(max_length=500, db_index=True)
     host = models.CharField(max_length=500, db_index=True)
-    genres = models.ManyToManyField('PodcastGenre', related_name='podcasts', blank=True)
     description = models.TextField(blank=True)
     since = models.DateField(db_index=True)
     covers = GenericRelation('Cover')
@@ -473,6 +543,94 @@ class SearchHistory(models.Model):
 
     def __str__(self):
         return f"{self.user.username} searched '{self.query}' in {self.category}"
+
+
+class MusicGenre(models.Model):
+    title = models.CharField(max_length=500, db_index=True, unique=True)
+    is_featured = models.BooleanField(default=False, db_index=True)
+    featured_message = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.title} - {self.is_featured}"
+
+    class Meta:
+        ordering = ['title']
+
+
+class ProjectGenresOrdered(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='project_genres_ordered')
+    genre = models.ForeignKey(MusicGenre, on_delete=models.CASCADE, related_name='project_genres_ordered')
+    position = models.PositiveIntegerField()
+
+    def __str__(self):
+        return f"{self.project.title} - {self.position}. {self.genre.title}"
+
+    class Meta:
+        ordering = ['position']
+        unique_together = (
+            ('project', 'genre'),
+            ('project', 'position'),
+        )
+
+
+class SongGenresOrdered(models.Model):
+    song = models.ForeignKey(Song, on_delete=models.CASCADE, related_name='song_genres_ordered')
+    genre = models.ForeignKey(MusicGenre, on_delete=models.CASCADE, related_name='song_genres_ordered')
+    position = models.PositiveIntegerField()
+
+    def __str__(self):
+        return f"{self.song.title} - {self.position}. {self.genre.title}"
+
+    class Meta:
+        ordering = ['position']
+        unique_together = (
+            ('song', 'genre'),
+            ('song', 'position'),
+        )
+
+
+class ArtistGenresOrdered(models.Model):
+    artist = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='artist_genres_ordered')
+    genre = models.ForeignKey(MusicGenre, on_delete=models.CASCADE, related_name='artist_genres_ordered')
+    position = models.PositiveIntegerField()
+
+    def __str__(self):
+        return f"{self.artist.title} - {self.position}. {self.genre.title}"
+
+    class Meta:
+        ordering = ['position']
+        unique_together = (
+            ('artist', 'genre'),
+            ('artist', 'position'),
+        )
+
+
+class PodcastGenre(models.Model):
+    title = models.CharField(max_length=500, db_index=True, unique=True)
+    is_featured = models.BooleanField(default=False, db_index=True)
+    featured_message = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.title} - {self.is_featured}"
+
+    class Meta:
+        ordering = ['title']
+
+
+class PodcastGenresOrdered(models.Model):
+    podcast = models.ForeignKey(Podcast, on_delete=models.CASCADE, related_name='podcast_genres_ordered')
+    genre = models.ForeignKey(PodcastGenre, on_delete=models.CASCADE, related_name='podcast_genres_ordered')
+    position = models.PositiveIntegerField()
+
+    def __str__(self):
+        return f"{self.podcast.title} - {self.position}. {self.genre.title}"
+
+    class Meta:
+        ordering = ['position']
+        unique_together = (
+            ('podcast', 'genre'),
+            ('podcast', 'position'),
+        )
 
 
 class UnresolvedImportTask(models.Model):

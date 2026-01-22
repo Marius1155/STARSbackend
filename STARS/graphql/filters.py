@@ -23,11 +23,39 @@ class MusicGenreFilter:
     title: auto
     is_featured: auto
 
+@strawberry_django.filter(models.ProjectGenresOrdered, lookups=True)
+class ProjectGenresOrderedFilter:
+    id: auto
+    position: auto
+    project: Optional["ProjectFilter"]
+    genre: Optional["MusicGenreFilter"]
+
+@strawberry_django.filter(models.SongGenresOrdered, lookups=True)
+class SongGenresOrderedFilter:
+    id: auto
+    position: auto
+    song: Optional["SongFilter"]
+    genre: Optional["MusicGenreFilter"]
+
+@strawberry_django.filter(models.ArtistGenresOrdered, lookups=True)
+class ArtistGenresOrderedFilter:
+    id: auto
+    position: auto
+    artist: Optional["ArtistFilter"]
+    genre: Optional["MusicGenreFilter"]
+
 @strawberry_django.filter(models.PodcastGenre, lookups=True)
 class PodcastGenreFilter:
     id: auto
     title: auto
     is_featured: auto
+
+@strawberry_django.filter(models.PodcastGenresOrdered, lookups=True)
+class PodcastGenresOrderedFilter:
+    id: auto
+    position: auto
+    podcast: Optional["PodcastFilter"]
+    genre: Optional["PodcastGenreFilter"]
 
 @strawberry_django.filter(models.Artist, lookups=True)
 class ArtistFilter:
@@ -36,7 +64,12 @@ class ArtistFilter:
     name: auto
     origin: auto
     is_featured: auto
-    genre: Optional["MusicGenreFilter"]
+    projects_star_average: auto
+    songs_star_average: auto
+    music_videos_star_average: auto
+    performances_star_average: auto
+    covers_star_average: auto
+    outfits_star_average: auto
 
     @strawberry_django.filter_field
     def search(self, queryset: QuerySet, value: str, prefix) -> tuple[QuerySet, Q]:
@@ -104,6 +137,8 @@ class ContentTypeFilter:
 class ReviewFilter:
     id: auto
     stars: auto
+    title: auto
+    text: auto
     user: Optional["UserFilter"]
     comments_count: auto
     likes_count: auto
@@ -226,7 +261,6 @@ class ProjectFilter:
     project_type: auto
     record_label: auto
     is_featured: auto
-    genre: Optional["MusicGenreFilter"]
 
     @strawberry_django.filter_field
     def search(self, queryset: QuerySet, value: str, prefix) -> tuple[QuerySet, Q]:  # Change return type hint
