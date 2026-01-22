@@ -104,56 +104,64 @@ def get_or_create_project_genres(genre_names: List[str], project: types.Project)
     if not genre_names:
         return
 
-    for i, name in enumerate(genre_names):
+    i = 1
+    for name in genre_names:
         if name != "Music":
             genre_obj, _ = models.MusicGenre.objects.get_or_create(title=name)
             models.ProjectGenresOrdered.objects.create(
                 project=project,
                 genre=genre_obj,
-                position=i + 1
+                position=i
             )
+            i += 1
 
 
 def get_or_create_song_genres(genre_names: List[str], song: types.Song):
     if not genre_names:
         return
 
-    for i, name in enumerate(genre_names):
+    i = 1
+    for name in genre_names:
         if name != "Music":
             genre_obj, _ = models.MusicGenre.objects.get_or_create(title=name)
             models.SongGenresOrdered.objects.create(
                 song=song,
                 genre=genre_obj,
-                position=i + 1
+                position=i
             )
+            i += 1
 
 
 def get_or_create_artist_genres(genre_names: List[str], artist: types.Artist):
     if not genre_names:
         return
 
-    for i, name in enumerate(genre_names):
+    i = 1
+    for name in genre_names:
         if name != "Music":
             genre_obj, _ = models.MusicGenre.objects.get_or_create(title=name)
             models.ArtistGenresOrdered.objects.create(
                 artist=artist,
                 genre=genre_obj,
-                position=i + 1
+                position=i
             )
+            i += 1
 
 
 def get_or_create_podcast_genres(genre_names: List[str], podcast: types.Podcast):
     if not genre_names:
         return
 
-    for i, name in enumerate(genre_names):
+    i = 1
+    for name in genre_names:
         if name != "Podcasts":
             genre_obj, _ = models.PodcastGenre.objects.get_or_create(title=name)
             models.PodcastGenresOrdered.objects.create(
                 podcast=podcast,
                 genre=genre_obj,
-                position=i + 1
+                position=i
             )
+            i += 1
 
 # -----------------------------------------------------------------------------
 # Input Types

@@ -595,7 +595,7 @@ class ArtistGenresOrdered(models.Model):
     position = models.PositiveIntegerField()
 
     def __str__(self):
-        return f"{self.artist.title} - {self.position}. {self.genre.title}"
+        return f"{self.artist.name} - {self.position}. {self.genre.title}"
 
     class Meta:
         ordering = ['position']
