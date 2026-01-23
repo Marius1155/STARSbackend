@@ -139,6 +139,67 @@ class iTunesPodcastLight:
 @strawberry.type
 class Query:
     @strawberry.field
+    async def match_songs_by_title_and_artists(
+            self,
+            song_title: str,
+            artist_ids: List[str]
+    ) -> List[types.Song]:
+        """
+        Finds songs that:
+        1. Contain ALL the specified artists.
+        2. Match the title using TrigramWordSimilarity (allows matching "Brat" inside "Brat (Deluxe)").
+        """
+        if not song_title or not artist_ids:
+            return []
+
+        # Generate a consistent string for the cache key
+        ids_str = ",".join(sorted(artist_ids))
+
+        # 1. Fetch IDs (Cached)
+        @cache_graphql_query(
+            CacheKeys.MATCH_SONGS,  # Don't forget to add this to your CacheKeys!
+            timeout=300,
+            key_params=["title", "artists_hash"]
+        )
+        async def get_matched_ids(title: str, artists_hash: str):
+            def fetch():
+                qs = models.Song.objects.all()
+
+                # A. Strict Artist Matching (AND logic)
+                # The song must include Artist A AND Artist B AND ...
+                for artist_id in artist_ids:
+                    qs = qs.filter(song_artists__artist__apple_music_id=artist_id)
+
+                # B. Title Matching
+                # TrigramWordSimilarity(query, field) checks if 'query' is inside 'field'.
+                return list(
+                    qs.annotate(
+                        similarity=TrigramWordSimilarity(title, 'title')
+                    )
+                    # We use a reasonably high threshold (0.6) because we expect the
+                    # short title ("Brat") to perfectly match a part of the long title.
+                    .filter(similarity__gt=0.6)
+                    .order_by('-similarity')
+                    .distinct()
+                    .values_list('id', flat=True)[:20]
+                )
+
+            return await sync_to_async(fetch)()
+
+        # Execute query
+        matched_ids = await get_matched_ids(title=song_title, artists_hash=ids_str)
+
+        # 2. Hydrate Results (Preserve Order)
+        def hydrate_results():
+            songs = list(models.Song.objects.filter(id__in=matched_ids))
+            # Sort manually to ensure best matches appear first
+            songs.sort(key=lambda x: matched_ids.index(x.id))
+            return songs
+
+        return await sync_to_async(hydrate_results)()
+
+
+    @strawberry.field
     async def match_projects_by_title_and_artists(
             self,
             project_title: str,

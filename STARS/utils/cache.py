@@ -141,3 +141,4 @@ class CacheKeys:
     REVIEW_TOPIC_CONFIG = "review_topic_configuration"
 
     MATCH_PROJECTS = "match_projects_title_artists"
+    MATCH_SONGS = "match_songs_title_artists"
