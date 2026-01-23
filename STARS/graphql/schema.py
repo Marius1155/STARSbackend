@@ -4,7 +4,7 @@ from strawberry_django.optimizer import DjangoOptimizerExtension
 from strawberry_django.relay import DjangoCursorConnection
 from typing import List, Dict, Optional
 
-from django.contrib.postgres.search import TrigramSimilarity
+from django.contrib.postgres.search import TrigramSimilarity, TrigramWordSimilarity
 from . import types, filters, mutations, subscriptions, orders
 from django.db.models import OuterRef, Subquery, Exists, Q, Value
 from django.db.models.functions import Concat
@@ -162,8 +162,9 @@ class Query:
                         project_artists__artist__apple_music_id__in=artist_ids
                     )
                     .annotate(
-                        similarity=TrigramSimilarity('title', title)
+                        similarity=TrigramWordSimilarity(title, 'title')
                     )
+                    .filter(similarity__gt=0.3)
                     .order_by('-similarity')
                     .distinct()
                     .values_list('id', flat=True)[:20]
