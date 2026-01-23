@@ -135,9 +135,45 @@ class iTunesPodcastLight:
     host: str
     image_url: str
 
-# --- GraphQL Query ---
+
 @strawberry.type
 class Query:
+    @strawberry.field
+    async def get_artist_most_popular_projects(
+            self,
+            artist_id: strawberry.ID,
+            limit: int = 10
+    ) -> List[types.Project]:
+
+        @cache_graphql_query(
+            CacheKeys.ARTIST_POPULAR_PROJECTS,
+            timeout=3600,
+            key_params=["artist_id", "limit"]
+        )
+        async def get_cached_ids(artist_id: strawberry.ID, limit: int):
+            def fetch():
+                return list(
+                    models.Project.objects.filter(
+                        project_artists__artist_id=artist_id
+                    )
+                    .order_by('-popularity_score')
+                    .values_list('id', flat=True)[:limit]
+                )
+
+            return await sync_to_async(fetch)()
+
+        ordered_ids = await get_cached_ids(artist_id=artist_id, limit=limit)
+
+        def hydrate_results():
+            projects = list(models.Project.objects.filter(id__in=ordered_ids))
+
+            projects.sort(key=lambda x: ordered_ids.index(x.id))
+
+            return projects
+
+        return await sync_to_async(hydrate_results)()
+
+
     @strawberry.field
     async def match_songs_by_title_and_artists(
             self,
