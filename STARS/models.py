@@ -80,14 +80,15 @@ class Event(models.Model):
         RESIDENCY = "RESIDENCY", "Residency"
         OTHER = "OTHER", "Other"
 
-    event_type = models.CharField(max_length=20, choices=EventType.choices, db_index=True, default=EventType.OTHER)
+    event_type = models.CharField(max_length=25, choices=EventType.choices, db_index=True, default=EventType.OTHER)
 
     series = models.ForeignKey('EventSeries', on_delete=models.SET_NULL, null=True, blank=True, related_name='events')
-    name = models.CharField(max_length=255)
-    date = models.DateField()
+    name = models.CharField(max_length=255, db_index=True)
+    date = models.DateField(blank=True)
     picture = models.URLField(max_length=500, null=True, blank=True)
-    location = models.CharField(max_length=255, blank=True)
+    location = models.CharField(max_length=255, null=True, blank=True)
     is_one_time = models.BooleanField(default=False)
+    is_performance = models.BooleanField(default=False)
     reviews_count = models.IntegerField(default=0)
     reviews = GenericRelation('Review')
     star_average = models.FloatField(default=0)
@@ -98,6 +99,22 @@ class Event(models.Model):
     primary_color = models.CharField(max_length=7, blank=True)  # e.g., "#FF5733"
     secondary_color = models.CharField(max_length=7, blank=True)  # e.g., "#33A1FF"
 
+    def clean(self):
+        if self.is_performance:
+            if self.pk:
+                count = self.performance_videos.count()
+                if count != 1:
+                    raise ValidationError(f"A performance event must have exactly one linked PerformanceVideo. Found {count}.")
+        if not self.name:
+            raise ValidationError({'name': 'Events must have a name.'})
+        if not self.date:
+            raise ValidationError({'date': 'Events must have a date.'})
+        if not self.event_type:
+            raise ValidationError({'event_type': 'Events must have an event type.'})
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.name} ({self.date})"
@@ -188,6 +205,10 @@ class Review(models.Model):
     def is_post(self):
         return self.content_type is None
 
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         if self.content_object:
             return f"Review by {self.user.username} on {self.content_object}"
@@ -232,6 +253,10 @@ class SubReview(models.Model):
             raise ValidationError(
                 f"Topic '{self.topic}' is not a valid option for a {model_name} review."
             )
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Subreview of {self.review} – {self.topic}"

@@ -416,6 +416,7 @@ class PerformanceVideoInput:
     artists_apple_music_ids: list[strawberry.ID]
     songs_ids: list[strawberry.ID]
     event_id: Optional[str]
+    event_is_performance: Optional[bool]
     event_name: Optional[str]
     event_date: Optional[datetime]
     event_type: Optional[str]
@@ -938,10 +939,14 @@ class Mutation:
                         raise Exception(f"Event with id {data.event_id} not found.")
 
                 # Case 2: Create new Event if name and date are provided
-                elif data.event_name and data.event_date:
+                elif (data.event_name and data.event_date) or data.event_is_performance:
                     series = None
                     is_one_time = True
                     clean_type = None
+
+                    if data.event_is_performance:
+                        data.event_name = data.title
+                        data.event_date = data.published_at
 
                     # 2a: Connect to existing Series
                     if data.event_series_id:
@@ -980,6 +985,7 @@ class Mutation:
                         date=data.event_date,
                         location=data.event_location or "",
                         is_one_time=is_one_time,
+                        is_performance=data.event_is_performance,
                         series=series
                     )
 
