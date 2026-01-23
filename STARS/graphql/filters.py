@@ -5,23 +5,39 @@ import strawberry_django
 from strawberry import auto
 from typing import Optional
 
-# Import all the models you want to create filters for
 from STARS import models
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from strawberry_django.filters import FilterLookup
-from django.db.models import Q, Exists, OuterRef, QuerySet
-from STARS.models import ProjectArtist, ProjectSong
+from django.db.models import Q, Exists, OuterRef, QuerySet, Value
+from django.db.models.functions import Concat
+from django.contrib.postgres.search import TrigramSimilarity
 
 
-# For Relay Nodes, the `id` filter should accept a simple integer,
-# which the resolver will then use to find the object.
+def trigram_search(queryset: QuerySet, value: str, *fields) -> tuple[QuerySet, Q]:
+    if not value:
+        return queryset, Q()
+
+    search_expression = fields[0]
+    for field in fields[1:]:
+        search_expression = Concat(search_expression, Value(' '), field)
+
+    qs = queryset.annotate(
+        similarity=TrigramSimilarity(search_expression, value)
+    ).filter(
+        similarity__gt=0.1  # Threshold: 10% match required
+    ).order_by('-similarity').distinct()
+
+    return qs, Q()
+
+
 
 @strawberry_django.filter(models.MusicGenre, lookups=True)
 class MusicGenreFilter:
     id: auto
     title: auto
     is_featured: auto
+
 
 @strawberry_django.filter(models.ProjectGenresOrdered, lookups=True)
 class ProjectGenresOrderedFilter:
@@ -30,12 +46,14 @@ class ProjectGenresOrderedFilter:
     project: Optional["ProjectFilter"]
     genre: Optional["MusicGenreFilter"]
 
+
 @strawberry_django.filter(models.SongGenresOrdered, lookups=True)
 class SongGenresOrderedFilter:
     id: auto
     position: auto
     song: Optional["SongFilter"]
     genre: Optional["MusicGenreFilter"]
+
 
 @strawberry_django.filter(models.ArtistGenresOrdered, lookups=True)
 class ArtistGenresOrderedFilter:
@@ -44,11 +62,13 @@ class ArtistGenresOrderedFilter:
     artist: Optional["ArtistFilter"]
     genre: Optional["MusicGenreFilter"]
 
+
 @strawberry_django.filter(models.PodcastGenre, lookups=True)
 class PodcastGenreFilter:
     id: auto
     title: auto
     is_featured: auto
+
 
 @strawberry_django.filter(models.PodcastGenresOrdered, lookups=True)
 class PodcastGenresOrderedFilter:
@@ -57,9 +77,10 @@ class PodcastGenresOrderedFilter:
     podcast: Optional["PodcastFilter"]
     genre: Optional["PodcastGenreFilter"]
 
+
 @strawberry_django.filter(models.Artist, lookups=True)
 class ArtistFilter:
-    id: auto # This will correctly resolve to an Int lookup
+    id: auto
     apple_music_id: auto
     name: auto
     origin: auto
@@ -73,9 +94,8 @@ class ArtistFilter:
 
     @strawberry_django.filter_field
     def search(self, queryset: QuerySet, value: str, prefix) -> tuple[QuerySet, Q]:
-        if value:
-            return queryset.filter(Q(name__icontains=value)), Q()
-        return queryset, Q()
+        return trigram_search(queryset, value, 'name')
+
 
 @strawberry_django.filter(models.EventSeries, lookups=True)
 class EventSeriesFilter:
@@ -86,9 +106,8 @@ class EventSeriesFilter:
 
     @strawberry_django.filter_field
     def search(self, queryset: QuerySet, value: str, prefix) -> tuple[QuerySet, Q]:
-        if value:
-            return queryset.filter(Q(name__icontains=value)), Q()
-        return queryset, Q()
+        return trigram_search(queryset, value, 'name')
+
 
 @strawberry_django.filter(models.Event, lookups=True)
 class EventFilter:
@@ -103,20 +122,8 @@ class EventFilter:
 
     @strawberry_django.filter_field
     def search(self, queryset: QuerySet, value: str, prefix) -> tuple[QuerySet, Q]:
-        if value:
-            series_exists = Exists(
-                models.EventSeries.objects.filter(
-                    events=OuterRef('pk'),
-                    name__icontains=value
-                )
-            )
+        return trigram_search(queryset, value, 'name', 'location', 'series__name')
 
-            return queryset.filter(
-                Q(name__icontains=value) |
-                Q(location__icontains=value) |
-                Q(series_exists)
-            ), Q()
-        return queryset, Q()
 
 @strawberry_django.filter(models.Comment, lookups=True)
 class CommentFilter:
@@ -129,9 +136,11 @@ class CommentFilter:
     dislikes_count: auto
     date_created: auto
 
+
 @strawberry_django.filter(ContentType, lookups=True)
 class ContentTypeFilter:
     model: auto
+
 
 @strawberry_django.filter(models.Review, lookups=True)
 class ReviewFilter:
@@ -148,6 +157,11 @@ class ReviewFilter:
     object_id: auto
     content_type: Optional["ContentTypeFilter"]
 
+    @strawberry_django.filter_field
+    def search(self, queryset: QuerySet, value: str, prefix) -> tuple[QuerySet, Q]:
+        return trigram_search(queryset, value, 'title', 'text', 'user__username')
+
+
 @strawberry_django.filter(models.SubReview, lookups=True)
 class SubReviewFilter:
     id: auto
@@ -155,11 +169,13 @@ class SubReviewFilter:
     position: auto
     stars: auto
 
+
 @strawberry_django.filter(models.Cover, lookups=True)
 class CoverFilter:
     id: auto
     position: auto
     is_featured: auto
+
 
 @strawberry_django.filter(models.MusicVideo, lookups=True)
 class MusicVideoFilter:
@@ -172,27 +188,12 @@ class MusicVideoFilter:
 
     @strawberry_django.filter_field
     def search(self, queryset: QuerySet, value: str, prefix) -> tuple[QuerySet, Q]:
-        if value:
-            song_match_exists = Exists(
-                models.Song.objects.filter(
-                    music_videos=OuterRef('pk'),
-                    title__icontains=value
-                )
-            )
-
-            artist_match_exists = Exists(
-                models.Artist.objects.filter(
-                    song_artists__song__music_videos=OuterRef('pk'),
-                    name__icontains=value
-                )
-            )
-
-            return queryset.filter(
-                Q(title__icontains=value) |
-                Q(song_match_exists) |
-                Q(artist_match_exists)
-            ), Q()
-        return queryset, Q()
+        return trigram_search(
+            queryset, value,
+            'title',
+            'songs__title',
+            'songs__song_artists__artist__name'
+        )
 
 
 @strawberry_django.filter(models.PerformanceVideo, lookups=True)
@@ -207,10 +208,7 @@ class PerformanceVideoFilter:
 
     @strawberry_django.filter_field
     def search(self, queryset: QuerySet, value: str, prefix) -> tuple[QuerySet, Q]:
-        if value:
-            return queryset.filter(Q(title__icontains=value)), Q()
-
-        return queryset, Q()
+        return trigram_search(queryset, value, 'title')
 
 
 @strawberry_django.filter(models.Song, lookups=True)
@@ -220,28 +218,12 @@ class SongFilter:
     title: auto
     release_date: auto
     is_featured: auto
-
-    # Allow filtering by specific artist fields (e.g. artist.name)
     song_artists: Optional["SongArtistFilter"]
 
     @strawberry_django.filter_field
     def search(self, queryset: QuerySet, value: str, prefix) -> tuple[QuerySet, Q]:
-        if value:
-            # Check if song title matches
-            title_match = Q(title__icontains=value)
+        return trigram_search(queryset, value, 'title', 'song_artists__artist__name')
 
-            # Efficiently check for artist matches associated with this song
-            artist_exists = Exists(
-                models.SongArtist.objects.filter(
-                    song=OuterRef('pk'),
-                    artist__name__icontains=value
-                )
-            )
-
-            # Return the filtered queryset and an empty Q() object
-            return queryset.filter(title_match | artist_exists), Q()
-
-        return queryset, Q()
 
 @strawberry_django.filter(models.SongArtist, lookups=True)
 class SongArtistFilter:
@@ -263,27 +245,14 @@ class ProjectFilter:
     is_featured: auto
 
     @strawberry_django.filter_field
-    def search(self, queryset: QuerySet, value: str, prefix) -> tuple[QuerySet, Q]:  # Change return type hint
-        if value:
-            title_match = Q(title__icontains=value)
+    def search(self, queryset: QuerySet, value: str, prefix) -> tuple[QuerySet, Q]:
+        return trigram_search(
+            queryset, value,
+            'title',
+            'project_artists__artist__name',
+            'project_songs__song__title'
+        )
 
-            artist_exists = Exists(
-                ProjectArtist.objects.filter(
-                    project=OuterRef('pk'),
-                    artist__name__icontains=value
-                )
-            )
-
-            song_exists = Exists(
-                ProjectSong.objects.filter(
-                    project=OuterRef('pk'),
-                    song__title__icontains=value
-                )
-            )
-
-            return queryset.filter(title_match | Q(artist_exists) | Q(song_exists)), Q()
-
-        return queryset, Q()
 
 @strawberry_django.filter(models.ProjectArtist, lookups=True)
 class ProjectArtistFilter:
@@ -292,6 +261,7 @@ class ProjectArtistFilter:
     project: Optional["ProjectFilter"]
     artist: Optional["ArtistFilter"]
 
+
 @strawberry_django.filter(models.ProjectSong, lookups=True)
 class ProjectSongFilter:
     id: auto
@@ -299,6 +269,7 @@ class ProjectSongFilter:
     disc_number: auto
     project: Optional["ProjectFilter"]
     song: Optional["SongFilter"]
+
 
 @strawberry_django.filter(models.Podcast, lookups=True)
 class PodcastFilter:
@@ -311,11 +282,8 @@ class PodcastFilter:
 
     @strawberry_django.filter_field
     def search(self, queryset: QuerySet, value: str, prefix) -> tuple[QuerySet, Q]:
-        if value:
-            return queryset.filter(
-                Q(title__icontains=value) | Q(host__icontains=value)
-            ), Q()
-        return queryset, Q()
+        return trigram_search(queryset, value, 'title', 'host')
+
 
 @strawberry_django.filter(models.Outfit, lookups=True)
 class OutfitFilter:
@@ -325,9 +293,11 @@ class OutfitFilter:
     date: auto
     is_featured: auto
 
+
 @strawberry_django.filter(models.Conversation, lookups=True)
 class ConversationFilter:
     id: auto
+
 
 @strawberry_django.filter(models.Message, lookups=True)
 class MessageFilter:
@@ -336,11 +306,13 @@ class MessageFilter:
     is_read: auto
     is_delivered: auto
 
+
 @strawberry_django.filter(models.Profile, lookups=True)
 class ProfileFilter:
     id: auto
     user: Optional["UserFilter"]
     has_premium: auto
+
 
 @strawberry_django.filter(models.SearchHistory, lookups=True)
 class SearchHistoryFilter:
@@ -350,11 +322,15 @@ class SearchHistoryFilter:
     category: auto
     timestamp: auto
 
+
 @strawberry_django.filter(User, lookups=True)
 class UserFilter:
     id: auto
     username: auto
     email: auto
     first_name: auto
-    last_name: auto
     reviews: Optional["ReviewFilter"]
+
+    @strawberry_django.filter_field
+    def search(self, queryset: QuerySet, value: str, prefix) -> tuple[QuerySet, Q]:
+        return trigram_search(queryset, value, 'username', 'first_name')
