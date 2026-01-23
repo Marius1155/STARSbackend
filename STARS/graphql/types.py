@@ -2,14 +2,16 @@ import strawberry
 import strawberry_django
 from strawberry.types import Info
 from typing import Optional, Iterable, Any, List
-from django.db.models import QuerySet
+from django.db.models import QuerySet, Count, Q
 from strawberry_django.relay import DjangoCursorConnection
 from STARS import models
 from django.contrib.auth.models import User as DjangoUser
 from asgiref.sync import sync_to_async
 from strawberry import relay
 from STARS import models
-from STARS.models import PodcastGenre
+from django.utils import timezone # Added
+from datetime import timedelta # Added
+from django.contrib.contenttypes.models import ContentType # Added
 
 # Import your filters to use them in the fields
 from . import filters, orders
@@ -235,6 +237,7 @@ class Song(strawberry.relay.Node):
     reviews: relay.ListConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
     song_genres_ordered: relay.ListConnection["SongGenresOrdered"] = strawberry_django.connection(filters=filters.SongGenresOrderedFilter, order=orders.SongGenresOrderedOrder)
 
+
 @strawberry_django.type(models.SongArtist, fields="__all__")
 class SongArtist(strawberry.relay.Node):
     song: "Song"
@@ -249,6 +252,7 @@ class Project(relay.Node):
     reviews: relay.ListConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
     alternative_versions: relay.ListConnection["Project"] = strawberry_django.connection(filters=filters.ProjectFilter, order=orders.ProjectOrder)
     project_genres_ordered: relay.ListConnection["ProjectGenresOrdered"] = strawberry_django.connection(filters=filters.ProjectGenresOrderedFilter, order=orders.ProjectGenresOrderedOrder)
+
 
 @strawberry_django.type(models.ProjectArtist, fields="__all__")
 class ProjectArtist(strawberry.relay.Node):
@@ -267,6 +271,7 @@ class Podcast(strawberry.relay.Node):
     covers: relay.ListConnection["Cover"] = strawberry_django.connection(filters=filters.CoverFilter, order=orders.CoverOrder)
     reviews: relay.ListConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
     podcast_genres_ordered: relay.ListConnection["PodcastGenresOrdered"] = strawberry_django.connection(filters=filters.PodcastGenresOrderedFilter, order=orders.PodcastGenresOrderedOrder)
+
 
 @strawberry_django.type(models.Outfit, fields="__all__")
 class Outfit(strawberry.relay.Node):

@@ -68,6 +68,7 @@ class EventOrder:
     reviews_count : auto
     star_average : auto
     is_featured : auto
+    popularity_score: auto
 
 @strawberry_django.order_type(models.Comment)
 class CommentOrder:
@@ -97,6 +98,7 @@ class CoverOrder:
     star_average : auto
     reviews_count : auto
     is_featured : auto
+    popularity_score: auto
 
 @strawberry_django.order_type(models.MusicVideo)
 class MusicVideoOrder:
@@ -106,6 +108,7 @@ class MusicVideoOrder:
     reviews_count : auto
     star_average : auto
     is_featured : auto
+    popularity_score: auto
 
 @strawberry_django.order_type(models.PerformanceVideo)
 class PerformanceVideoOrder:
@@ -115,6 +118,7 @@ class PerformanceVideoOrder:
     reviews_count : auto
     star_average : auto
     is_featured : auto
+    popularity_score: auto
 
 @strawberry_django.order_type(models.Song)
 class SongOrder:
@@ -124,6 +128,7 @@ class SongOrder:
     reviews_count : auto
     star_average : auto
     is_featured : auto
+    popularity_score: auto
 
 @strawberry_django.order_type(models.SongArtist)
 class SongArtistOrder:
@@ -141,6 +146,7 @@ class ProjectOrder:
     reviews_count : auto
     star_average : auto
     is_featured : auto
+    popularity_score: auto
 
 @strawberry_django.order_type(models.ProjectArtist)
 class ProjectArtistOrder:
@@ -162,6 +168,7 @@ class PodcastOrder:
     reviews_count : auto
     star_average : auto
     is_featured : auto
+    popularity_score: auto
 
 @strawberry_django.order_type(models.Outfit)
 class OutfitOrder:
@@ -169,6 +176,7 @@ class OutfitOrder:
     reviews_count : auto
     star_average : auto
     is_featured : auto
+    popularity_score: auto
 
 @strawberry_django.order_type(models.Conversation)
 class ConversationOrder:

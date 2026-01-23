@@ -91,6 +91,7 @@ class Event(models.Model):
     reviews_count = models.IntegerField(default=0)
     reviews = GenericRelation('Review')
     star_average = models.FloatField(default=0)
+    popularity_score = models.IntegerField(default=0, db_index=True)
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
 
@@ -245,6 +246,7 @@ class Cover(models.Model):
     reviews_count = models.IntegerField(default=0)
     reviews = GenericRelation('Review')
     star_average = models.FloatField(default=0)
+    popularity_score = models.IntegerField(default=0, db_index=True)
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
 
@@ -271,6 +273,7 @@ class MusicVideo(models.Model):
     reviews_count = models.IntegerField(default=0)
     reviews = GenericRelation('Review')
     star_average = models.FloatField(default=0)
+    popularity_score = models.IntegerField(default=0, db_index=True)
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
 
@@ -296,6 +299,7 @@ class PerformanceVideo(models.Model):
     reviews_count = models.IntegerField(default=0)
     reviews = GenericRelation('Review')
     star_average = models.FloatField(default=0)
+    popularity_score = models.IntegerField(default=0, db_index=True)
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
 
@@ -316,6 +320,7 @@ class Song(models.Model):
     reviews_count = models.IntegerField(default=0)
     reviews = GenericRelation('Review')
     star_average = models.FloatField(default=0)
+    popularity_score = models.IntegerField(default=0, db_index=True)
     alternative_versions = models.ManyToManyField('self', blank=True)
     spotify = models.URLField(max_length=500, blank=True, null=True)
     apple_music = models.URLField(max_length=500, blank=True, null=True)
@@ -366,6 +371,7 @@ class Project(models.Model):
     reviews = GenericRelation('Review')
     reviews_count = models.IntegerField(default=0)
     star_average = models.FloatField(default=0)
+    popularity_score = models.IntegerField(default=0, db_index=True)
     alternative_versions = models.ManyToManyField('self', blank=True)
     spotify = models.URLField(max_length=500, blank=True, null=True)
     apple_music = models.URLField(max_length=500, blank=True, null=True)
@@ -429,6 +435,7 @@ class Podcast(models.Model):
     reviews_count = models.IntegerField(default=0)
     reviews = GenericRelation('Review')
     star_average = models.FloatField(default=0)
+    popularity_score = models.IntegerField(default=0, db_index=True)
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
 
@@ -448,6 +455,7 @@ class Outfit(models.Model):
     reviews_count = models.IntegerField(default=0)
     reviews = GenericRelation('Review')
     star_average = models.FloatField(default=0)
+    popularity_score = models.IntegerField(default=0, db_index=True)
     matches = models.ManyToManyField('self', blank=True)
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
