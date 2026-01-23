@@ -139,3 +139,5 @@ class CacheKeys:
     MUSIC_GENRES = "music_genres"
 
     REVIEW_TOPIC_CONFIG = "review_topic_configuration"
+
+    MATCH_PROJECTS = "match_projects_title_artists"

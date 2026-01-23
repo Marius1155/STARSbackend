@@ -139,6 +139,48 @@ class iTunesPodcastLight:
 @strawberry.type
 class Query:
     @strawberry.field
+    async def match_projects_by_title_and_artists(
+            self,
+            project_title: str,
+            artist_ids: List[str]
+    ) -> List[types.Project]:
+
+        if not project_title or not artist_ids:
+            return []
+
+        ids_str = ",".join(sorted(artist_ids))
+
+        @cache_graphql_query(
+            CacheKeys.MATCH_PROJECTS,
+            timeout=300,
+            key_params=["title", "artists_hash"]
+        )
+        async def get_matched_ids(title: str, artists_hash: str):
+            def fetch():
+                return list(
+                    models.Project.objects.filter(
+                        project_artists__artist__apple_music_id__in=artist_ids
+                    )
+                    .annotate(
+                        similarity=TrigramSimilarity('title', title)
+                    )
+                    .order_by('-similarity')
+                    .distinct()
+                    .values_list('id', flat=True)[:20]
+                )
+
+            return await sync_to_async(fetch)()
+
+        matched_ids = await get_matched_ids(title=project_title, artists_hash=ids_str)
+
+        def hydrate_results():
+            projects = list(models.Project.objects.filter(id__in=matched_ids))
+            projects.sort(key=lambda x: matched_ids.index(x.id))
+            return projects
+
+        return await sync_to_async(hydrate_results)()
+
+    @strawberry.field
     async def review_topic_configuration(self) -> List[types.TopicMapping]:
         @cache_graphql_query(
             CacheKeys.REVIEW_TOPIC_CONFIG,
