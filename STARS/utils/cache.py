@@ -144,3 +144,7 @@ class CacheKeys:
     MATCH_SONGS = "match_songs_title_artists"
 
     ARTIST_POPULAR_PROJECTS = "artist_popular_projects"
+
+    MUSIC_VIDEOS_FROM_SONGS = "music_videos_from_songs"
+    PERFORMANCE_VIDEOS_FROM_SONGS = "performance_videos_from_songs"
+    PROJECT_ALTERNATIVE_VERSIONS = "project_alternative_versions"

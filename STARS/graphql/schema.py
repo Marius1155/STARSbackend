@@ -139,6 +139,140 @@ class iTunesPodcastLight:
 @strawberry.type
 class Query:
     @strawberry.field
+    async def get_music_videos_for_songs(
+            self,
+            song_ids: List[strawberry.ID]
+    ) -> List[types.MusicVideo]:
+        """
+        Fetches music videos for a list of songs.
+        Preserves input song order. Deduplicates.
+        """
+        if not song_ids:
+            return []
+
+        ids_hash = ",".join(str(x) for x in song_ids)
+
+        @cache_graphql_query(
+            CacheKeys.MUSIC_VIDEOS_FROM_SONGS,
+            timeout=86400,  # ✅ Cached for 24 Hours
+            key_params=["ids_hash"]
+        )
+        async def get_cached_ids(ids_hash: str):
+            def fetch():
+                # 1. Fetch relations
+                relations = models.MusicVideo.objects.filter(
+                    songs__id__in=song_ids
+                ).values_list('id', 'songs__id')
+
+                # 2. Sort by song order logic
+                song_rank = {s_id: i for i, s_id in enumerate(song_ids)}
+                valid_relations = [r for r in relations if str(r[1]) in song_rank]
+                valid_relations.sort(key=lambda x: song_rank[str(x[1])])
+
+                # 3. Deduplicate (keep first occurrence)
+                seen_videos = set()
+                ordered_video_ids = []
+
+                for video_id, _ in valid_relations:
+                    if video_id not in seen_videos:
+                        seen_videos.add(video_id)
+                        ordered_video_ids.append(video_id)
+
+                return ordered_video_ids
+
+            return await sync_to_async(fetch)()
+
+        ordered_ids = await get_cached_ids(ids_hash=ids_hash)
+
+        def hydrate_results():
+            objs = list(models.MusicVideo.objects.filter(id__in=ordered_ids))
+            objs.sort(key=lambda x: ordered_ids.index(x.id))
+            return objs
+
+        return await sync_to_async(hydrate_results)()
+
+    @strawberry.field
+    async def get_performance_videos_for_songs(
+            self,
+            song_ids: List[strawberry.ID]
+    ) -> List[types.PerformanceVideo]:
+        """
+        Fetches performance videos for a list of songs.
+        Preserves input song order. Deduplicates.
+        """
+        if not song_ids:
+            return []
+
+        ids_hash = ",".join(str(x) for x in song_ids)
+
+        @cache_graphql_query(
+            CacheKeys.PERFORMANCE_VIDEOS_FROM_SONGS,
+            timeout=86400,  # ✅ Cached for 24 Hours
+            key_params=["ids_hash"]
+        )
+        async def get_cached_ids(ids_hash: str):
+            def fetch():
+                relations = models.PerformanceVideo.objects.filter(
+                    songs__id__in=song_ids
+                ).values_list('id', 'songs__id')
+
+                song_rank = {s_id: i for i, s_id in enumerate(song_ids)}
+                valid_relations = [r for r in relations if str(r[1]) in song_rank]
+                valid_relations.sort(key=lambda x: song_rank[str(x[1])])
+
+                seen_videos = set()
+                ordered_video_ids = []
+
+                for video_id, _ in valid_relations:
+                    if video_id not in seen_videos:
+                        seen_videos.add(video_id)
+                        ordered_video_ids.append(video_id)
+
+                return ordered_video_ids
+
+            return await sync_to_async(fetch)()
+
+        ordered_ids = await get_cached_ids(ids_hash=ids_hash)
+
+        def hydrate_results():
+            objs = list(models.PerformanceVideo.objects.filter(id__in=ordered_ids))
+            objs.sort(key=lambda x: ordered_ids.index(x.id))
+            return objs
+
+        return await sync_to_async(hydrate_results)()
+
+    @strawberry.field
+    async def get_project_alternative_versions(
+            self,
+            project_id: strawberry.ID
+    ) -> List[types.Project]:
+        """
+        Fetches alternative versions linked to a specific project.
+        """
+
+        @cache_graphql_query(
+            CacheKeys.PROJECT_ALTERNATIVE_VERSIONS,
+            timeout=86400,  # ✅ Cached for 24 Hours
+            key_params=["project_id"]
+        )
+        async def get_cached_ids(project_id: strawberry.ID):
+            def fetch():
+                return list(
+                    models.Project.objects.filter(id=project_id)
+                    .values_list('alternative_versions__id', flat=True)
+                )
+
+            return await sync_to_async(fetch)()
+
+        raw_ids = await get_cached_ids(project_id=project_id)
+        clean_ids = [x for x in raw_ids if x is not None]
+
+        def hydrate_results():
+            return list(models.Project.objects.filter(id__in=clean_ids))
+
+        return await sync_to_async(hydrate_results)()
+
+    @strawberry.field
     async def get_artist_most_popular_projects(
             self,
             artist_id: strawberry.ID,
