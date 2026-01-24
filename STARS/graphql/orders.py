@@ -65,7 +65,17 @@ class EventOrder:
     name : auto
     event_type: auto
     is_one_time :  auto
-    reviews_count : auto
+    reviews_count: auto
+    reviews_count_0_5: auto
+    reviews_count_1: auto
+    reviews_count_1_5: auto
+    reviews_count_2: auto
+    reviews_count_2_5: auto
+    reviews_count_3: auto
+    reviews_count_3_5: auto
+    reviews_count_4: auto
+    reviews_count_4_5: auto
+    reviews_count_5: auto
     star_average : auto
     is_featured : auto
     popularity_score: auto
@@ -96,7 +106,17 @@ class SubReviewOrder:
 class CoverOrder:
     position : auto
     star_average : auto
-    reviews_count : auto
+    reviews_count: auto
+    reviews_count_0_5: auto
+    reviews_count_1: auto
+    reviews_count_1_5: auto
+    reviews_count_2: auto
+    reviews_count_2_5: auto
+    reviews_count_3: auto
+    reviews_count_3_5: auto
+    reviews_count_4: auto
+    reviews_count_4_5: auto
+    reviews_count_5: auto
     is_featured : auto
     popularity_score: auto
 
@@ -105,7 +125,17 @@ class MusicVideoOrder:
     release_date : auto
     title : auto
     number_of_songs : auto
-    reviews_count : auto
+    reviews_count: auto
+    reviews_count_0_5: auto
+    reviews_count_1: auto
+    reviews_count_1_5: auto
+    reviews_count_2: auto
+    reviews_count_2_5: auto
+    reviews_count_3: auto
+    reviews_count_3_5: auto
+    reviews_count_4: auto
+    reviews_count_4_5: auto
+    reviews_count_5: auto
     star_average : auto
     is_featured : auto
     popularity_score: auto
@@ -116,6 +146,16 @@ class PerformanceVideoOrder:
     title : auto
     number_of_songs : auto
     reviews_count : auto
+    reviews_count_0_5: auto
+    reviews_count_1 : auto
+    reviews_count_1_5: auto
+    reviews_count_2 : auto
+    reviews_count_2_5: auto
+    reviews_count_3 : auto
+    reviews_count_3_5: auto
+    reviews_count_4 : auto
+    reviews_count_4_5: auto
+    reviews_count_5 : auto
     star_average : auto
     is_featured : auto
     popularity_score: auto
@@ -125,7 +165,17 @@ class SongOrder:
     release_date : auto
     title : auto
     length : auto
-    reviews_count : auto
+    reviews_count: auto
+    reviews_count_0_5: auto
+    reviews_count_1: auto
+    reviews_count_1_5: auto
+    reviews_count_2: auto
+    reviews_count_2_5: auto
+    reviews_count_3: auto
+    reviews_count_3_5: auto
+    reviews_count_4: auto
+    reviews_count_4_5: auto
+    reviews_count_5: auto
     star_average : auto
     is_featured : auto
     popularity_score: auto
@@ -143,7 +193,17 @@ class ProjectOrder:
     length : auto
     number_of_songs : auto
     project_type : auto
-    reviews_count : auto
+    reviews_count: auto
+    reviews_count_0_5: auto
+    reviews_count_1: auto
+    reviews_count_1_5: auto
+    reviews_count_2: auto
+    reviews_count_2_5: auto
+    reviews_count_3: auto
+    reviews_count_3_5: auto
+    reviews_count_4: auto
+    reviews_count_4_5: auto
+    reviews_count_5: auto
     star_average : auto
     is_featured : auto
     popularity_score: auto
@@ -165,7 +225,17 @@ class ProjectSongOrder:
 class PodcastOrder:
     since : auto
     title : auto
-    reviews_count : auto
+    reviews_count: auto
+    reviews_count_0_5: auto
+    reviews_count_1: auto
+    reviews_count_1_5: auto
+    reviews_count_2: auto
+    reviews_count_2_5: auto
+    reviews_count_3: auto
+    reviews_count_3_5: auto
+    reviews_count_4: auto
+    reviews_count_4_5: auto
+    reviews_count_5: auto
     star_average : auto
     is_featured : auto
     popularity_score: auto
@@ -173,7 +243,17 @@ class PodcastOrder:
 @strawberry_django.order_type(models.Outfit)
 class OutfitOrder:
     date : auto
-    reviews_count : auto
+    reviews_count: auto
+    reviews_count_0_5: auto
+    reviews_count_1: auto
+    reviews_count_1_5: auto
+    reviews_count_2: auto
+    reviews_count_2_5: auto
+    reviews_count_3: auto
+    reviews_count_3_5: auto
+    reviews_count_4: auto
+    reviews_count_4_5: auto
+    reviews_count_5: auto
     star_average : auto
     is_featured : auto
     popularity_score: auto
@@ -193,13 +273,114 @@ class ProfileOrder:
     has_premium : auto
     followers_count : auto
     following_count : auto
+
     reviews_count : auto
+    reviews_count_0_5 : auto
+    reviews_count_1 : auto
+    reviews_count_1_5 : auto
+    reviews_count_2 : auto
+    reviews_count_2_5 : auto
+    reviews_count_3 : auto
+    reviews_count_3_5 : auto
+    reviews_count_4 : auto
+    reviews_count_4_5 : auto
+    reviews_count_5 : auto
+
     project_reviews_count : auto
+    project_reviews_count_0_5 : auto
+    project_reviews_count_1 : auto
+    project_reviews_count_1_5 : auto
+    project_reviews_count_2 : auto
+    project_reviews_count_2_5 : auto
+    project_reviews_count_3 : auto
+    project_reviews_count_3_5 : auto
+    project_reviews_count_4 : auto
+    project_reviews_count_4_5 : auto
+    project_reviews_count_5 : auto
+
     song_reviews_count : auto
+    song_reviews_count_0_5 : auto
+    song_reviews_count_1 : auto
+    song_reviews_count_1_5 : auto
+    song_reviews_count_2 : auto
+    song_reviews_count_2_5 : auto
+    song_reviews_count_3 : auto
+    song_reviews_count_3_5 : auto
+    song_reviews_count_4 : auto
+    song_reviews_count_4_5 : auto
+    song_reviews_count_5 : auto
+
     music_video_reviews_count : auto
+    music_video_reviews_count_0_5 : auto
+    music_video_reviews_count_1 : auto
+    music_video_reviews_count_1_5 : auto
+    music_video_reviews_count_2 : auto
+    music_video_reviews_count_2_5 : auto
+    music_video_reviews_count_3 : auto
+    music_video_reviews_count_3_5 : auto
+    music_video_reviews_count_4 : auto
+    music_video_reviews_count_4_5 : auto
+    music_video_reviews_count_5 : auto
+
+    performance_video_reviews_count : auto
+    performance_video_reviews_count_0_5 : auto
+    performance_video_reviews_count_1 : auto
+    performance_video_reviews_count_1_5 : auto
+    performance_video_reviews_count_2 : auto
+    performance_video_reviews_count_2_5 : auto
+    performance_video_reviews_count_3 : auto
+    performance_video_reviews_count_3_5 : auto
+    performance_video_reviews_count_4 : auto
+    performance_video_reviews_count_4_5 : auto
+    performance_video_reviews_count_5 : auto
+
     cover_reviews_count : auto
+    cover_reviews_count_0_5 : auto
+    cover_reviews_count_1 : auto
+    cover_reviews_count_1_5 : auto
+    cover_reviews_count_2 : auto
+    cover_reviews_count_2_5 : auto
+    cover_reviews_count_3 : auto
+    cover_reviews_count_3_5 : auto
+    cover_reviews_count_4 : auto
+    cover_reviews_count_4_5 : auto
+    cover_reviews_count_5 : auto
+
     podcast_reviews_count : auto
+    podcast_reviews_count_0_5 : auto
+    podcast_reviews_count_1 : auto
+    podcast_reviews_count_1_5 : auto
+    podcast_reviews_count_2 : auto
+    podcast_reviews_count_2_5 : auto
+    podcast_reviews_count_3 : auto
+    podcast_reviews_count_3_5 : auto
+    podcast_reviews_count_4 : auto
+    podcast_reviews_count_4_5 : auto
+    podcast_reviews_count_5 : auto
+
     outfit_reviews_count : auto
+    outfit_reviews_count_0_5 : auto
+    outfit_reviews_count_1 : auto
+    outfit_reviews_count_1_5 : auto
+    outfit_reviews_count_2 : auto
+    outfit_reviews_count_2_5 : auto
+    outfit_reviews_count_3 : auto
+    outfit_reviews_count_3_5 : auto
+    outfit_reviews_count_4 : auto
+    outfit_reviews_count_4_5 : auto
+    outfit_reviews_count_5 : auto
+
+    event_reviews_count : auto
+    event_reviews_count_0_5 : auto
+    event_reviews_count_1 : auto
+    event_reviews_count_1_5 : auto
+    event_reviews_count_2 : auto
+    event_reviews_count_2_5 : auto
+    event_reviews_count_3 : auto
+    event_reviews_count_3_5 : auto
+    event_reviews_count_4 : auto
+    event_reviews_count_4_5 : auto
+    event_reviews_count_5 : auto
 
 @strawberry_django.filter(models.SearchHistory, lookups=True)
 class SearchHistoryOrder:

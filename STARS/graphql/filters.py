@@ -120,6 +120,19 @@ class EventFilter:
     series: Optional["EventSeriesFilter"]
     event_type: auto
 
+    reviews_count: auto
+    reviews_count_0_5: auto
+    reviews_count_1: auto
+    reviews_count_1_5: auto
+    reviews_count_2: auto
+    reviews_count_2_5: auto
+    reviews_count_3: auto
+    reviews_count_3_5: auto
+    reviews_count_4: auto
+    reviews_count_4_5: auto
+    reviews_count_5: auto
+    star_average: auto
+
     @strawberry_django.filter_field
     def search(self, queryset: QuerySet, value: str, prefix) -> tuple[QuerySet, Q]:
         return trigram_search(queryset, value, 'name', 'location', 'series__name')
@@ -176,6 +189,19 @@ class CoverFilter:
     position: auto
     is_featured: auto
 
+    reviews_count: auto
+    reviews_count_0_5: auto
+    reviews_count_1: auto
+    reviews_count_1_5: auto
+    reviews_count_2: auto
+    reviews_count_2_5: auto
+    reviews_count_3: auto
+    reviews_count_3_5: auto
+    reviews_count_4: auto
+    reviews_count_4_5: auto
+    reviews_count_5: auto
+    star_average: auto
+
 
 @strawberry_django.filter(models.MusicVideo, lookups=True)
 class MusicVideoFilter:
@@ -185,6 +211,19 @@ class MusicVideoFilter:
     title: auto
     release_date: auto
     is_featured: auto
+
+    reviews_count: auto
+    reviews_count_0_5: auto
+    reviews_count_1: auto
+    reviews_count_1_5: auto
+    reviews_count_2: auto
+    reviews_count_2_5: auto
+    reviews_count_3: auto
+    reviews_count_3_5: auto
+    reviews_count_4: auto
+    reviews_count_4_5: auto
+    reviews_count_5: auto
+    star_average: auto
 
     @strawberry_django.filter_field
     def search(self, queryset: QuerySet, value: str, prefix) -> tuple[QuerySet, Q]:
@@ -206,6 +245,19 @@ class PerformanceVideoFilter:
     release_date: auto
     is_featured: auto
 
+    reviews_count: auto
+    reviews_count_0_5: auto
+    reviews_count_1: auto
+    reviews_count_1_5: auto
+    reviews_count_2: auto
+    reviews_count_2_5: auto
+    reviews_count_3: auto
+    reviews_count_3_5: auto
+    reviews_count_4: auto
+    reviews_count_4_5: auto
+    reviews_count_5: auto
+    star_average: auto
+
     @strawberry_django.filter_field
     def search(self, queryset: QuerySet, value: str, prefix) -> tuple[QuerySet, Q]:
         return trigram_search(queryset, value, 'title')
@@ -219,6 +271,19 @@ class SongFilter:
     release_date: auto
     is_featured: auto
     song_artists: Optional["SongArtistFilter"]
+
+    reviews_count: auto
+    reviews_count_0_5: auto
+    reviews_count_1: auto
+    reviews_count_1_5: auto
+    reviews_count_2: auto
+    reviews_count_2_5: auto
+    reviews_count_3: auto
+    reviews_count_3_5: auto
+    reviews_count_4: auto
+    reviews_count_4_5: auto
+    reviews_count_5: auto
+    star_average: auto
 
     @strawberry_django.filter_field
     def search(self, queryset: QuerySet, value: str, prefix) -> tuple[QuerySet, Q]:
@@ -243,6 +308,19 @@ class ProjectFilter:
     project_type: auto
     record_label: auto
     is_featured: auto
+
+    reviews_count: auto
+    reviews_count_0_5: auto
+    reviews_count_1: auto
+    reviews_count_1_5: auto
+    reviews_count_2: auto
+    reviews_count_2_5: auto
+    reviews_count_3: auto
+    reviews_count_3_5: auto
+    reviews_count_4: auto
+    reviews_count_4_5: auto
+    reviews_count_5: auto
+    star_average: auto
 
     @strawberry_django.filter_field
     def search(self, queryset: QuerySet, value: str, prefix) -> tuple[QuerySet, Q]:
@@ -280,6 +358,19 @@ class PodcastFilter:
     since: auto
     is_featured: auto
 
+    reviews_count: auto
+    reviews_count_0_5: auto
+    reviews_count_1: auto
+    reviews_count_1_5: auto
+    reviews_count_2: auto
+    reviews_count_2_5: auto
+    reviews_count_3: auto
+    reviews_count_3_5: auto
+    reviews_count_4: auto
+    reviews_count_4_5: auto
+    reviews_count_5: auto
+    star_average: auto
+
     @strawberry_django.filter_field
     def search(self, queryset: QuerySet, value: str, prefix) -> tuple[QuerySet, Q]:
         return trigram_search(queryset, value, 'title', 'host')
@@ -292,6 +383,19 @@ class OutfitFilter:
     event: Optional["EventFilter"]
     date: auto
     is_featured: auto
+
+    reviews_count: auto
+    reviews_count_0_5: auto
+    reviews_count_1: auto
+    reviews_count_1_5: auto
+    reviews_count_2: auto
+    reviews_count_2_5: auto
+    reviews_count_3: auto
+    reviews_count_3_5: auto
+    reviews_count_4: auto
+    reviews_count_4_5: auto
+    reviews_count_5: auto
+    star_average: auto
 
 
 @strawberry_django.filter(models.Conversation, lookups=True)
@@ -312,6 +416,114 @@ class ProfileFilter:
     id: auto
     user: Optional["UserFilter"]
     has_premium: auto
+
+    reviews_count: auto
+    reviews_count_0_5: auto
+    reviews_count_1: auto
+    reviews_count_1_5: auto
+    reviews_count_2: auto
+    reviews_count_2_5: auto
+    reviews_count_3: auto
+    reviews_count_3_5: auto
+    reviews_count_4: auto
+    reviews_count_4_5: auto
+    reviews_count_5: auto
+
+    project_reviews_count: auto
+    project_reviews_count_0_5: auto
+    project_reviews_count_1: auto
+    project_reviews_count_1_5: auto
+    project_reviews_count_2: auto
+    project_reviews_count_2_5: auto
+    project_reviews_count_3: auto
+    project_reviews_count_3_5: auto
+    project_reviews_count_4: auto
+    project_reviews_count_4_5: auto
+    project_reviews_count_5: auto
+
+    song_reviews_count: auto
+    song_reviews_count_0_5: auto
+    song_reviews_count_1: auto
+    song_reviews_count_1_5: auto
+    song_reviews_count_2: auto
+    song_reviews_count_2_5: auto
+    song_reviews_count_3: auto
+    song_reviews_count_3_5: auto
+    song_reviews_count_4: auto
+    song_reviews_count_4_5: auto
+    song_reviews_count_5: auto
+
+    music_video_reviews_count: auto
+    music_video_reviews_count_0_5: auto
+    music_video_reviews_count_1: auto
+    music_video_reviews_count_1_5: auto
+    music_video_reviews_count_2: auto
+    music_video_reviews_count_2_5: auto
+    music_video_reviews_count_3: auto
+    music_video_reviews_count_3_5: auto
+    music_video_reviews_count_4: auto
+    music_video_reviews_count_4_5: auto
+    music_video_reviews_count_5: auto
+
+    performance_video_reviews_count: auto
+    performance_video_reviews_count_0_5: auto
+    performance_video_reviews_count_1: auto
+    performance_video_reviews_count_1_5: auto
+    performance_video_reviews_count_2: auto
+    performance_video_reviews_count_2_5: auto
+    performance_video_reviews_count_3: auto
+    performance_video_reviews_count_3_5: auto
+    performance_video_reviews_count_4: auto
+    performance_video_reviews_count_4_5: auto
+    performance_video_reviews_count_5: auto
+
+    cover_reviews_count: auto
+    cover_reviews_count_0_5: auto
+    cover_reviews_count_1: auto
+    cover_reviews_count_1_5: auto
+    cover_reviews_count_2: auto
+    cover_reviews_count_2_5: auto
+    cover_reviews_count_3: auto
+    cover_reviews_count_3_5: auto
+    cover_reviews_count_4: auto
+    cover_reviews_count_4_5: auto
+    cover_reviews_count_5: auto
+
+    podcast_reviews_count: auto
+    podcast_reviews_count_0_5: auto
+    podcast_reviews_count_1: auto
+    podcast_reviews_count_1_5: auto
+    podcast_reviews_count_2: auto
+    podcast_reviews_count_2_5: auto
+    podcast_reviews_count_3: auto
+    podcast_reviews_count_3_5: auto
+    podcast_reviews_count_4: auto
+    podcast_reviews_count_4_5: auto
+    podcast_reviews_count_5: auto
+
+    outfit_reviews_count: auto
+    outfit_reviews_count_0_5: auto
+    outfit_reviews_count_1: auto
+    outfit_reviews_count_1_5: auto
+    outfit_reviews_count_2: auto
+    outfit_reviews_count_2_5: auto
+    outfit_reviews_count_3: auto
+    outfit_reviews_count_3_5: auto
+    outfit_reviews_count_4: auto
+    outfit_reviews_count_4_5: auto
+    outfit_reviews_count_5: auto
+
+    event_reviews_count: auto
+    event_reviews_count_0_5: auto
+    event_reviews_count_1: auto
+    event_reviews_count_1_5: auto
+    event_reviews_count_2: auto
+    event_reviews_count_2_5: auto
+    event_reviews_count_3: auto
+    event_reviews_count_3_5: auto
+    event_reviews_count_4: auto
+    event_reviews_count_4_5: auto
+    event_reviews_count_5: auto
 
 
 @strawberry_django.filter(models.SearchHistory, lookups=True)
