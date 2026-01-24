@@ -75,7 +75,19 @@ CACHES = {
 }
 
 # Use Redis for sessions (optional but recommended)
-SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+# 1. Sessions will survive browser/app closes
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+# 2. Make the session last 1 year (in seconds)
+SESSION_COOKIE_AGE = 31536000
+
+# 3. Update the session expiration on every request so it stays fresh
+SESSION_SAVE_EVERY_REQUEST = True
+
+# OPTIONAL: Change this to 'cached_db' if you want sessions to persist
+# even if your Redis cache is cleared or restarts.
+SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+
 SESSION_CACHE_ALIAS = "default"
 
 AUTHENTICATION_BACKENDS = [
