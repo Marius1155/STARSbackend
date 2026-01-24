@@ -98,6 +98,7 @@ class User(strawberry.relay.Node):
     conversations: DjangoCursorConnection["Conversation"] = strawberry_django.connection(filters=filters.ConversationFilter, order=orders.ConversationOrder)
     seen_conversations: DjangoCursorConnection["Conversation"] = strawberry_django.connection(filters=filters.ConversationFilter, order=orders.ConversationOrder)
     reviews: DjangoCursorConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
+    covers_added: DjangoCursorConnection["Cover"] = strawberry_django.connection(filters=filters.CoverFilter, order=orders.CoverOrder)
 
 
 @strawberry_django.type(models.Comment, fields="__all__")
@@ -209,6 +210,7 @@ class SubReview(strawberry.relay.Node):
 class Cover(strawberry.relay.Node):
     content_object: "Coverable"
     reviews: DjangoCursorConnection["Review"] = strawberry_django.connection(filters=filters.ReviewFilter, order=orders.ReviewOrder)
+    user: Optional["User"]
 
 
 @strawberry_django.type(models.MusicVideo, fields="__all__")

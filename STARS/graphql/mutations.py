@@ -2464,7 +2464,16 @@ class Mutation:
     async def add_cover_to_project(self, info, project_id: strawberry.ID, data: CoverDataInput) -> types.Cover:
 
         def _sync():
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required.")
+
             with transaction.atomic():
+                is_confirmed = False
+
+                if user.is_staff or user.is_superuser:
+                    is_confirmed = True
+
                 project = models.Project.objects.get(pk=project_id)
 
                 # Determine position
@@ -2507,7 +2516,9 @@ class Mutation:
                         content_object=project,
                         position=position,
                         primary_color=primary_muted,
-                        secondary_color=secondary_muted
+                        secondary_color=secondary_muted,
+                        is_confirmed=is_confirmed,
+                        user=user,
                     )
                     return cover
 

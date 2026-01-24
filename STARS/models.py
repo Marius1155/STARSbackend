@@ -287,6 +287,7 @@ class Cover(models.Model):
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
     is_confirmed = models.BooleanField(default=False, db_index=True)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='covers_added', blank=True, null=True)
 
     primary_color = models.CharField(max_length=7, blank=True)  # e.g., "#FF5733"
     secondary_color = models.CharField(max_length=7, blank=True)  # e.g., "#33A1FF"
