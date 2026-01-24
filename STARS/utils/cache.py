@@ -115,16 +115,6 @@ class CacheKeys:
     PODCAST_SEARCH = "podcast_search"
     MUSIC_SEARCH = "music_search"
 
-    # Detail pages
-    PODCAST_DETAIL = "podcast_detail"
-    MUSIC_VIDEO_DETAIL = "music_video_detail"
-    PERFORMANCE_VIDEO_DETAIL = "performance_video_detail"
-    PROJECT_DETAIL = "project_detail"
-    ARTIST_DETAIL = "artist_detail"
-    OUTFIT_DETAIL = "outfit_detail"
-    EVENT_DETAIL = "events_detail"
-    EVENT_SERIES_DETAIL = "event_series_detail"
-
     # Aggregations
     PODCAST_STATS = "podcast_stats"
     ARTIST_STATS = "artist_stats"
@@ -148,3 +138,6 @@ class CacheKeys:
     MUSIC_VIDEOS_FROM_SONGS = "music_videos_from_songs"
     PERFORMANCE_VIDEOS_FROM_SONGS = "performance_videos_from_songs"
     PROJECT_ALTERNATIVE_VERSIONS = "project_alternative_versions"
+
+    POPULAR_PROJECTS_BY_GENRE = "popular_projects_by_genre"
+    POPULAR_PODCASTS_BY_GENRE = "popular_podcasts_by_genre"

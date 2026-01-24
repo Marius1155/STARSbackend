@@ -139,6 +139,86 @@ class iTunesPodcastLight:
 @strawberry.type
 class Query:
     @strawberry.field
+    async def get_popular_projects_by_genre(
+            self,
+            genre_id: strawberry.ID,
+            limit: int = 20
+    ) -> List[types.Project]:
+        """
+        Fetches the most popular projects for a specific MusicGenre.
+        Caches IDs only, then hydrates.
+        """
+        cache_key_val = f"popular_projects_genre_{genre_id}_limit_{limit}"
+
+        @cache_graphql_query(
+            CacheKeys.POPULAR_PROJECTS_BY_GENRE,
+            timeout=86400,
+            key_params=["cache_key_val"]
+        )
+        async def get_cached_ids(cache_key_val: str) -> List[int]:
+            def fetch_ids():
+                # 1. Query IDs sorted by the existing popularity_score field
+                return list(models.Project.objects.filter(
+                    project_genres_ordered__genre_id=genre_id
+                ).order_by('-popularity_score').values_list('pk', flat=True)[:limit])
+
+            return await sync_to_async(fetch_ids)()
+
+        # 1. Get ordered IDs from Cache
+        ordered_ids = await get_cached_ids(cache_key_val=cache_key_val)
+
+        if not ordered_ids:
+            return []
+
+        # 2. Hydrate (Fetch actual objects)
+        def fetch_objects():
+            # in_bulk fetches objects by ID efficiently
+            projects_dict = models.Project.objects.in_bulk(ordered_ids)
+            # Reconstruct list in the correct cached order
+            return [projects_dict[pk] for pk in ordered_ids if pk in projects_dict]
+
+        return await sync_to_async(fetch_objects)()
+
+    @strawberry.field
+    async def get_popular_podcasts_by_genre(
+            self,
+            genre_id: strawberry.ID,
+            limit: int = 20
+    ) -> List[types.Podcast]:
+        """
+        Fetches the most popular podcasts for a specific PodcastGenre.
+        Caches IDs only, then hydrates.
+        """
+        cache_key_val = f"popular_podcasts_genre_{genre_id}_limit_{limit}"
+
+        @cache_graphql_query(
+            CacheKeys.POPULAR_PODCASTS_BY_GENRE,
+            timeout=86400,
+            key_params=["cache_key_val"]
+        )
+        async def get_cached_ids(cache_key_val: str) -> List[int]:
+            def fetch_ids():
+                # 1. Query IDs sorted by the existing popularity_score field
+                return list(models.Podcast.objects.filter(
+                    podcast_genres_ordered__genre_id=genre_id
+                ).order_by('-popularity_score').values_list('pk', flat=True)[:limit])
+
+            return await sync_to_async(fetch_ids)()
+
+        # 1. Get ordered IDs from Cache
+        ordered_ids = await get_cached_ids(cache_key_val=cache_key_val)
+
+        if not ordered_ids:
+            return []
+
+        # 2. Hydrate (Fetch actual objects)
+        def fetch_objects():
+            podcasts_dict = models.Podcast.objects.in_bulk(ordered_ids)
+            return [podcasts_dict[pk] for pk in ordered_ids if pk in podcasts_dict]
+
+        return await sync_to_async(fetch_objects)()
+
+    @strawberry.field
     async def get_music_videos_for_songs(
             self,
             song_ids: List[strawberry.ID]
@@ -322,7 +402,7 @@ class Query:
 
         @cache_graphql_query(
             CacheKeys.MATCH_SONGS,
-            timeout=300,
+            timeout=0,
             key_params=["title", "artists_hash"]
         )
         async def get_matched_ids(title: str, artists_hash: str):
@@ -369,7 +449,7 @@ class Query:
 
         @cache_graphql_query(
             CacheKeys.MATCH_PROJECTS,
-            timeout=300,
+            timeout=0,
             key_params=["title", "artists_hash"]
         )
         async def get_matched_ids(title: str, artists_hash: str):
