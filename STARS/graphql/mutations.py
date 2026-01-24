@@ -21,6 +21,7 @@ from .subscriptions import broadcast_conversation_update, broadcast_message_even
 from ..services.itunes import iTunesService  # Ensure this service exists from previous step
 from dateutil import parser
 import asyncio
+import colorsys
 
 
 
@@ -53,29 +54,63 @@ ITUNES_GENRES = {
     1511: "Fiction", 1512: "History"
 }
 
+
+def ensure_muted_color(hex_color: str, max_saturation: float = 0.5) -> str:
+    """
+    Parses a hex color, converts to HLS, and caps the saturation.
+    Returns the modified hex string.
+    """
+    if not hex_color:
+        return None
+
+    # 1. Clean the hex string
+    hex_clean = hex_color.lstrip('#')
+    if len(hex_clean) != 6:
+        return hex_color  # Return original if malformed
+
+    # 2. Convert Hex to RGB (0-1 range)
+    r = int(hex_clean[0:2], 16) / 255.0
+    g = int(hex_clean[2:4], 16) / 255.0
+    b = int(hex_clean[4:6], 16) / 255.0
+
+    # 3. Convert RGB to HLS (Hue, Lightness, Saturation)
+    h, l, s = colorsys.rgb_to_hls(r, g, b)
+
+    # 4. "Add Gray" / Desaturate
+    # If the color is more vibrant than our limit, we clamp it down.
+    if s > max_saturation:
+        s = max_saturation
+
+        # 5. Convert back to RGB
+    r_new, g_new, b_new = colorsys.hls_to_rgb(h, l, s)
+
+    # 6. Convert back to Hex
+    def to_int(val):
+        return max(0, min(255, int(val * 255)))
+
+    return f"#{to_int(r_new):02x}{to_int(g_new):02x}{to_int(b_new):02x}"
+
+
 def process_image_from_url(image_url: str):
     """
-    Downloads image from a URL (handling Apple Music placeholders),
-    uploads to Cloudinary, and extracts colors.
+    Downloads image from a URL, uploads to Cloudinary, extracts colors,
+    and mutes them if they are too vibrant.
     Returns: (secure_url, primary_color, secondary_color)
     """
     if not image_url:
         return None, None, None
 
     # Apple Music URLs often come as '.../100x100bb.jpg' or with placeholders '{w}x{h}'
-    # We ensure we get a high-res version.
     if "{w}" in image_url and "{h}" in image_url:
         final_url = image_url.replace("{w}", "1024").replace("{h}", "1024")
     else:
         final_url = image_url
 
     try:
-        # Stream the download so we don't load huge files into memory entirely
         response = requests.get(final_url, stream=True)
         if response.status_code != 200:
             return None, None, None
 
-        # Write to temp file
         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as temp_file:
             for chunk in response.iter_content(chunk_size=4096):
                 temp_file.write(chunk)
@@ -84,14 +119,20 @@ def process_image_from_url(image_url: str):
             # Upload to Cloudinary
             upload_result = cloudinary.uploader.upload(temp_file.name, colors=True)
 
-        # Clean up temp file
         os.unlink(temp_file.name)
 
-        # Extract data
         url = upload_result.get("secure_url")
-        colors = upload_result.get("colors", [])
-        primary = colors[0][0] if len(colors) > 0 else None
-        secondary = colors[1][0] if len(colors) > 1 else None
+        raw_colors = upload_result.get("colors", [])
+
+        # Get raw hex colors
+        raw_primary = raw_colors[0][0] if len(raw_colors) > 0 else None
+        raw_secondary = raw_colors[1][0] if len(raw_colors) > 1 else None
+
+        # --- THE MAGIC HAPPENS HERE ---
+        # We process the colors to ensure they aren't eye-straining.
+        # 0.5 to 0.6 is usually a good "comfortable" saturation limit.
+        primary = ensure_muted_color(raw_primary, max_saturation=0.55)
+        secondary = ensure_muted_color(raw_secondary, max_saturation=0.55)
 
         return url, primary, secondary
 
