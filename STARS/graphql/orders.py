@@ -119,6 +119,7 @@ class CoverOrder:
     reviews_count_5: auto
     is_featured : auto
     popularity_score: auto
+    is_confirmed: auto
 
 @strawberry_django.order_type(models.MusicVideo)
 class MusicVideoOrder:

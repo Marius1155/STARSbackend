@@ -201,6 +201,7 @@ class CoverFilter:
     reviews_count_4_5: auto
     reviews_count_5: auto
     star_average: auto
+    is_confirmed: auto
 
 
 @strawberry_django.filter(models.MusicVideo, lookups=True)

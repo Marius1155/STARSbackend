@@ -840,7 +840,8 @@ class Mutation:
                         content_object=podcast,
                         position=1,
                         primary_color=cover_primary,
-                        secondary_color=cover_secondary
+                        secondary_color=cover_secondary,
+                        is_confirmed = True
                     )
 
                 return podcast
@@ -1228,7 +1229,8 @@ class Mutation:
                         content_object=project,
                         position=1,
                         primary_color=cover_primary,
-                        secondary_color=cover_secondary
+                        secondary_color=cover_secondary,
+                        is_confirmed=True
                     )
 
                 # --- B. Link Project Artists ---
@@ -2458,12 +2460,10 @@ class Mutation:
 
         return await database_sync_to_async(_sync)()
 
-
     @strawberry.mutation
     async def add_cover_to_project(self, info, project_id: strawberry.ID, data: CoverDataInput) -> types.Cover:
 
         def _sync():
-
             with transaction.atomic():
                 project = models.Project.objects.get(pk=project_id)
 
@@ -2474,34 +2474,49 @@ class Mutation:
                 ).count()
                 position = existing_count + 1
 
-                # Decode and upload base64 image
+                # 1. Decode and save base64 image to temp file
                 image_data = base64.b64decode(data.image_file)
-                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-                temp_file.write(image_data)
-                temp_file.flush()
+                # Using suffix .png as in your original snippet
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_file:
+                    temp_file.write(image_data)
+                    temp_file.flush()
+                    temp_path = temp_file.name
 
-                # Upload to Cloudinary and request colors
-                upload_result = cloudinary.uploader.upload(
-                    temp_file.name,
-                    colors=True,  # This tells Cloudinary to extract the dominant colors
-                )
-                uploaded_url = upload_result["secure_url"]
-                colors = upload_result.get("colors", [])
-                primary_color = colors[0][0] if len(colors) > 0 else None
-                secondary_color = colors[1][0] if len(colors) > 1 else None
+                try:
+                    # 2. Upload to Cloudinary and request colors
+                    upload_result = cloudinary.uploader.upload(
+                        temp_path,
+                        colors=True,
+                    )
 
-                # Create Cover
-                cover = models.Cover.objects.create(
-                    image=uploaded_url,
-                    content_object=project,
-                    position=position,
-                    primary_color=primary_color,
-                    secondary_color=secondary_color
-                )
-                return cover
+                    uploaded_url = upload_result.get("secure_url")
+                    raw_colors = upload_result.get("colors", [])
+
+                    # 3. Extract raw hex colors
+                    raw_primary = raw_colors[0][0] if len(raw_colors) > 0 else None
+                    raw_secondary = raw_colors[1][0] if len(raw_colors) > 1 else None
+
+                    # 4. Apply the "Magic" Muting logic
+                    # Using 0.55 as per your helper function's suggestion
+                    primary_muted = ensure_muted_color(raw_primary, max_saturation=0.55)
+                    secondary_muted = ensure_muted_color(raw_secondary, max_saturation=0.55)
+
+                    # 5. Create Cover with processed colors
+                    cover = models.Cover.objects.create(
+                        image=uploaded_url,
+                        content_object=project,
+                        position=position,
+                        primary_color=primary_muted,
+                        secondary_color=secondary_muted
+                    )
+                    return cover
+
+                finally:
+                    # Clean up the temporary file
+                    if os.path.exists(temp_path):
+                        os.unlink(temp_path)
 
         return await database_sync_to_async(_sync)()
-
 
     @strawberry.mutation
     async def add_cover_to_podcast(self, info, podcast_id: strawberry.ID, data: CoverDataInput) -> types.Cover:
