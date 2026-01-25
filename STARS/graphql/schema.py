@@ -429,8 +429,8 @@ class Query:
                         )
                     )
                     .filter(similarity__gt=0.6)
-                    .order_by('-similarity')
-                    .distinct()
+                    .order_by('id', '-similarity')
+                    .distinct('id')
                     .values_list('id', flat=True)[:20]
                 )
 
@@ -475,8 +475,8 @@ class Query:
                         )
                     )
                     .filter(similarity__gt=0.6)
-                    .order_by('-similarity')
-                    .distinct()
+                    .order_by('id', '-similarity')
+                    .distinct('id')
                     .values_list('id', flat=True)[:20]
                 )
 
