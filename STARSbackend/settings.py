@@ -132,7 +132,13 @@ CSRF_TRUSTED_ORIGINS = ['https://starsbackend.onrender.com']
 
 # These settings ensure cookies behave correctly over HTTPS and with API clients.
 # 'Lax' is a secure default that should work.
-SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SAMESITE = 'None'  # Changed from 'Lax'
+
+# ADD THESE:
+SESSION_COOKIE_HTTPONLY = False  # Allow JS/app access
+SESSION_COOKIE_DOMAIN = None  # Let Django set it automatically
+SESSION_COOKIE_PATH = '/'
+
 CSRF_COOKIE_SAMESITE = 'Lax'
 
 # Since your site is on HTTPS, these must be True.
