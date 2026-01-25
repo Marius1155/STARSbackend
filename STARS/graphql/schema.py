@@ -139,15 +139,14 @@ class iTunesPodcastLight:
 @strawberry.type
 class Query:
     @strawberry.field
-    def me(self, info: strawberry.Info) -> Optional[types.User]:
-        """
-        Returns the currently authenticated user based on the session cookie.
-        Returns null if the user is not logged in.
-        """
-        user = info.context.request.user
-        if user.is_authenticated:
-            return user
-        return None
+    async def me(self, info: strawberry.Info) -> Optional[types.User]:
+        def get_authenticated_user():
+            user = info.context.request.user
+            if user and user.is_authenticated:
+                return user
+            return None
+
+        return await sync_to_async(get_authenticated_user)()
 
     @strawberry.field
     async def get_popular_projects_by_genre(
