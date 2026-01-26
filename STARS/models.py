@@ -862,7 +862,7 @@ class Report(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Report by {self.user.username} on {self.content_type.model}"
+        return f"Report by {self.user.username} on {self.content_type.model} with id {self.object_id}"
 
 
 class UnresolvedImportTask(models.Model):
