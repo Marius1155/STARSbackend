@@ -383,9 +383,14 @@ class ProfileOrder:
     event_reviews_count_4_5 : auto
     event_reviews_count_5 : auto
 
-@strawberry_django.filter(models.SearchHistory, lookups=True)
+@strawberry_django.order_type(models.SearchHistory)
 class SearchHistoryOrder:
     user: Optional["UserOrder"]
     query: auto
     category: auto
     timestamp: auto
+
+@strawberry_django.order_type(models.Report)
+class ReportOrder:
+    status: auto
+    created_at: auto

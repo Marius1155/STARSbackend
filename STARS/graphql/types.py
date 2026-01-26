@@ -314,6 +314,12 @@ class SearchHistory(strawberry.relay.Node):
     user: "User"
 
 
+@strawberry_django.type(models.Report, fields="__all__")
+class Report(strawberry.relay.Node):
+    content_object = "Reportable"
+    user: "User"
+
+
 Reviewable = strawberry.union(
     "Reviewable",
     (Event, Project, Song, MusicVideo, PerformanceVideo, Podcast, Outfit, Cover),
@@ -322,4 +328,9 @@ Reviewable = strawberry.union(
 Coverable = strawberry.union(
     "Coverable",
     (Project, Podcast),
+)
+
+Reportable = strawberry.union(
+    "Reportable",
+    (Project, Podcast, MusicVideo, PerformanceVideo, Outfit, Review),
 )

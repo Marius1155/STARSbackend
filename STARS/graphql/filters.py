@@ -547,3 +547,9 @@ class UserFilter:
     @strawberry_django.filter_field
     def search(self, queryset: QuerySet, value: str, prefix) -> tuple[QuerySet, Q]:
         return trigram_search(queryset, value, 'username', 'first_name')
+
+
+@strawberry_django.filter(models.Report)
+class ReportFilter:
+    status: auto
+    created_at: auto

@@ -22,6 +22,7 @@ from STARS.services.itunes import iTunesService
 import re
 
 from STARS.utils.cache import cache_graphql_query, CacheKeys
+from .filters import ReportFilter
 from .orders import SearchHistoryOrder
 
 
@@ -1061,6 +1062,8 @@ class Query:
     sub_reviews: DjangoCursorConnection[types.SubReview] = strawberry_django.connection(filters=filters.SubReviewFilter, order=orders.SubReviewOrder)
     profiles: DjangoCursorConnection[types.Profile] = strawberry_django.connection(filters=filters.ProfileFilter, order=orders.ProfileOrder)
     covers: DjangoCursorConnection[types.Cover] = strawberry_django.connection(filters=filters.CoverFilter, order=orders.CoverOrder)
+
+    reports: DjangoCursorConnection[types.Report] = strawberry_django.connection(filters=ReportFilter, order=orders.ReportOrder)
 
 schema = strawberry.Schema(
     query=Query,

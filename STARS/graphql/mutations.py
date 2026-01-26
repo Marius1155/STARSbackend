@@ -685,6 +685,43 @@ class Mutation:
 
     update_profile: types.Profile = strawberry_django.mutations.update(ProfileUpdateInput)
 
+
+    @strawberry.mutation
+    async def create_report(
+            self,
+            info,
+            object_id: strawberry.ID,
+            model_name: str,
+            reason: str
+    ) -> bool:
+        def _sync():
+            user = info.context.request.user
+            if not user.is_authenticated:
+                raise Exception("Authentication required")
+
+            # 1. Dynamically find the model type
+            try:
+                target_ct = ContentType.objects.get(app_label='STARS', model=model_name.lower())
+            except ContentType.DoesNotExist:
+                raise Exception(f"Invalid model name: {model_name}")
+
+            # 2. Fetch the actual object being reported
+            try:
+                target_object = target_ct.get_object_for_this_type(pk=object_id)
+            except Exception:
+                raise Exception(f"Object with ID {object_id} in {model_name} does not exist.")
+
+            # 3. Create the report by assigning the object directly
+            models.Report.objects.create(
+                user=user,
+                reason=reason,
+                content_object=target_object  # Django handles content_type and object_id automatically
+            )
+            return True
+
+        return await database_sync_to_async(_sync)()
+
+
     @strawberry.mutation
     async def create_search_history(self, info: strawberry.Info, data: SearchHistoryCreateInput) -> types.SearchHistory:
         def _sync():

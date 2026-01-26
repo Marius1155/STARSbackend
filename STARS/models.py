@@ -840,6 +840,31 @@ class PodcastGenresOrdered(models.Model):
         )
 
 
+class Report(models.Model):
+    class ReportStatus(models.TextChoices):
+        PENDING = 'PENDING', 'Pending Review'
+        RESOLVED = 'RESOLVED', 'Resolved'
+        DISMISSED = 'DISMISSED', 'Dismissed'
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reports_made')
+    reason = models.TextField(help_text="What is wrong with this content?")
+
+    # Generic Foreign Key Setup
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
+
+    status = models.CharField(
+        max_length=20,
+        choices=ReportStatus.choices,
+        default=ReportStatus.PENDING
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Report by {self.user.username} on {self.content_type.model}"
+
+
 class UnresolvedImportTask(models.Model):
     class TaskStatus(models.TextChoices):
         PENDING_USER = "PENDING_USER", "Awaiting User Resolution"
