@@ -2,7 +2,7 @@ from django.contrib import admin
 
 # Register your models here.
 from django.contrib import admin
-from .models import Artist, Project, Song, ProjectSong, Podcast, Outfit, Review, SubReview, Profile, Message, Conversation, Event, EventSeries, Cover, MusicVideo, ProjectArtist, SongArtist, Comment, MusicGenre, UnresolvedImportTask, PerformanceVideo, PodcastGenre, SearchHistory, PodcastGenresOrdered, ProjectGenresOrdered, SongGenresOrdered, ArtistGenresOrdered, RankedItem, RankedList  # etc.
+from .models import Artist, Project, Song, ProjectSong, Podcast, Outfit, Review, SubReview, Profile, Message, Conversation, Event, EventSeries, Cover, MusicVideo, ProjectArtist, SongArtist, Comment, MusicGenre, UnresolvedImportTask, PerformanceVideo, PodcastGenre, SearchHistory, PodcastGenresOrdered, ProjectGenresOrdered, SongGenresOrdered, ArtistGenresOrdered, RankedItem, RankedList, Report  # etc.
 
 admin.site.register(Artist)
 admin.site.register(Project)
@@ -33,3 +33,4 @@ admin.site.register(SongGenresOrdered)
 admin.site.register(ArtistGenresOrdered)
 admin.site.register(RankedItem)
 admin.site.register(RankedList)
+admin.site.register(Report)
