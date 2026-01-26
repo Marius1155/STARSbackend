@@ -319,6 +319,9 @@ class Report(strawberry.relay.Node):
     content_object = "Reportable"
     user: "User"
 
+@strawberry.type
+class CreateReportPayload:
+    created_successfully: bool
 
 Reviewable = strawberry.union(
     "Reviewable",

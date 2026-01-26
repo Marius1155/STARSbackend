@@ -693,7 +693,7 @@ class Mutation:
             object_id: strawberry.ID,
             model_name: str,
             reason: str
-    ) -> bool:
+    ) -> types.CreateReportPayload:
         def _sync():
             user = info.context.request.user
             if not user.is_authenticated:
@@ -717,7 +717,7 @@ class Mutation:
                 reason=reason,
                 content_object=target_object  # Django handles content_type and object_id automatically
             )
-            return True
+            return types.CreateReportPayload(created_successfully=True)
 
         return await database_sync_to_async(_sync)()
 
