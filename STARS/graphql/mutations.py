@@ -204,222 +204,7 @@ def get_or_create_podcast_genres(genre_names: List[str], podcast: types.Podcast)
             )
             i += 1
 
-# -----------------------------------------------------------------------------
-# Input Types
-# -----------------------------------------------------------------------------
 
-@strawberry_django.input(models.Artist)
-class ArtistCreateInput:
-    apple_music_id: str
-    name: str
-    genres: List[str]
-    picture: str
-    apple_music_url: str
-
-
-
-@strawberry.input
-class ArtistUpdateInput:
-    id: strawberry.ID
-    name: Optional[str] = strawberry.UNSET
-    picture: Optional[str] = strawberry.UNSET
-    bio: Optional[str] = strawberry.UNSET
-    wikipedia: Optional[str] = strawberry.UNSET
-    pronouns: Optional[str] = strawberry.UNSET
-    birthdate: Optional[str] = strawberry.UNSET
-    origin: Optional[str] = strawberry.UNSET
-    website: Optional[str] = strawberry.UNSET
-    facebook: Optional[str] = strawberry.UNSET
-    instagram: Optional[str] = strawberry.UNSET
-    twitter: Optional[str] = strawberry.UNSET
-    youtube_channel: Optional[str] = strawberry.UNSET
-    spotify: Optional[str] = strawberry.UNSET
-    apple_music: Optional[str] = strawberry.UNSET
-    youtube_music: Optional[str] = strawberry.UNSET
-    tidal: Optional[str] = strawberry.UNSET
-    deezer: Optional[str] = strawberry.UNSET
-    soundcloud: Optional[str] = strawberry.UNSET
-    bandcamp: Optional[str] = strawberry.UNSET
-    is_featured: Optional[bool] = strawberry.UNSET
-    featured_message: Optional[str] = strawberry.UNSET
-
-
-@strawberry_django.input(models.EventSeries)
-class EventSeriesCreateInput:
-    name: auto
-    description: Optional[str] = None
-    is_featured: Optional[bool] = False
-    featured_message: Optional[str] = None
-
-
-@strawberry.input
-class EventSeriesUpdateInput:
-    id: strawberry.ID
-    name: Optional[str] = strawberry.UNSET
-    description: Optional[str] = strawberry.UNSET
-    is_featured: Optional[bool] = strawberry.UNSET
-    featured_message: Optional[str] = strawberry.UNSET
-
-
-@strawberry_django.input(models.Event)
-class EventCreateInput:
-    name: auto
-    date: auto
-    location: Optional[str] = None
-    is_one_time: Optional[bool] = False
-    series_id: Optional[strawberry.ID] = None
-    is_featured: Optional[bool] = False
-    featured_message: Optional[str] = None
-
-
-@strawberry.input
-class EventUpdateInput:
-    id: strawberry.ID
-    name: Optional[str] = strawberry.UNSET
-    date: Optional[str] = strawberry.UNSET
-    location: Optional[str] = strawberry.UNSET
-    is_one_time: Optional[bool] = strawberry.UNSET
-    series_id: Optional[strawberry.ID] = strawberry.UNSET
-    is_featured: Optional[bool] = strawberry.UNSET
-    featured_message: Optional[str] = strawberry.UNSET
-
-@strawberry_django.input(models.Song)
-class SongCreateInput:
-    position: int
-    disc_number: int
-    song_id: Optional[strawberry.ID]
-    apple_music_id: Optional[str]
-    title: Optional[str]
-    length: Optional[int]
-    preview_url: Optional[str]
-    release_date: Optional[datetime]
-    is_out: Optional[bool]
-    apple_music_url: Optional[str]
-    genres: Optional[List[str]]
-    artists_apple_music_ids: Optional[List[str]]
-
-
-@strawberry_django.input(models.Project)
-class ProjectCreateInput:
-    apple_music_id: str
-    title: str
-    is_single: bool
-    genres: List[str]
-    number_of_songs: int
-    release_date: datetime
-    cover_url: str
-    record_label: str
-    alternative_versions: List[str]
-    apple_music_url: str
-    artists_apple_music_ids: List[str]
-    songs: List[SongCreateInput]
-
-@strawberry_django.input(models.Comment)
-class CommentCreateInput:
-    review_id: strawberry.ID
-    text: auto
-    replying_to_comment_id: Optional[strawberry.ID] = None
-
-@strawberry.input
-class CommentUpdateInput:
-    id: strawberry.ID
-    text: Optional[str] = strawberry.UNSET
-
-
-@strawberry.input
-class SubReviewDataInput:
-    topic: str
-    stars: float
-    text: Optional[str] = None
-
-
-@strawberry.input
-class SubReviewUpdateInput:
-    id: strawberry.ID
-    topic: Optional[str] = strawberry.UNSET
-    text: Optional[str] = strawberry.UNSET
-    stars: Optional[float] = strawberry.UNSET
-
-
-@strawberry.input
-class ReviewDataInput:
-    stars: float
-    title: str
-    text: Optional[str] = None
-    subreviews: Optional[List[SubReviewDataInput]] = None
-
-
-@strawberry.input
-class ReviewUpdateInput:
-    id: strawberry.ID
-    stars: Optional[float] = strawberry.UNSET
-    title: Optional[str] = strawberry.UNSET
-    text: Optional[str] = strawberry.UNSET
-    is_latest: Optional[bool] = strawberry.UNSET
-
-
-YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
-
-from urllib.parse import urlparse, parse_qs
-
-def clean_youtube_url(url: str) -> str:
-    parsed = urlparse(url)
-    query = parse_qs(parsed.query)
-    if 'v' in query:
-        return f"https://www.youtube.com/watch?v={query['v'][0]}"
-    elif parsed.netloc.endswith("youtu.be"):
-        return url  # already short URL
-    else:
-        raise ValueError("Cannot extract video ID from URL")
-
-def extract_youtube_id(url: str) -> str:
-    """
-    Extract the 11-character YouTube video ID from any standard YouTube URL.
-    Works with URLs like:
-    - https://www.youtube.com/watch?v=XXXXXXXXXXX
-    - https://youtu.be/XXXXXXXXXXX
-    - https://www.youtube.com/watch?v=XXXXXXXXXXX&list=...
-    """
-    # Try standard v= query parameter
-    parsed = urlparse(url)
-    query = parse_qs(parsed.query)
-    if 'v' in query:
-        video_id = query['v'][0]
-        if len(video_id) == 11:
-            return video_id
-
-    # Try youtu.be short URL
-    match = re.search(r'youtu\.be/([0-9A-Za-z_-]{11})', url)
-    if match:
-        return match.group(1)
-
-    # Try /embed/ style URLs
-    match = re.search(r'/embed/([0-9A-Za-z_-]{11})', url)
-    if match:
-        return match.group(1)
-
-    raise ValueError(f"Invalid YouTube URL: {url}")
-
-
-def fetch_youtube_metadata(video_url: str):
-    video_id = extract_youtube_id(video_url)
-    api_url = (
-        f"https://www.googleapis.com/youtube/v3/videos"
-        f"?part=snippet&id={video_id}&key={YOUTUBE_API_KEY}"
-    )
-    response = requests.get(api_url)
-    data = response.json()
-
-    if "items" not in data or not data["items"]:
-        raise ValueError("Video not found or API limit reached.")
-
-    snippet = data["items"][0]["snippet"]
-    title = snippet["title"]
-    published_at_str = snippet["publishedAt"][:10]  # "YYYY-MM-DD"
-    published_at = datetime.strptime(published_at_str, "%Y-%m-%d").date()
-    thumbnail = snippet["thumbnails"]["high"]["url"]
-
-    return title, published_at, thumbnail
 
 
 @strawberry.input
@@ -656,10 +441,354 @@ MARINA_AND_THE_DIAMONDS_ID = "306359292"
 MARINA_ID = "1451242169"
 
 # Helper to swap IDs in a list or single string
-def _prepare_am_ids(ids: Optional[List[str]]) -> List[str]:
+def _prepare_am_ids(ids: Optional[List[strawberry.ID]]) -> List[strawberry.ID]:
     if not ids:
         return []
     return [MARINA_ID if am_id == MARINA_AND_THE_DIAMONDS_ID else am_id for am_id in ids]
+
+
+
+
+async def _fetch_missing_artist_data(am_ids: set, am_service) -> dict:
+    artists_data = {}
+    for am_id in am_ids:
+        exists = await sync_to_async(models.Artist.objects.filter(apple_music_id=am_id).exists)()
+        if exists: continue
+        try:
+            artist_json = await am_service.get_artist(f"/v1/catalog/us/artists/{am_id}")
+            attrs = artist_json.get("attributes", {})
+            pic_url, primary, secondary = await sync_to_async(process_image_from_url)(attrs.get("artwork", {}).get("url", ""))
+            artists_data[am_id] = {
+                "name": attrs.get("name", ""),
+                "apple_music_url": attrs.get("url", ""),
+                "picture": pic_url or "",
+                "primary_color": primary,
+                "secondary_color": secondary,
+                "genres": attrs.get("genreNames", [])
+            }
+        except Exception: pass
+    return artists_data
+
+async def _fetch_performance_artists(am_ids: set, am_service) -> dict:
+    swapped_ids = _prepare_am_ids(list(am_ids))
+    return await _fetch_missing_artist_data(set(swapped_ids), am_service)
+
+async def _process_cover(cover_url: str):
+    if not cover_url: return None, None, None
+    try:
+        return await sync_to_async(process_image_from_url)(cover_url)
+    except Exception: return None, None, None
+
+def _create_artist_from_data(am_id: str, adata: dict) -> models.Artist:
+    artist = models.Artist.objects.create(
+        apple_music_id=am_id, name=adata["name"], picture=adata["picture"],
+        primary_color=adata["primary_color"] or "", secondary_color=adata["secondary_color"] or "",
+        apple_music=adata["apple_music_url"]
+    )
+    if adata["genres"]: get_or_create_artist_genres(adata["genres"], artist)
+    return artist
+
+def _get_or_create_artist_node(am_id: str, fetched_data: dict) -> Optional[models.Artist]:
+    artist = models.Artist.objects.filter(apple_music_id=am_id).first()
+    if not artist and am_id in fetched_data:
+        artist = _create_artist_from_data(am_id, fetched_data[am_id])
+    return artist
+
+def _determine_project_type(is_single: bool, song_count: int) -> str:
+    if is_single: return models.Project.ProjectType.SINGLE
+    return models.Project.ProjectType.EP if song_count <= 6 else models.Project.ProjectType.ALBUM
+
+def _link_artists_to_song(song_obj, am_ids: List[str], get_artist_fn):
+    unique_ids = list(dict.fromkeys(am_ids))
+    for j, s_am_id in enumerate(unique_ids):
+        s_artist = get_artist_fn(s_am_id)
+        if s_artist:
+            models.SongArtist.objects.create(song=song_obj, artist=s_artist, position=j + 1)
+
+def _get_or_create_song(song_in, get_artist_fn) -> Optional[models.Song]:
+    if song_in.song_id: return models.Song.objects.filter(pk=song_in.song_id).first()
+    song_obj = models.Song.objects.create(
+        apple_music_id=song_in.apple_music_id, title=song_in.title,
+        length=song_in.length or 0, preview=song_in.preview_url,
+        apple_music=song_in.apple_music_url, release_date=song_in.release_date,
+        is_out=song_in.is_out,
+    )
+    if song_in.genres: get_or_create_song_genres(song_in.genres, song_obj)
+    if song_in.artists_apple_music_ids:
+        _link_artists_to_song(song_obj, song_in.artists_apple_music_ids, get_artist_fn)
+    return song_obj
+
+def _handle_project_songs(project, song_inputs, get_artist_fn) -> int:
+    total_length = 0
+    for song_in in song_inputs:
+        song_obj = _get_or_create_song(song_in, get_artist_fn)
+        if song_obj:
+            models.ProjectSong.objects.create(
+                project=project, song=song_obj, position=song_in.position, disc_number=song_in.disc_number
+            )
+            total_length += song_obj.length
+    return total_length
+
+def _apply_project_metadata(project, data, cover_data):
+    if data.genres: get_or_create_project_genres(data.genres, project)
+    cover_url, p, s = cover_data
+    if cover_url:
+        models.Cover.objects.create(image=cover_url, content_object=project, position=1, primary_color=p, secondary_color=s, is_confirmed=True)
+
+def _link_project_artists(project, am_ids, get_artist_fn):
+    for i, am_id in enumerate(am_ids or []):
+        artist = get_artist_fn(am_id)
+        if artist:
+            models.ProjectArtist.objects.create(project=project, artist=artist, position=i + 1)
+
+def _resolve_or_create_event(data: PerformanceVideoInput) -> Optional[models.Event]:
+    if data.event_id: return models.Event.objects.get(pk=data.event_id)
+    if not data.event_name: return None
+    series = None
+    is_one_time = True
+    event_type = data.event_type or "OTHER"
+    if data.event_series_id:
+        series = models.EventSeries.objects.get(pk=data.event_series_id)
+        is_one_time, event_type = False, series.series_type
+    elif data.event_series_name:
+        series = models.EventSeries.objects.create(name=data.event_series_name, series_type=event_type)
+        is_one_time = False
+    return models.Event.objects.create(
+        event_type=event_type, name=data.event_name, date=data.event_date,
+        location=data.event_location or "", is_one_time=is_one_time, series=series
+    )
+
+def _create_performance_video_record(data, thumb_data, event, artists_data) -> models.PerformanceVideo:
+    t_url, t_p, t_s = thumb_data
+    pv = models.PerformanceVideo.objects.create(
+        youtube_id=data.youtube_id, title=data.title, channel_name=data.channel_name,
+        release_date=data.published_at, length=data.length_ms, youtube=data.youtube_url,
+        thumbnail=t_url, primary_color=t_p, secondary_color=t_s,
+        number_of_songs=len(data.songs_ids or []), event=event
+    )
+    if data.songs_ids: pv.songs.set(models.Song.objects.filter(pk__in=data.songs_ids))
+    if data.artists_apple_music_ids:
+        nodes = [_get_or_create_artist_node(aid, artists_data) for aid in data.artists_apple_music_ids]
+        pv.artists.set([n for n in nodes if n])
+    return pv
+
+
+# -----------------------------------------------------------------------------
+# Input Types
+# -----------------------------------------------------------------------------
+
+@strawberry_django.input(models.Artist)
+class ArtistCreateInput:
+    apple_music_id: str
+    name: str
+    genres: List[str]
+    picture: str
+    apple_music_url: str
+
+
+
+@strawberry.input
+class ArtistUpdateInput:
+    id: strawberry.ID
+    name: Optional[str] = strawberry.UNSET
+    picture: Optional[str] = strawberry.UNSET
+    bio: Optional[str] = strawberry.UNSET
+    wikipedia: Optional[str] = strawberry.UNSET
+    pronouns: Optional[str] = strawberry.UNSET
+    birthdate: Optional[str] = strawberry.UNSET
+    origin: Optional[str] = strawberry.UNSET
+    website: Optional[str] = strawberry.UNSET
+    facebook: Optional[str] = strawberry.UNSET
+    instagram: Optional[str] = strawberry.UNSET
+    twitter: Optional[str] = strawberry.UNSET
+    youtube_channel: Optional[str] = strawberry.UNSET
+    spotify: Optional[str] = strawberry.UNSET
+    apple_music: Optional[str] = strawberry.UNSET
+    youtube_music: Optional[str] = strawberry.UNSET
+    tidal: Optional[str] = strawberry.UNSET
+    deezer: Optional[str] = strawberry.UNSET
+    soundcloud: Optional[str] = strawberry.UNSET
+    bandcamp: Optional[str] = strawberry.UNSET
+    is_featured: Optional[bool] = strawberry.UNSET
+    featured_message: Optional[str] = strawberry.UNSET
+
+
+@strawberry_django.input(models.EventSeries)
+class EventSeriesCreateInput:
+    name: auto
+    description: Optional[str] = None
+    is_featured: Optional[bool] = False
+    featured_message: Optional[str] = None
+
+
+@strawberry.input
+class EventSeriesUpdateInput:
+    id: strawberry.ID
+    name: Optional[str] = strawberry.UNSET
+    description: Optional[str] = strawberry.UNSET
+    is_featured: Optional[bool] = strawberry.UNSET
+    featured_message: Optional[str] = strawberry.UNSET
+
+
+@strawberry_django.input(models.Event)
+class EventCreateInput:
+    name: auto
+    date: auto
+    location: Optional[str] = None
+    is_one_time: Optional[bool] = False
+    series_id: Optional[strawberry.ID] = None
+    is_featured: Optional[bool] = False
+    featured_message: Optional[str] = None
+
+
+@strawberry.input
+class EventUpdateInput:
+    id: strawberry.ID
+    name: Optional[str] = strawberry.UNSET
+    date: Optional[str] = strawberry.UNSET
+    location: Optional[str] = strawberry.UNSET
+    is_one_time: Optional[bool] = strawberry.UNSET
+    series_id: Optional[strawberry.ID] = strawberry.UNSET
+    is_featured: Optional[bool] = strawberry.UNSET
+    featured_message: Optional[str] = strawberry.UNSET
+
+@strawberry_django.input(models.Song)
+class SongCreateInput:
+    position: int
+    disc_number: int
+    song_id: Optional[strawberry.ID]
+    apple_music_id: Optional[str]
+    title: Optional[str]
+    length: Optional[int]
+    preview_url: Optional[str]
+    release_date: Optional[datetime]
+    is_out: Optional[bool]
+    apple_music_url: Optional[str]
+    genres: Optional[List[str]]
+    artists_apple_music_ids: Optional[List[str]]
+
+
+@strawberry_django.input(models.Project)
+class ProjectCreateInput:
+    apple_music_id: str
+    title: str
+    is_single: bool
+    genres: List[str]
+    number_of_songs: int
+    release_date: datetime
+    cover_url: str
+    record_label: str
+    alternative_versions: List[str]
+    apple_music_url: str
+    artists_apple_music_ids: List[str]
+    songs: List[SongCreateInput]
+
+@strawberry_django.input(models.Comment)
+class CommentCreateInput:
+    review_id: strawberry.ID
+    text: auto
+    replying_to_comment_id: Optional[strawberry.ID] = None
+
+@strawberry.input
+class CommentUpdateInput:
+    id: strawberry.ID
+    text: Optional[str] = strawberry.UNSET
+
+
+@strawberry.input
+class SubReviewDataInput:
+    topic: str
+    stars: float
+    text: Optional[str] = None
+
+
+@strawberry.input
+class SubReviewUpdateInput:
+    id: strawberry.ID
+    topic: Optional[str] = strawberry.UNSET
+    text: Optional[str] = strawberry.UNSET
+    stars: Optional[float] = strawberry.UNSET
+
+
+@strawberry.input
+class ReviewDataInput:
+    stars: float
+    title: str
+    text: Optional[str] = None
+    subreviews: Optional[List[SubReviewDataInput]] = None
+
+
+@strawberry.input
+class ReviewUpdateInput:
+    id: strawberry.ID
+    stars: Optional[float] = strawberry.UNSET
+    title: Optional[str] = strawberry.UNSET
+    text: Optional[str] = strawberry.UNSET
+    is_latest: Optional[bool] = strawberry.UNSET
+
+
+YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
+
+from urllib.parse import urlparse, parse_qs
+
+def clean_youtube_url(url: str) -> str:
+    parsed = urlparse(url)
+    query = parse_qs(parsed.query)
+    if 'v' in query:
+        return f"https://www.youtube.com/watch?v={query['v'][0]}"
+    elif parsed.netloc.endswith("youtu.be"):
+        return url  # already short URL
+    else:
+        raise ValueError("Cannot extract video ID from URL")
+
+def extract_youtube_id(url: str) -> str:
+    """
+    Extract the 11-character YouTube video ID from any standard YouTube URL.
+    Works with URLs like:
+    - https://www.youtube.com/watch?v=XXXXXXXXXXX
+    - https://youtu.be/XXXXXXXXXXX
+    - https://www.youtube.com/watch?v=XXXXXXXXXXX&list=...
+    """
+    # Try standard v= query parameter
+    parsed = urlparse(url)
+    query = parse_qs(parsed.query)
+    if 'v' in query:
+        video_id = query['v'][0]
+        if len(video_id) == 11:
+            return video_id
+
+    # Try youtu.be short URL
+    match = re.search(r'youtu\.be/([0-9A-Za-z_-]{11})', url)
+    if match:
+        return match.group(1)
+
+    # Try /embed/ style URLs
+    match = re.search(r'/embed/([0-9A-Za-z_-]{11})', url)
+    if match:
+        return match.group(1)
+
+    raise ValueError(f"Invalid YouTube URL: {url}")
+
+
+def fetch_youtube_metadata(video_url: str):
+    video_id = extract_youtube_id(video_url)
+    api_url = (
+        f"https://www.googleapis.com/youtube/v3/videos"
+        f"?part=snippet&id={video_id}&key={YOUTUBE_API_KEY}"
+    )
+    response = requests.get(api_url)
+    data = response.json()
+
+    if "items" not in data or not data["items"]:
+        raise ValueError("Video not found or API limit reached.")
+
+    snippet = data["items"][0]["snippet"]
+    title = snippet["title"]
+    published_at_str = snippet["publishedAt"][:10]  # "YYYY-MM-DD"
+    published_at = datetime.strptime(published_at_str, "%Y-%m-%d").date()
+    thumbnail = snippet["thumbnails"]["high"]["url"]
+
+    return title, published_at, thumbnail
 
 
 @strawberry.type
@@ -932,116 +1061,6 @@ class Mutation:
 
         return await database_sync_to_async(_sync)()
 
-    # --- HELPER: Artist Processing (Async) ---
-    async def _fetch_performance_artists(self, am_ids: set, am_service) -> dict:
-        """Fetches missing artist data from Apple Music with ID swap logic."""
-        artists_data = {}
-        # Use the global ID swap helper
-        swapped_ids = _prepare_am_ids(list(am_ids))
-
-        for am_id in swapped_ids:
-            exists = await sync_to_async(models.Artist.objects.filter(apple_music_id=am_id).exists)()
-            if exists:
-                continue
-            try:
-                artist_json = await am_service.get_artist(f"/v1/catalog/us/artists/{am_id}")
-                attrs = artist_json.get("attributes", {})
-                pic_url, primary, secondary = await sync_to_async(process_image_from_url)(
-                    attrs.get("artwork", {}).get("url", "")
-                )
-                artists_data[am_id] = {
-                    "name": attrs.get("name", ""),
-                    "apple_music_url": attrs.get("url", ""),
-                    "picture": pic_url or "",
-                    "primary_color": primary,
-                    "secondary_color": secondary,
-                    "genres": attrs.get("genreNames", [])
-                }
-            except Exception as e:
-                print(f"Error fetching artist {am_id}: {e}")
-        return artists_data
-
-    # --- HELPER: Event Handling (Sync) ---
-    def _resolve_or_create_event(self, data: PerformanceVideoInput) -> Optional[models.Event]:
-        """Handles the nested logic for event ids, names, and series."""
-        # Case 1: Existing Event
-        if data.event_id:
-            return models.Event.objects.get(pk=data.event_id)
-
-        # Case 2: Create new Event
-        if not data.event_name:
-            return None
-
-        series = None
-        is_one_time = True
-        event_type = data.event_type or "OTHER"
-
-        if data.event_series_id:
-            series = models.EventSeries.objects.get(pk=data.event_series_id)
-            is_one_time, event_type = False, series.series_type
-        elif data.event_series_name:
-            series = models.EventSeries.objects.create(
-                name=data.event_series_name,
-                series_type=event_type
-            )
-            is_one_time = False
-
-        return models.Event.objects.create(
-            event_type=event_type,
-            name=data.event_name,
-            date=data.event_date,
-            location=data.event_location or "",
-            is_one_time=is_one_time,
-            series=series
-        )
-
-    def _get_or_create_artist_node(self, am_id: str, fetched_data: dict) -> Optional[models.Artist]:
-        """Encapsulates the logic of finding or creating an artist node."""
-        artist = models.Artist.objects.filter(apple_music_id=am_id).first()
-        if not artist and am_id in fetched_data:
-            ad = fetched_data[am_id]
-            artist = models.Artist.objects.create(
-                apple_music_id=am_id,
-                name=ad["name"],
-                picture=ad["picture"],
-                primary_color=ad["primary_color"] or "",
-                secondary_color=ad["secondary_color"] or "",
-                apple_music=ad["apple_music_url"]
-            )
-            if ad["genres"]:
-                get_or_create_artist_genres(ad["genres"], artist)
-        return artist
-
-    def _create_performance_video_record(self, data, thumb_data, event, artists_data) -> models.PerformanceVideo:
-        """The synchronous part of creating the record and its relations."""
-        thumb_url, thumb_p, thumb_s = thumb_data
-
-        pv = models.PerformanceVideo.objects.create(
-            youtube_id=data.youtube_id,
-            title=data.title,
-            channel_name=data.channel_name,
-            release_date=data.published_at,
-            length=data.length_ms,
-            youtube=data.youtube_url,
-            thumbnail=thumb_url,
-            primary_color=thumb_p,
-            secondary_color=thumb_s,
-            number_of_songs=len(data.songs_ids or []),
-            event=event
-        )
-
-        if data.songs_ids:
-            pv.songs.set(models.Song.objects.filter(pk__in=data.songs_ids))
-
-        if data.artists_apple_music_ids:
-            artist_nodes = [
-                self._get_or_create_artist_node(aid, artists_data)
-                for aid in data.artists_apple_music_ids
-            ]
-            pv.artists.set([a for a in artist_nodes if a])
-
-        return pv
-
 
     @strawberry.mutation
     async def add_performance_video(self, info: Info, data: PerformanceVideoInput) -> types.PerformanceVideo:
@@ -1051,7 +1070,7 @@ class Mutation:
         data.artists_apple_music_ids = _prepare_am_ids(data.artists_apple_music_ids)
 
         # 2. Async Preparation
-        artists_to_create_data = await self._fetch_performance_artists(
+        artists_to_create_data = await _fetch_performance_artists(
             set(data.artists_apple_music_ids),
             am_service
         )
@@ -1064,8 +1083,8 @@ class Mutation:
                 raise Exception("Authentication required.")
 
             with transaction.atomic():
-                event = self._resolve_or_create_event(data)
-                return self._create_performance_video_record(
+                event = _resolve_or_create_event(data)
+                return _create_performance_video_record(
                     data, thumb_data, event, artists_to_create_data
                 )
 
@@ -1106,141 +1125,6 @@ class Mutation:
         return await database_sync_to_async(_create_sync)()
     '''
 
-    async def _fetch_missing_artist_data(self, am_ids: set, am_service) -> dict:
-        """Fetches artist details for any ID not already in the database."""
-        artists_data = {}
-        for am_id in am_ids:
-            # Check DB
-            exists = await sync_to_async(models.Artist.objects.filter(apple_music_id=am_id).exists)()
-            if exists:
-                continue
-
-            try:
-                artist_json = await am_service.get_artist(f"/v1/catalog/us/artists/{am_id}")
-                attrs = artist_json.get("attributes", {})
-                pic_url, primary, secondary = await sync_to_async(process_image_from_url)(
-                    attrs.get("artwork", {}).get("url", "")
-                )
-                artists_data[am_id] = {
-                    "name": attrs.get("name", ""),
-                    "apple_music_url": attrs.get("url", ""),
-                    "picture": pic_url or "",
-                    "primary_color": primary,
-                    "secondary_color": secondary,
-                    "genres": attrs.get("genreNames", [])
-                }
-            except Exception as e:
-                print(f"Error fetching artist {am_id}: {e}")
-        return artists_data
-
-    def _link_artists_to_song(self, song_obj, am_ids: List[str], get_artist_fn):
-        """Handles deduplication and linking of artists to a song."""
-        unique_ids = list(dict.fromkeys(am_ids))
-        for j, s_am_id in enumerate(unique_ids):
-            s_artist = get_artist_fn(s_am_id)
-            if s_artist:
-                models.SongArtist.objects.create(
-                    song=song_obj,
-                    artist=s_artist,
-                    position=j + 1
-                )
-
-    def _get_or_create_song(self, song_in, get_artist_fn) -> Optional[models.Song]:
-        """Determines if a song needs creation or just retrieval."""
-        if song_in.song_id:
-            return models.Song.objects.filter(pk=song_in.song_id).first()
-
-        song_obj = models.Song.objects.create(
-            apple_music_id=song_in.apple_music_id,
-            title=song_in.title,
-            length=song_in.length or 0,
-            preview=song_in.preview_url,
-            apple_music=song_in.apple_music_url,
-            release_date=song_in.release_date,
-            is_out=song_in.is_out,
-        )
-
-        if song_in.genres:
-            get_or_create_song_genres(song_in.genres, song_obj)
-
-        if song_in.artists_apple_music_ids:
-            self._link_artists_to_song(song_obj, song_in.artists_apple_music_ids, get_artist_fn)
-
-        return song_obj
-
-    def _handle_project_songs(self, project, song_inputs, get_artist_fn) -> int:
-        total_length = 0
-        for song_in in song_inputs:
-            song_obj = self._get_or_create_song(song_in, get_artist_fn)
-            if not song_obj:
-                continue
-
-            models.ProjectSong.objects.create(
-                project=project,
-                song=song_obj,
-                position=song_in.position,
-                disc_number=song_in.disc_number
-            )
-            total_length += song_obj.length
-        return total_length
-
-    def _determine_project_type(self, is_single: bool, song_count: int) -> str:
-        if is_single:
-            return models.Project.ProjectType.SINGLE
-        return models.Project.ProjectType.EP if song_count <= 6 else models.Project.ProjectType.ALBUM
-
-    async def _process_cover(self, cover_url: str):
-        """Helper to process the project cover image asynchronously."""
-        if not cover_url:
-            return None, None, None
-        try:
-            return await sync_to_async(process_image_from_url)(cover_url)
-        except Exception as e:
-            print(f"Error processing cover: {e}")
-            return None, None, None
-
-    def _create_artist_from_data(self, am_id: str, adata: dict) -> models.Artist:
-        """Creates an artist from fetched Apple Music data."""
-        artist = models.Artist.objects.create(
-            apple_music_id=am_id,
-            name=adata["name"],
-            picture=adata["picture"],
-            primary_color=adata["primary_color"] or "",
-            secondary_color=adata["secondary_color"] or "",
-            apple_music=adata["apple_music_url"]
-        )
-        if adata["genres"]:
-            get_or_create_artist_genres(adata["genres"], artist)
-        return artist
-
-    def _apply_project_metadata(self, project, data, cover_data):
-        """Applies genres and cover art to a project."""
-        if data.genres:
-            get_or_create_project_genres(data.genres, project)
-
-        cover_url, primary, secondary = cover_data
-        if cover_url:
-            models.Cover.objects.create(
-                image=cover_url,
-                content_object=project,
-                position=1,
-                primary_color=primary,
-                secondary_color=secondary,
-                is_confirmed=True
-            )
-
-    def _link_project_artists(self, project, am_ids, get_artist_fn):
-        """Links artists to the project in the specified order."""
-        for i, am_id in enumerate(am_ids or []):
-            artist = get_artist_fn(am_id)
-            if artist:
-                models.ProjectArtist.objects.create(
-                    project=project,
-                    artist=artist,
-                    position=i + 1
-                )
-
-
     @strawberry.mutation
     async def create_project(self, info: Info, data: ProjectCreateInput) -> types.Project:
         am_service = AppleMusicService()
@@ -1255,8 +1139,8 @@ class Mutation:
                 all_am_ids.update(s.artists_apple_music_ids)
 
         # 2. Async Network Calls
-        cover_data = await self._process_cover(data.cover_url)
-        artists_to_create_data = await self._fetch_missing_artist_data(all_am_ids, am_service)
+        cover_data = await _process_cover(data.cover_url)
+        artists_to_create_data = await _fetch_missing_artist_data(all_am_ids, am_service)
         await am_service.close()
 
         # 3. Database Transaction
@@ -1269,23 +1153,23 @@ class Mutation:
                 def get_artist_node(am_id):
                     artist = models.Artist.objects.filter(apple_music_id=am_id).first()
                     if not artist and am_id in artists_to_create_data:
-                        artist = self._create_artist_from_data(am_id, artists_to_create_data[am_id])
+                        artist = _create_artist_from_data(am_id, artists_to_create_data[am_id])
                     return artist
 
                 # Create Project
                 project = models.Project.objects.create(
                     apple_music_id=data.apple_music_id, title=data.title,
                     number_of_songs=data.number_of_songs, release_date=data.release_date,
-                    project_type=self._determine_project_type(data.is_single, data.number_of_songs),
+                    project_type=_determine_project_type(data.is_single, data.number_of_songs),
                     apple_music=data.apple_music_url, record_label=data.record_label
                 )
 
                 # Metadata & Artists
-                self._apply_project_metadata(project, data, cover_data)
-                self._link_project_artists(project, data.artists_apple_music_ids, get_artist_node)
+                _apply_project_metadata(project, data, cover_data)
+                _link_project_artists(project, data.artists_apple_music_ids, get_artist_node)
 
                 # Songs
-                project.length = self._handle_project_songs(project, data.songs or [], get_artist_node)
+                project.length = _handle_project_songs(project, data.songs or [], get_artist_node)
                 project.save(update_fields=["length"])
 
                 if data.alternative_versions:
