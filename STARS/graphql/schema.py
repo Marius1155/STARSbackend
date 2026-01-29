@@ -146,6 +146,81 @@ def _swap_id(artist_id: str) -> str:
     return MARINA_ID if artist_id == MARINA_AND_THE_DIAMONDS_ID else artist_id
 
 
+async def _fetch_artist_by_id(artist_id: str, href: str) -> AppleMusicArtistDetail:
+    target_id = _swap_id(artist_id)
+    # If the ID was swapped, we should modify the href to match the new ID
+    # Usually hrefs look like /v1/catalog/us/artists/ID
+    target_href = href.replace(artist_id, target_id) if href else ""
+
+    name, image, url, genres = "", "", "", []
+
+    if target_href:
+        try:
+            artist_detail = await apple_music.get_artist(target_href)
+            attrs = artist_detail.get("attributes", {})
+            name = attrs.get("name", "")
+            image = attrs.get("artwork", {}).get("url", "")
+            url = attrs.get("url", "")
+            genres = attrs.get("genreNames", [])
+        except Exception:
+            pass
+
+    return AppleMusicArtistDetail(
+        id=target_id,
+        name=name,
+        image_url=image,
+        url=url,
+        genre_names=genres,
+    )
+
+
+async def _process_song(song_data: dict) -> Optional[AppleMusicSongDetail]:
+    """Processes a single song, determining if it's released and fetching artist details."""
+    if song_data.get("type") != "songs":
+        return None
+
+    song_attrs = song_data.get("attributes", {})
+    song_href = song_data.get("href", "")
+    is_released = song_attrs.get("playParams") is not None
+
+    song_artists: List[AppleMusicArtistDetail] = []
+
+    if is_released and song_href:
+        try:
+            full_song = await apple_music.get_song(song_href)
+            artist_data = full_song.get("relationships", {}).get("artists", {}).get("data", [])
+            for s_artist in artist_data:
+                detail = await _fetch_artist_by_id(s_artist.get("id"), s_artist.get("href", ""))
+                song_artists.append(detail)
+        except Exception:
+            full_song = None
+
+    # Fallback for unreleased songs or failed fetches
+    if not song_artists:
+        song_artists.append(
+            AppleMusicArtistDetail(
+                id="",
+                name=song_attrs.get("artistName", "Unknown Artist"),
+                image_url="", url="", genre_names=[]
+            )
+        )
+
+    return AppleMusicSongDetail(
+        id=song_data.get("id"),
+        type=song_data.get("type", ""),
+        name=song_attrs.get("name", ""),
+        length_ms=song_attrs.get("durationInMillis", 0),
+        disc_number=song_attrs.get("discNumber"),
+        genre_names=song_attrs.get("genreNames", []),
+        preview_url=song_attrs.get("previews", [{}])[0].get("url", "") if is_released else "",
+        artists=song_artists,
+        track_number=song_attrs.get("trackNumber", 0),
+        release_date=song_attrs.get("releaseDate", ""),
+        url=song_attrs.get("url", ""),
+        is_out=is_released,
+    )
+
+
 @strawberry.type
 class Query:
     @strawberry.field
@@ -804,78 +879,6 @@ class Query:
             )
         return albums
 
-    async def _fetch_artist_by_id(self, artist_id: str, href: str) -> AppleMusicArtistDetail:
-        # If the ID was swapped, we should modify the href to match the new ID
-        # Usually hrefs look like /v1/catalog/us/artists/ID
-        target_href = href.replace(artist_id, target_id) if href else ""
-
-        name, image, url, genres = "", "", "", []
-
-        if target_href:
-            try:
-                artist_detail = await apple_music.get_artist(target_href)
-                attrs = artist_detail.get("attributes", {})
-                name = attrs.get("name", "")
-                image = attrs.get("artwork", {}).get("url", "")
-                url = attrs.get("url", "")
-                genres = attrs.get("genreNames", [])
-            except Exception:
-                pass
-
-        return AppleMusicArtistDetail(
-            id=target_id,
-            name=name,
-            image_url=image,
-            url=url,
-            genre_names=genres,
-        )
-
-    async def _process_song(self, song_data: dict) -> Optional[AppleMusicSongDetail]:
-        """Processes a single song, determining if it's released and fetching artist details."""
-        if song_data.get("type") != "songs":
-            return None
-
-        song_attrs = song_data.get("attributes", {})
-        song_href = song_data.get("href", "")
-        is_released = song_attrs.get("playParams") is not None
-
-        song_artists: List[AppleMusicArtistDetail] = []
-
-        if is_released and song_href:
-            try:
-                full_song = await apple_music.get_song(song_href)
-                artist_data = full_song.get("relationships", {}).get("artists", {}).get("data", [])
-                for s_artist in artist_data:
-                    detail = await self._fetch_artist_by_id(s_artist.get("id"), s_artist.get("href", ""))
-                    song_artists.append(detail)
-            except Exception:
-                full_song = None
-
-        # Fallback for unreleased songs or failed fetches
-        if not song_artists:
-            song_artists.append(
-                AppleMusicArtistDetail(
-                    id="",
-                    name=song_attrs.get("artistName", "Unknown Artist"),
-                    image_url="", url="", genre_names=[]
-                )
-            )
-
-        return AppleMusicSongDetail(
-            id=song_data.get("id"),
-            type=song_data.get("type", ""),
-            name=song_attrs.get("name", ""),
-            length_ms=song_attrs.get("durationInMillis", 0),
-            disc_number=song_attrs.get("discNumber"),
-            genre_names=song_attrs.get("genreNames", []),
-            preview_url=song_attrs.get("previews", [{}])[0].get("url", "") if is_released else "",
-            artists=song_artists,
-            track_number=song_attrs.get("trackNumber", 0),
-            release_date=song_attrs.get("releaseDate", ""),
-            url=song_attrs.get("url", ""),
-            is_out=is_released,
-        )
-
 
     @strawberry.field
     async def get_album_detail(self, album_id: str) -> AppleMusicAlbumDetail:
@@ -886,7 +889,7 @@ class Query:
         # 2. Map Album Artists (using the swap logic)
         album_artists_data = album.get("relationships", {}).get("artists", {}).get("data", [])
         album_artists = [
-            await self._fetch_artist_by_id(a.get("id"), a.get("href", ""))
+            await _fetch_artist_by_id(a.get("id"), a.get("href", ""))
             for a in album_artists_data
         ]
 
@@ -894,7 +897,7 @@ class Query:
         songs: List[AppleMusicSongDetail] = []
         tracks_data = album.get("relationships", {}).get("tracks", {}).get("data", [])
         for track in tracks_data:
-            processed_song = await self._process_song(track)
+            processed_song = await _process_song(track)
             if processed_song:
                 songs.append(processed_song)
 
