@@ -431,7 +431,7 @@ class Project(models.Model):
 
     apple_music_id = models.CharField(blank=True, null=True, max_length=255, unique=True)
     title = models.CharField(max_length=500, db_index=True)
-    length = models.IntegerField()
+    length = models.IntegerField(default=0)
     number_of_songs = models.IntegerField()
     release_date = models.DateField(db_index=True)
     project_type = models.CharField(max_length=10, choices=ProjectType.choices, db_index=True)
