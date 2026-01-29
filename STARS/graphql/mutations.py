@@ -446,8 +446,13 @@ def _prepare_am_ids(ids: Optional[List[strawberry.ID]]) -> List[strawberry.ID]:
         return []
     return [MARINA_ID if am_id == MARINA_AND_THE_DIAMONDS_ID else am_id for am_id in ids]
 
-
-
+def _format_list_to_string(items: List[str]) -> str:
+    """Converts ['A', 'B', 'C'] to 'A, B & C'."""
+    if not items:
+        return ""
+    if len(items) == 1:
+        return items[0]
+    return f"{', '.join(items[:-1])} & {items[-1]}"
 
 async def _fetch_missing_artist_data(am_ids: set, am_service) -> dict:
     artists_data = {}
@@ -1084,6 +1089,32 @@ class Mutation:
 
             with transaction.atomic():
                 event = _resolve_or_create_event(data)
+                # --- TITLE CONSTRUCTION LOGIC ---
+                # 1. Get Artist names (from fetched data or DB)
+                artist_names = []
+                for am_id in data.artists_apple_music_ids:
+                    artist = _get_or_create_artist_node(am_id, artists_to_create_data)
+                    if artist:
+                        artist_names.append(artist.name)
+
+                # 2. Get Song titles
+                song_titles = list(models.Song.objects.filter(
+                    pk__in=data.songs_ids
+                ).values_list('title', flat=True))
+
+                # 3. Format the strings
+                artists_str = _format_list_to_string(artist_names)
+                songs_str = _format_list_to_string(song_titles)
+
+                # 4. Assemble: "Artist A & Artist B performing Song X & Song Y"
+                new_title = f"{artists_str} performing {songs_str}"
+
+                # 5. Add Event suffix if applicable
+                if event:
+                    new_title = f"{new_title} ({event.name})"
+
+                data.title = new_title
+                # --------------------------------
                 return _create_performance_video_record(
                     data, thumb_data, event, artists_to_create_data
                 )
