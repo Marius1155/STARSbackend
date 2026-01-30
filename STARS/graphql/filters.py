@@ -341,7 +341,6 @@ class ProjectFilter:
             queryset, value,
             'title',
             'project_artists__artist__name',
-            'project_songs__song__title'
         )
 
 
