@@ -317,7 +317,7 @@ class Query:
     @strawberry.field
     async def get_music_videos_for_songs(
             self,
-            info: Info,
+            info: strawberry.types.Info,  # Ensure info is typed correctly
             song_ids: List[strawberry.ID],
             first: Optional[int] = 10,
             after: Optional[str] = None
@@ -368,7 +368,7 @@ class Query:
 
         # 3. Return via strawberry_django's connection resolver
         # This handles the 'first' and 'after' arguments automatically
-        return strawberry_django.connection.resolve_connection(
+        return relay.resolve_connection(
             queryset,
             info=info,
             first=first,
