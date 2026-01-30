@@ -22,11 +22,15 @@ def trigram_search(queryset: QuerySet, value: str, *fields) -> tuple[QuerySet, Q
     for field in fields[1:]:
         search_expression = Concat(search_expression, Value(' '), field)
 
+    # Get the model's primary key field name
+    model = queryset.model
+    pk_field = model._meta.pk.name
+
     qs = queryset.annotate(
         similarity=TrigramSimilarity(search_expression, value)
     ).filter(
-        similarity__gt=0.1  # Threshold: 10% match required
-    ).order_by('-similarity').distinct()
+        similarity__gt=0.1
+    ).order_by(pk_field, '-similarity').distinct(pk_field)  # ✅ Distinct on primary key
 
     return qs, Q()
 
