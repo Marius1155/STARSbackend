@@ -18,18 +18,21 @@ def trigram_search(queryset: QuerySet, value: str, *fields) -> tuple[QuerySet, Q
     if not value:
         return queryset, Q()
 
-    # 1. Build the search expression (e.g., "Title ArtistName")
+    # 1. Build the search expression
     search_expression = fields[0]
     for field in fields[1:]:
         search_expression = Concat(search_expression, Value(' '), field)
 
-    # 2. Get Similarity Scores and filter by threshold (0.1)
-    # We use a subquery-like values/annotate approach to get unique IDs ordered by similarity
-    search_results = (
+    # 2. Annotate and Filter
+    queryset = (
         queryset.annotate(similarity=TrigramSimilarity(search_expression, value))
-        .filter(similarity__gt=0.1)  # Threshold: 0.1 to 0.3 is standard
-        .order_by('-similarity')
+        .filter(similarity__gt=0.1)
     )
+
+    # 3. Handle Duplicates and Ordering
+    # .distinct() without arguments works with order_by in most cases
+    # and removes the duplicates caused by the M2M joins.
+    search_results = queryset.distinct().order_by('-similarity')
 
     return search_results, Q()
 
