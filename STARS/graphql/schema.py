@@ -504,7 +504,9 @@ class Query:
             def fetch():
                 qs = models.Song.objects.all()
                 for artist_id in artist_ids:
-                    qs = qs.filter(song_artists__artist__apple_music_id=artist_id)
+                    qs = qs.filter(
+                        song_artists__artist__apple_music_id=artist_id
+                    ).distinct()  # Add distinct here to prevent duplicates at each step
 
                 return list(
                     qs.annotate(
@@ -514,8 +516,7 @@ class Query:
                         )
                     )
                     .filter(similarity__gt=0.6)
-                    .order_by('id', '-similarity')
-                    .distinct('id')
+                    .order_by('-similarity')
                     .values_list('id', flat=True)[:20]
                 )
 
