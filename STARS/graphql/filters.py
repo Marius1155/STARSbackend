@@ -23,43 +23,16 @@ def trigram_search(queryset: QuerySet, value: str, *fields) -> tuple[QuerySet, Q
     for field in fields[1:]:
         search_expression = Concat(search_expression, Value(' '), field)
 
-    model = queryset.model
-    pk_field = model._meta.pk.name
-
     # 2. Get Similarity Scores and filter by threshold (0.1)
     # We use a subquery-like values/annotate approach to get unique IDs ordered by similarity
     search_results = (
         queryset.annotate(similarity=TrigramSimilarity(search_expression, value))
-        .filter(similarity__gt=0.1)
-        .values(pk_field, 'similarity')
+        .filter(similarity__gt=0.1)  # Threshold: 0.1 to 0.3 is standard
         .order_by('-similarity')
+        .values_list('id', flat=True)
     )
 
-    # 3. Extract the ordered IDs
-    # This mimics the "data_ids" logic in your search_music query
-    ordered_ids = [result[pk_field] for result in search_results]
-
-    if not ordered_ids:
-        return queryset.none(), Q()
-
-    # 4. Preserve Order in the QuerySet
-    # Since we are returning a QuerySet (not a List), we use Django's Case/When
-    # to force the database to respect the similarity rank.
-    preserved_order = Case(*[When(**{pk_field: pk, 'then': pos}) for pos, pk in enumerate(ordered_ids)])
-
-    # 5. Hydrate and Order
-    # We re-annotate similarity so it's available for subsequent ordering/logic if needed
-    qs = (
-        queryset.filter(**{f"{pk_field}__in": ordered_ids})
-        .annotate(
-            similarity=TrigramSimilarity(search_expression, value),
-            search_rank=preserved_order
-        )
-        .order_by('search_rank')
-    )
-
-    # We return an empty Q() because we have already applied the filter to the queryset
-    return qs, Q()
+    return search_results, Q()
 
 
 
