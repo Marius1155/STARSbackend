@@ -9,7 +9,7 @@ from STARS import models
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from strawberry_django.filters import FilterLookup
-from django.db.models import Q, Exists, OuterRef, QuerySet, Value
+from django.db.models import Q, Exists, OuterRef, QuerySet, Value, Max
 from django.db.models.functions import Concat
 from django.contrib.postgres.search import TrigramSimilarity
 
@@ -25,15 +25,24 @@ def trigram_search(queryset: QuerySet, value: str, *fields) -> tuple[QuerySet, Q
     model = queryset.model
     pk_field = model._meta.pk.name
 
-    # Get distinct IDs with similarity
-    qs = queryset.annotate(
+    # Get the best similarity score for each unique ID
+    unique_results = queryset.annotate(
         similarity=TrigramSimilarity(search_expression, value)
     ).filter(
         similarity__gt=0.1
-    ).order_by(pk_field, '-similarity').distinct(pk_field)
+    ).values(pk_field).annotate(
+        max_similarity=Max('similarity')
+    ).values_list(pk_field, 'max_similarity')
 
-    # Re-annotate and order by similarity for final results
-    qs = qs.order_by('-similarity')
+    # Convert to dict and get ordered IDs
+    id_to_similarity = dict(unique_results)
+    ordered_ids = sorted(id_to_similarity.keys(), key=lambda x: id_to_similarity[x], reverse=True)
+
+    # Return filtered queryset with similarity annotation
+    # Note: We can't guarantee ORDER BY in the queryset itself due to strawberry-django pagination
+    qs = queryset.filter(**{f'{pk_field}__in': ordered_ids}).annotate(
+        similarity=TrigramSimilarity(search_expression, value)
+    )
 
     return qs, Q()
 
