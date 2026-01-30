@@ -314,6 +314,67 @@ class Query:
         return await sync_to_async(fetch_objects)()
 
     @strawberry.field
+    async def get_projects_for_songs(
+            self,
+            song_ids: List[strawberry.ID]
+    ) -> List[types.Project]:
+        """
+        Fetches projects that contain at least one of the provided songs.
+        Preserves input song order and applies a limit of 10.
+        """
+        if not song_ids:
+            return []
+
+        ids_hash = ",".join(str(x) for x in song_ids)
+
+        @cache_graphql_query(
+            CacheKeys.PROJECTS_FROM_SONGS,  # Ensure this key is added to your CacheKeys class
+            timeout=300,
+            key_params=["ids_hash"]
+        )
+        async def get_cached_ids(ids_hash: str):
+            def fetch():
+                # 1. Fetch relations: project_songs connects projects to songs
+                relations = models.ProjectSong.objects.filter(
+                    song_id__in=song_ids
+                ).values_list('project_id', 'song_id')
+
+                # 2. Sort by the rank of the song in the input list
+                song_rank = {str(s_id): i for i, s_id in enumerate(song_ids)}
+
+                # 3. Deduplicate projects while preserving order based on the first song match
+                seen_projects = set()
+                ordered_project_ids = []
+
+                # Sort relations by input song order
+                sorted_relations = sorted(
+                    relations,
+                    key=lambda x: song_rank.get(str(x[1]), 999)
+                )
+
+                for project_id, _ in sorted_relations:
+                    if project_id not in seen_projects:
+                        seen_projects.add(project_id)
+                        ordered_project_ids.append(project_id)
+
+                return ordered_project_ids
+
+            return await sync_to_async(fetch)()
+
+        ordered_ids = await get_cached_ids(ids_hash=ids_hash)
+
+        def hydrate_results():
+            # Fetch only the first 10 to keep the view fast
+            # Note: we use .filter(id__in=...) and then re-sort in Python
+            # because SQL IN doesn't guarantee the order of the provided list.
+            limit_ids = ordered_ids[:10]
+            objs = list(models.Project.objects.filter(id__in=limit_ids))
+            objs.sort(key=lambda x: limit_ids.index(x.id))
+            return objs
+
+        return await sync_to_async(hydrate_results)()
+
+    @strawberry.field
     async def get_music_videos_for_songs(
             self,
             song_ids: List[strawberry.ID]
@@ -480,6 +541,82 @@ class Query:
             projects.sort(key=lambda x: ordered_ids.index(x.id))
 
             return projects
+
+        return await sync_to_async(hydrate_results)()
+
+    @strawberry.field
+    async def get_artist_most_popular_music_videos(
+            self,
+            artist_id: strawberry.ID,
+            limit: int = 10
+    ) -> List[types.MusicVideo]:
+        """
+        Fetches an artist's most popular music videos based on songs they are featured in.
+        """
+
+        @cache_graphql_query(
+            CacheKeys.ARTIST_POPULAR_MUSIC_VIDEOS,
+            timeout=300,
+            key_params=["artist_id", "limit"]
+        )
+        async def get_cached_ids(artist_id: strawberry.ID, limit: int):
+            def fetch():
+                # Filter through the M2M relationship: MusicVideo -> Songs -> Artists
+                return list(
+                    models.MusicVideo.objects.filter(
+                        songs__song_artists__artist_id=artist_id
+                    )
+                    .distinct()
+                    .order_by('-popularity_score')  # Ensure your model has this field
+                    .values_list('id', flat=True)[:limit]
+                )
+
+            return await sync_to_async(fetch)()
+
+        ordered_ids = await get_cached_ids(artist_id=artist_id, limit=limit)
+
+        def hydrate_results():
+            objs = list(models.MusicVideo.objects.filter(id__in=ordered_ids))
+            objs.sort(key=lambda x: ordered_ids.index(x.id))
+            return objs
+
+        return await sync_to_async(hydrate_results)()
+
+    @strawberry.field
+    async def get_artist_most_popular_performances(
+            self,
+            artist_id: strawberry.ID,
+            limit: int = 10
+    ) -> List[types.PerformanceVideo]:
+        """
+        Fetches an artist's most popular performance videos based on songs they are featured in.
+        """
+
+        @cache_graphql_query(
+            CacheKeys.ARTIST_POPULAR_PERFORMANCES,
+            timeout=300,
+            key_params=["artist_id", "limit"]
+        )
+        async def get_cached_ids(artist_id: strawberry.ID, limit: int):
+            def fetch():
+                # Filter through the M2M relationship: PerformanceVideo -> Songs -> Artists
+                return list(
+                    models.PerformanceVideo.objects.filter(
+                        artists__id=artist_id
+                    )
+                    .distinct()
+                    .order_by('-popularity_score')
+                    .values_list('id', flat=True)[:limit]
+                )
+
+            return await sync_to_async(fetch)()
+
+        ordered_ids = await get_cached_ids(artist_id=artist_id, limit=limit)
+
+        def hydrate_results():
+            objs = list(models.PerformanceVideo.objects.filter(id__in=ordered_ids))
+            objs.sort(key=lambda x: ordered_ids.index(x.id))
+            return objs
 
         return await sync_to_async(hydrate_results)()
 
