@@ -18,6 +18,8 @@ from strawberry.types.info import Info
 from strawberry import relay
 from datetime import datetime
 
+from strawberry_django import relay as django_relay
+
 from STARS.services.itunes import iTunesService
 
 import re
@@ -368,7 +370,7 @@ class Query:
 
         # 3. Return via strawberry_django's connection resolver
         # This handles the 'first' and 'after' arguments automatically
-        return relay.resolve_connection(
+        return django_relay.resolve_connection(
             queryset,
             info=info,
             first=first,
