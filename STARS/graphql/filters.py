@@ -23,18 +23,24 @@ def trigram_search(queryset: QuerySet, value: str, *fields) -> tuple[QuerySet, Q
     for field in fields[1:]:
         search_expression = Concat(search_expression, Value(' '), field)
 
-    # 2. Annotate and Filter
-    queryset = (
+    # 2. Get the highest similarity score per ID to eliminate duplicates from Joins
+    # This acts as a "unique filter" before we return to Strawberry
+    ids_with_similarity = (
         queryset.annotate(similarity=TrigramSimilarity(search_expression, value))
         .filter(similarity__gt=0.1)
+        .values('id')  # Group by ID
+        .annotate(max_sim=Max('similarity'))  # Get the highest match for that object
+        .order_by('-max_sim')
     )
 
-    # 3. Handle Duplicates and Ordering
-    # .distinct() without arguments works with order_by in most cases
-    # and removes the duplicates caused by the M2M joins.
-    search_results = queryset.distinct().order_by('-similarity')
+    # 3. Extract the ordered IDs
+    ordered_ids = [item['id'] for item in ids_with_similarity]
 
-    return search_results, Q()
+    # 4. Return the queryset filtered by those IDs, preserved in that specific order
+    # This prevents the 'int' object attribute error and removes duplicates
+    preserved_order = Case(*[When(pk=pk, then=pos) for pos, pk in enumerate(ordered_ids)])
+
+    return queryset.filter(id__in=ordered_ids).order_by(preserved_order), Q()
 
 
 
