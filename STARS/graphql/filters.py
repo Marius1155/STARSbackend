@@ -29,7 +29,6 @@ def trigram_search(queryset: QuerySet, value: str, *fields) -> tuple[QuerySet, Q
         queryset.annotate(similarity=TrigramSimilarity(search_expression, value))
         .filter(similarity__gt=0.1)  # Threshold: 0.1 to 0.3 is standard
         .order_by('-similarity')
-        .values_list('id', flat=True)
     )
 
     return search_results, Q()
