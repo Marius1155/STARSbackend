@@ -247,6 +247,21 @@ class MusicVideoFilter:
             'songs__song_artists__artist__name'
         )
 
+    @strawberry_django.filter_field
+    def songs_in(self, queryset: QuerySet, value: list[strawberry.ID], prefix) -> tuple[QuerySet, Q]:
+        if not value:
+            return queryset.none(), Q()
+
+        # 1. Filter videos that contain any of these songs
+        queryset = queryset.filter(songs__id__in=value)
+
+        # 2. Replicate the Album Order logic using SQL CASE
+        # This ensures the first page of results starts with videos for the first song
+        preserved_order = Case(*[When(songs__id=s_id, then=pos) for pos, s_id in enumerate(value)])
+
+        # 3. Use .distinct() to prevent duplicates if a video has multiple songs from the list
+        return queryset.order_by(preserved_order).distinct(), Q()
+
 
 @strawberry_django.filter(models.PerformanceVideo, lookups=True)
 class PerformanceVideoFilter:
@@ -274,6 +289,16 @@ class PerformanceVideoFilter:
     @strawberry_django.filter_field
     def search(self, queryset: QuerySet, value: str, prefix) -> tuple[QuerySet, Q]:
         return trigram_search(queryset, value, 'title')
+
+    @strawberry_django.filter_field
+    def songs_in(self, queryset: QuerySet, value: list[strawberry.ID], prefix) -> tuple[QuerySet, Q]:
+        if not value:
+            return queryset.none(), Q()
+
+        queryset = queryset.filter(songs__id__in=value)
+        preserved_order = Case(*[When(songs__id=s_id, then=pos) for pos, s_id in enumerate(value)])
+
+        return queryset.order_by(preserved_order).distinct(), Q()
 
 
 @strawberry_django.filter(models.Song, lookups=True)

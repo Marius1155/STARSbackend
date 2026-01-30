@@ -6,7 +6,7 @@ from typing import List, Dict, Optional
 
 from django.contrib.postgres.search import TrigramSimilarity, TrigramWordSimilarity
 from . import types, filters, mutations, subscriptions, orders
-from django.db.models import OuterRef, Subquery, Exists, Q, Value, F, Case, When
+from django.db.models import OuterRef, Subquery, Exists, Q, Value, F
 from django.db.models.functions import Concat, Greatest
 from STARS import models
 from STARS.services.apple_music import AppleMusicService
@@ -14,11 +14,8 @@ from STARS.services.youtube import YoutubeService
 from asgiref.sync import sync_to_async
 from django.core.cache import cache
 from STARS.utils.cache import make_cache_key
-from strawberry.types.info import Info
 from strawberry import relay
 from datetime import datetime
-
-from strawberry_django.relay import list_connection
 
 from STARS.services.itunes import iTunesService
 
@@ -250,7 +247,7 @@ class Query:
 
         @cache_graphql_query(
             CacheKeys.POPULAR_PROJECTS_BY_GENRE,
-            timeout=86400,
+            timeout=300,
             key_params=["cache_key_val"]
         )
         async def get_cached_ids(cache_key_val: str) -> List[int]:
@@ -291,7 +288,7 @@ class Query:
 
         @cache_graphql_query(
             CacheKeys.POPULAR_PODCASTS_BY_GENRE,
-            timeout=86400,
+            timeout=300,
             key_params=["cache_key_val"]
         )
         async def get_cached_ids(cache_key_val: str) -> List[int]:
@@ -319,24 +316,25 @@ class Query:
     @strawberry.field
     async def get_music_videos_for_songs(
             self,
-            info: strawberry.types.Info,  # Ensure info is typed correctly
-            song_ids: List[strawberry.ID],
-            first: Optional[int] = 10,
-            after: Optional[str] = None
-    ) -> DjangoCursorConnection[types.MusicVideo]:
+            song_ids: List[strawberry.ID]
+    ) -> List[types.MusicVideo]:
+        """
+        Fetches music videos for a list of songs.
+        Preserves input song order. Deduplicates.
+        """
         if not song_ids:
             return []
 
         ids_hash = ",".join(str(x) for x in song_ids)
 
-        # 1. Keep your heavy logic cached
         @cache_graphql_query(
             CacheKeys.MUSIC_VIDEOS_FROM_SONGS,
-            timeout=86400,
+            timeout=300,  # ✅ Cached for 24 Hours
             key_params=["ids_hash"]
         )
         async def get_cached_ids(ids_hash: str):
             def fetch():
+                # 1. Fetch relations
                 relations = models.MusicVideo.objects.filter(
                     songs__id__in=song_ids
                 ).values_list('id', 'songs__id')
@@ -356,26 +354,18 @@ class Query:
                         ordered_video_ids.append(video_id)
 
                 return ordered_video_ids
+
             return await sync_to_async(fetch)()
 
         ordered_ids = await get_cached_ids(ids_hash=ids_hash)
 
-        # 2. Use a Case statement to maintain order in the QuerySet
-        # This keeps it as a QuerySet (not a list), which Relay needs
-        def get_ordered_queryset():
-            preserved_order = Case(*[When(pk=pk, then=pos) for pos, pk in enumerate(ordered_ids)])
-            return models.MusicVideo.objects.filter(id__in=ordered_ids).order_by(preserved_order)
+        def hydrate_results():
+            # Only fetch 10 to keep the album detail view fast
+            objs = list(models.MusicVideo.objects.filter(id__in=ordered_ids)[:10])
+            objs.sort(key=lambda x: ordered_ids.index(x.id))
+            return objs
 
-        queryset = await sync_to_async(get_ordered_queryset)()
-
-        # 3. Return via strawberry_django's connection resolver
-        # This handles the 'first' and 'after' arguments automatically
-        return list_connection(
-            queryset,
-            info=info,
-            first=first,
-            after=after
-        )
+        return await sync_to_async(hydrate_results)()
 
     @strawberry.field
     async def get_performance_videos_for_songs(
@@ -393,7 +383,7 @@ class Query:
 
         @cache_graphql_query(
             CacheKeys.PERFORMANCE_VIDEOS_FROM_SONGS,
-            timeout=86400,  # ✅ Cached for 24 Hours
+            timeout=300,  # ✅ Cached for 24 Hours
             key_params=["ids_hash"]
         )
         async def get_cached_ids(ids_hash: str):
@@ -421,7 +411,7 @@ class Query:
         ordered_ids = await get_cached_ids(ids_hash=ids_hash)
 
         def hydrate_results():
-            objs = list(models.PerformanceVideo.objects.filter(id__in=ordered_ids))
+            objs = list(models.PerformanceVideo.objects.filter(id__in=ordered_ids)[:10])
             objs.sort(key=lambda x: ordered_ids.index(x.id))
             return objs
 
@@ -438,7 +428,7 @@ class Query:
 
         @cache_graphql_query(
             CacheKeys.PROJECT_ALTERNATIVE_VERSIONS,
-            timeout=86400,  # ✅ Cached for 24 Hours
+            timeout=300,  # ✅ Cached for 24 Hours
             key_params=["project_id"]
         )
         async def get_cached_ids(project_id: strawberry.ID):
@@ -467,7 +457,7 @@ class Query:
 
         @cache_graphql_query(
             CacheKeys.ARTIST_POPULAR_PROJECTS,
-            timeout=3600,
+            timeout=300,
             key_params=["artist_id", "limit"]
         )
         async def get_cached_ids(artist_id: strawberry.ID, limit: int):
