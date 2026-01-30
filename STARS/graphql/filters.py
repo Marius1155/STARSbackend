@@ -9,7 +9,7 @@ from STARS import models
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from strawberry_django.filters import FilterLookup
-from django.db.models import Q, Exists, OuterRef, QuerySet, Value, Max
+from django.db.models import Case, When, Q, Exists, OuterRef, QuerySet, Value, Max
 from django.db.models.functions import Concat
 from django.contrib.postgres.search import TrigramSimilarity
 
@@ -18,6 +18,7 @@ def trigram_search(queryset: QuerySet, value: str, *fields) -> tuple[QuerySet, Q
     if not value:
         return queryset, Q()
 
+    # 1. Build the search expression (e.g., "Title ArtistName")
     search_expression = fields[0]
     for field in fields[1:]:
         search_expression = Concat(search_expression, Value(' '), field)
@@ -25,25 +26,39 @@ def trigram_search(queryset: QuerySet, value: str, *fields) -> tuple[QuerySet, Q
     model = queryset.model
     pk_field = model._meta.pk.name
 
-    # Get the best similarity score for each unique ID
-    unique_results = queryset.annotate(
-        similarity=TrigramSimilarity(search_expression, value)
-    ).filter(
-        similarity__gt=0.1
-    ).values(pk_field).annotate(
-        max_similarity=Max('similarity')
-    ).values_list(pk_field, 'max_similarity')
-
-    # Convert to dict and get ordered IDs
-    id_to_similarity = dict(unique_results)
-    ordered_ids = sorted(id_to_similarity.keys(), key=lambda x: id_to_similarity[x], reverse=True)
-
-    # Return filtered queryset with similarity annotation
-    # Note: We can't guarantee ORDER BY in the queryset itself due to strawberry-django pagination
-    qs = queryset.filter(**{f'{pk_field}__in': ordered_ids}).annotate(
-        similarity=TrigramSimilarity(search_expression, value)
+    # 2. Get Similarity Scores and filter by threshold (0.1)
+    # We use a subquery-like values/annotate approach to get unique IDs ordered by similarity
+    search_results = (
+        queryset.annotate(similarity=TrigramSimilarity(search_expression, value))
+        .filter(similarity__gt=0.1)
+        .values(pk_field, 'similarity')
+        .order_by('-similarity')
     )
 
+    # 3. Extract the ordered IDs
+    # This mimics the "data_ids" logic in your search_music query
+    ordered_ids = [result[pk_field] for result in search_results]
+
+    if not ordered_ids:
+        return queryset.none(), Q()
+
+    # 4. Preserve Order in the QuerySet
+    # Since we are returning a QuerySet (not a List), we use Django's Case/When
+    # to force the database to respect the similarity rank.
+    preserved_order = Case(*[When(**{pk_field: pk, 'then': pos}) for pos, pk in enumerate(ordered_ids)])
+
+    # 5. Hydrate and Order
+    # We re-annotate similarity so it's available for subsequent ordering/logic if needed
+    qs = (
+        queryset.filter(**{f"{pk_field}__in": ordered_ids})
+        .annotate(
+            similarity=TrigramSimilarity(search_expression, value),
+            search_rank=preserved_order
+        )
+        .order_by('search_rank')
+    )
+
+    # We return an empty Q() because we have already applied the filter to the queryset
     return qs, Q()
 
 
