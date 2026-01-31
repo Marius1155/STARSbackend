@@ -503,7 +503,7 @@ class Podcast(models.Model):
     apple_podcasts_id = models.CharField(blank=True, null=True, max_length=255, unique=True)
     title = models.CharField(max_length=500, db_index=True)
     host = models.CharField(max_length=500, db_index=True)
-    description = models.TextField(blank=True)
+    description = models.TextField(blank=True, null=True)
     covers = GenericRelation('Cover')
     website = models.URLField(max_length=500, blank=True, null=True)
     spotify = models.URLField(max_length=500, blank=True, null=True)

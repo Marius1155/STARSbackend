@@ -1,6 +1,7 @@
 import httpx
 import asyncio
 from typing import List, Dict, Any
+import xml.etree.ElementTree as ET
 
 ITUNES_API_URL = "https://itunes.apple.com/search"
 ITUNES_LOOKUP_URL = "https://itunes.apple.com/lookup"
@@ -52,6 +53,35 @@ class iTunesService:
             return results[0] if results else {}
         except Exception:
             return {}
+
+    async def fetch_description_from_rss(self, feed_url: str) -> str:
+        """Fetches the RSS feed and extracts the podcast description."""
+        if not feed_url:
+            return ""
+        try:
+            response = await self.client.get(feed_url)
+            response.raise_for_status()
+
+            root = ET.fromstring(response.text)
+            channel = root.find("channel")
+            if channel is None:
+                return ""
+
+            # Apple specific tag usually has the best description
+            namespaces = {'itunes': 'http://www.itunes.com/dtds/podcast-1.0.dtd'}
+            summary = channel.find("itunes:summary", namespaces)
+            if summary is not None and summary.text:
+                return summary.text.strip()
+
+            # Fallback to standard RSS description
+            description = channel.find("description")
+            if description is not None and description.text:
+                return description.text.strip()
+
+            return ""
+        except Exception as e:
+            print(f"Error parsing RSS description: {e}")
+            return ""
 
     async def close(self):
         await self.client.aclose()

@@ -957,25 +957,23 @@ class Mutation:
 
     @strawberry.mutation
     async def import_podcast_from_itunes(self, info, apple_podcasts_id: str) -> types.Podcast:
-        """
-        Imports a single podcast when a user clicks it in search results.
-        """
-        # 1. Check Local DB First
+        # 1. Check Local DB
         existing = await sync_to_async(models.Podcast.objects.filter(apple_podcasts_id=apple_podcasts_id).first)()
         if existing:
             return existing
 
-        # 2. Fetch from API
+        # 2. Fetch from iTunes API
         itunes_service = iTunesService()
         item = await itunes_service.lookup_podcast(apple_podcasts_id)
+
+        # --- NEW: Fetch the actual description from RSS ---
+        feed_url = item.get("feedUrl")
+        description_text = await itunes_service.fetch_description_from_rss(feed_url)
+
         await itunes_service.close()
 
         if not item:
             raise Exception("Podcast not found on iTunes.")
-
-        # -------------------------------------------------------
-        # 2. ASYNC PHASE: Network Operations (Apple Music + Images)
-        # -------------------------------------------------------
 
         # 3. Save to DB
         def _save_sync():
@@ -984,20 +982,17 @@ class Mutation:
                 raise Exception("Authentication required.")
 
             with transaction.atomic():
-                # Double check inside transaction
-                if models.Podcast.objects.filter(apple_podcasts_id=apple_podcasts_id).exists():
-                    return models.Podcast.objects.get(apple_podcasts_id=apple_podcasts_id)
+                # Double check inside transaction using collectionId
+                apple_id = str(item.get("collectionId"))
+                if models.Podcast.objects.filter(apple_podcasts_id=apple_id).exists():
+                    return models.Podcast.objects.get(apple_podcasts_id=apple_id)
 
-                try:
-                    description = parser.parse(item.get("description", "")).date()
-                except:
-                    description = None
-
+                # Use the description_text we fetched from the RSS
                 podcast = models.Podcast.objects.create(
-                    apple_podcasts_id=str(item.get("collectionId")),
+                    apple_podcasts_id=apple_id,
                     title=item.get("collectionName", "Unknown")[:500],
                     host=item.get("artistName", "Unknown")[:500],
-                    description=description,
+                    description=description_text,  # <--- Clean text from RSS
                     apple_podcasts=item.get("collectionViewUrl")
                 )
 
