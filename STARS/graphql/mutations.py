@@ -141,69 +141,66 @@ def process_image_from_url(image_url: str):
         return None, None, None
 
 
-def get_or_create_project_genres(genre_names: List[str], project: types.Project):
+def get_or_create_project_genres(genre_names: List[str], project):
     if not genre_names:
         return
 
-    i = 1
-    for name in genre_names:
-        if name != "Music":
-            genre_obj, _ = models.MusicGenre.objects.get_or_create(title=name)
-            models.ProjectGenresOrdered.objects.create(
-                project=project,
-                genre=genre_obj,
-                position=i
-            )
-            i += 1
+    # 1. Deduplicate while preserving order and filter out generic labels
+    unique_names = [name for name in dict.fromkeys(genre_names) if name != "Music"]
+
+    for i, name in enumerate(unique_names, start=1):
+        genre_obj, _ = models.MusicGenre.objects.get_or_create(title=name)
+        models.ProjectGenresOrdered.objects.create(
+            project=project,
+            genre=genre_obj,
+            position=i
+        )
 
 
-def get_or_create_song_genres(genre_names: List[str], song: types.Song):
+def get_or_create_song_genres(genre_names: List[str], song):
     if not genre_names:
         return
 
-    i = 1
-    for name in genre_names:
-        if name != "Music":
-            genre_obj, _ = models.MusicGenre.objects.get_or_create(title=name)
-            models.SongGenresOrdered.objects.create(
-                song=song,
-                genre=genre_obj,
-                position=i
-            )
-            i += 1
+    unique_names = [name for name in dict.fromkeys(genre_names) if name != "Music"]
+
+    for i, name in enumerate(unique_names, start=1):
+        genre_obj, _ = models.MusicGenre.objects.get_or_create(title=name)
+        models.SongGenresOrdered.objects.create(
+            song=song,
+            genre=genre_obj,
+            position=i
+        )
 
 
-def get_or_create_artist_genres(genre_names: List[str], artist: types.Artist):
+def get_or_create_artist_genres(genre_names: List[str], artist):
     if not genre_names:
         return
 
-    i = 1
-    for name in genre_names:
-        if name != "Music":
-            genre_obj, _ = models.MusicGenre.objects.get_or_create(title=name)
-            models.ArtistGenresOrdered.objects.create(
-                artist=artist,
-                genre=genre_obj,
-                position=i
-            )
-            i += 1
+    unique_names = [name for name in dict.fromkeys(genre_names) if name != "Music"]
+
+    for i, name in enumerate(unique_names, start=1):
+        genre_obj, _ = models.MusicGenre.objects.get_or_create(title=name)
+        models.ArtistGenresOrdered.objects.create(
+            artist=artist,
+            genre=genre_obj,
+            position=i
+        )
 
 
-def get_or_create_podcast_genres(genre_names: List[str], podcast: types.Podcast):
+def get_or_create_podcast_genres(genre_names: List[str], podcast):
     if not genre_names:
         return
 
-    i = 1
-    for name in genre_names:
-        if name != "Podcasts":
-            genre_obj, _ = models.PodcastGenre.objects.get_or_create(title=name)
-            models.PodcastGenresOrdered.objects.create(
-                podcast=podcast,
-                genre=genre_obj,
-                position=i
-            )
-            i += 1
+    # Filter out generic "Podcasts" label and deduplicate
+    unique_names = [name for name in dict.fromkeys(genre_names) if name != "Podcasts"]
 
+    for i, name in enumerate(unique_names, start=1):
+        genre_obj, _ = models.PodcastGenre.objects.get_or_create(title=name)
+        models.PodcastGenresOrdered.objects.create(
+            podcast=podcast,
+            genre=genre_obj,
+            position=i
+        )
 
 
 
