@@ -392,7 +392,6 @@ class PodcastFilter:
     apple_podcasts_id: auto
     title: auto
     host: auto
-    since: auto
     is_featured: auto
 
     reviews_count: auto

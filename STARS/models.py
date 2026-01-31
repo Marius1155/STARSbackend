@@ -504,7 +504,6 @@ class Podcast(models.Model):
     title = models.CharField(max_length=500, db_index=True)
     host = models.CharField(max_length=500, db_index=True)
     description = models.TextField(blank=True)
-    since = models.DateField(db_index=True)
     covers = GenericRelation('Cover')
     website = models.URLField(max_length=500, blank=True, null=True)
     spotify = models.URLField(max_length=500, blank=True, null=True)

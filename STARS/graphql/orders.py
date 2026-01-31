@@ -224,7 +224,6 @@ class ProjectSongOrder:
 
 @strawberry_django.order_type(models.Podcast)
 class PodcastOrder:
-    since : auto
     title : auto
     reviews_count: auto
     reviews_count_0_5: auto

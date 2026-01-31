@@ -300,7 +300,6 @@ class ProjectUpdateInput:
 @strawberry_django.input(models.Podcast)
 class PodcastCreateInput:
     title: auto
-    since: auto
     description: Optional[str] = None
     website: Optional[str] = None
     spotify: Optional[str] = None
@@ -990,15 +989,15 @@ class Mutation:
                     return models.Podcast.objects.get(apple_podcasts_id=apple_podcasts_id)
 
                 try:
-                    since_date = parser.parse(item.get("releaseDate", "")).date()
+                    description = parser.parse(item.get("description", "")).date()
                 except:
-                    since_date = datetime.now().date()
+                    description = None
 
                 podcast = models.Podcast.objects.create(
                     apple_podcasts_id=str(item.get("collectionId")),
                     title=item.get("collectionName", "Unknown")[:500],
                     host=item.get("artistName", "Unknown")[:500],
-                    since=since_date,
+                    description=description,
                     apple_podcasts=item.get("collectionViewUrl")
                 )
 
