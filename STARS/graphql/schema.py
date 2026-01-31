@@ -754,7 +754,7 @@ class Query:
                 # 2. Calculate similarity of that string to the user's query
                 return list(
                     models.Podcast.objects.annotate(
-                        search_text=Concat('title', Value(' '), 'hosts__name'),
+                        search_text=Concat('title', Value(' '), 'host'),
                         similarity=TrigramSimilarity('search_text', query),
                     )
                     # 0.1 is a good starting threshold (10% match).
