@@ -506,23 +506,23 @@ def _link_artists_to_song(song_obj, am_ids: List[str], get_artist_fn):
         if s_artist:
             models.SongArtist.objects.create(song=song_obj, artist=s_artist, position=j + 1)
 
-def _get_or_create_song(song_in, get_artist_fn) -> Optional[models.Song]:
+def _get_or_create_song(song_in, get_artist_fn, info) -> Optional[models.Song]:
     if song_in.song_id: return models.Song.objects.filter(pk=song_in.song_id).first()
     song_obj = models.Song.objects.create(
         apple_music_id=song_in.apple_music_id, title=song_in.title,
         length=song_in.length or 0, preview=song_in.preview_url,
         apple_music=song_in.apple_music_url, release_date=song_in.release_date,
-        is_out=song_in.is_out,
+        is_out=song_in.is_out, user=info.context.request.user
     )
     if song_in.genres: get_or_create_song_genres(song_in.genres, song_obj)
     if song_in.artists_apple_music_ids:
         _link_artists_to_song(song_obj, song_in.artists_apple_music_ids, get_artist_fn)
     return song_obj
 
-def _handle_project_songs(project, song_inputs, get_artist_fn) -> int:
+def _handle_project_songs(project, song_inputs, get_artist_fn, info) -> int:
     total_length = 0
     for song_in in song_inputs:
-        song_obj = _get_or_create_song(song_in, get_artist_fn)
+        song_obj = _get_or_create_song(song_in, get_artist_fn, info)
         if song_obj:
             models.ProjectSong.objects.create(
                 project=project, song=song_obj, position=song_in.position, disc_number=song_in.disc_number
@@ -530,11 +530,11 @@ def _handle_project_songs(project, song_inputs, get_artist_fn) -> int:
             total_length += song_obj.length
     return total_length
 
-def _apply_project_metadata(project, data, cover_data):
+def _apply_project_metadata(project, data, cover_data, info):
     if data.genres: get_or_create_project_genres(data.genres, project)
     cover_url, p, s = cover_data
     if cover_url:
-        models.Cover.objects.create(image=cover_url, content_object=project, position=1, primary_color=p, secondary_color=s, is_confirmed=True)
+        models.Cover.objects.create(image=cover_url, content_object=project, position=1, primary_color=p, secondary_color=s, is_confirmed=True, user=info.context.request.user)
 
 def _link_project_artists(project, am_ids, get_artist_fn):
     for i, am_id in enumerate(am_ids or []):
@@ -542,7 +542,7 @@ def _link_project_artists(project, am_ids, get_artist_fn):
         if artist:
             models.ProjectArtist.objects.create(project=project, artist=artist, position=i + 1)
 
-def _resolve_or_create_event(data: PerformanceVideoInput) -> Optional[models.Event]:
+def _resolve_or_create_event(data: PerformanceVideoInput, info: Info) -> Optional[models.Event]:
     if data.event_id: return models.Event.objects.get(pk=data.event_id)
     if not data.event_name: return None
     series = None
@@ -552,20 +552,20 @@ def _resolve_or_create_event(data: PerformanceVideoInput) -> Optional[models.Eve
         series = models.EventSeries.objects.get(pk=data.event_series_id)
         is_one_time, event_type = False, series.series_type
     elif data.event_series_name:
-        series = models.EventSeries.objects.create(name=data.event_series_name, series_type=event_type)
+        series = models.EventSeries.objects.create(name=data.event_series_name, series_type=event_type, user=info.context.request.user)
         is_one_time = False
     return models.Event.objects.create(
         event_type=event_type, name=data.event_name, date=data.event_date,
-        location=data.event_location or "", is_one_time=is_one_time, series=series
+        location=data.event_location or "", is_one_time=is_one_time, series=series, user=info.context.request.user
     )
 
-def _create_performance_video_record(data, thumb_data, event, artists_data) -> models.PerformanceVideo:
+def _create_performance_video_record(data, thumb_data, event, artists_data, info) -> models.PerformanceVideo:
     t_url, t_p, t_s = thumb_data
     pv = models.PerformanceVideo.objects.create(
         youtube_id=data.youtube_id, title=data.title, channel_name=data.channel_name,
         release_date=data.published_at, length=data.length_ms, youtube=data.youtube_url,
         thumbnail=t_url, primary_color=t_p, secondary_color=t_s,
-        number_of_songs=len(data.songs_ids or []), event=event
+        number_of_songs=len(data.songs_ids or []), event=event, user=info.context.request.user
     )
     if data.songs_ids: pv.songs.set(models.Song.objects.filter(pk__in=data.songs_ids))
     if data.artists_apple_music_ids:
@@ -885,7 +885,7 @@ class Mutation:
         Massive import: Fetches Top 200 podcasts from every genre ~5000 total.
         """
         user = info.context.request.user
-        if not user.is_staff:  # Optional security check
+        if not user.is_staff and not user.is_superuser:  # Optional security check
             raise Exception("Unauthorized access.")
 
         itunes_service = iTunesService()
@@ -927,7 +927,8 @@ class Mutation:
                         title=item.get("collectionName", "Unknown")[:500],
                         host=item.get("artistName", "Unknown")[:500],
                         since=since_date,
-                        apple_podcasts=item.get("collectionViewUrl")
+                        apple_podcasts=item.get("collectionViewUrl"),
+                        user=user
                     )
 
                     get_or_create_podcast_genres(item.get("genres", []), podcast)
@@ -946,7 +947,8 @@ class Mutation:
                             content_object=podcast,
                             position=1,
                             primary_color=cover_primary,
-                            secondary_color=cover_secondary
+                            secondary_color=cover_secondary,
+                            user=user
                         )
 
                     created_count += 1
@@ -993,7 +995,8 @@ class Mutation:
                     title=item.get("collectionName", "Unknown")[:500],
                     host=item.get("artistName", "Unknown")[:500],
                     description=description_text,  # <--- Clean text from RSS
-                    apple_podcasts=item.get("collectionViewUrl")
+                    apple_podcasts=item.get("collectionViewUrl"),
+                    user=user
                 )
 
                 get_or_create_podcast_genres(item.get("genres", []), podcast)
@@ -1013,7 +1016,8 @@ class Mutation:
                         position=1,
                         primary_color=cover_primary,
                         secondary_color=cover_secondary,
-                        is_confirmed = True
+                        is_confirmed = True,
+                        user=user
                     )
 
                 return podcast
@@ -1047,7 +1051,8 @@ class Mutation:
                     thumbnail=uploaded_url,
                     primary_color=primary_color,
                     secondary_color=secondary_color,
-                    number_of_songs=len(data.songs_ids)
+                    number_of_songs=len(data.songs_ids),
+                    user=user
                 )
 
                 songs = list(models.Song.objects.filter(pk__in=data.songs_ids))
@@ -1079,7 +1084,7 @@ class Mutation:
                 raise Exception("Authentication required.")
 
             with transaction.atomic():
-                event = _resolve_or_create_event(data)
+                event = _resolve_or_create_event(data, info)
                 # --- TITLE CONSTRUCTION LOGIC ---
                 # 1. Get Artist names (from fetched data or DB)
                 artist_names = []
@@ -1107,7 +1112,7 @@ class Mutation:
                 data.title = new_title
                 # --------------------------------
                 return _create_performance_video_record(
-                    data, thumb_data, event, artists_to_create_data
+                    data, thumb_data, event, artists_to_create_data, info
                 )
 
         return await database_sync_to_async(_sync)()
@@ -1183,11 +1188,12 @@ class Mutation:
                     apple_music_id=data.apple_music_id, title=data.title,
                     number_of_songs=data.number_of_songs, release_date=data.release_date,
                     project_type=_determine_project_type(data.is_single, data.number_of_songs),
-                    apple_music=data.apple_music_url, record_label=data.record_label
+                    apple_music=data.apple_music_url, record_label=data.record_label,
+                    user=info.context.request.user
                 )
 
                 # Metadata & Artists
-                _apply_project_metadata(project, data, cover_data)
+                _apply_project_metadata(project, data, cover_data, info)
                 _link_project_artists(project, data.artists_apple_music_ids, get_artist_node)
 
                 # Songs
@@ -1220,7 +1226,8 @@ class Mutation:
                         is_one_time=data.is_one_time,
                         event_series=None,
                         is_featured=data.is_featured,
-                        featured_message=data.featured_message
+                        featured_message=data.featured_message,
+                        user=user
                     )
 
                 else:
@@ -1233,7 +1240,8 @@ class Mutation:
                         is_one_time = data.is_one_time,
                         event_series = event_series,
                         is_featured = data.is_featured,
-                        featured_message = data.featured_message
+                        featured_message = data.featured_message,
+                        user=user
                     )
 
                 return event

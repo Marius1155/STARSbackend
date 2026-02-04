@@ -63,6 +63,8 @@ class EventSeries(models.Model):
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
 
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='event_series_added', blank=True, null=True)
+
     primary_color = models.CharField(max_length=7, blank=True)  # e.g., "#FF5733"
     secondary_color = models.CharField(max_length=7, blank=True)  # e.g., "#33A1FF"
 
@@ -104,6 +106,8 @@ class Event(models.Model):
     popularity_score = models.IntegerField(default=0, db_index=True)
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
+
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='event_added', blank=True, null=True)
 
     primary_color = models.CharField(max_length=7, blank=True)  # e.g., "#FF5733"
     secondary_color = models.CharField(max_length=7, blank=True)  # e.g., "#33A1FF"
@@ -326,6 +330,8 @@ class MusicVideo(models.Model):
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
 
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='music_videos_added', blank=True, null=True)
+
     primary_color = models.CharField(max_length=7, blank=True)  # e.g., "#FF5733"
     secondary_color = models.CharField(max_length=7, blank=True)  # e.g., "#33A1FF"
 
@@ -361,6 +367,8 @@ class PerformanceVideo(models.Model):
     popularity_score = models.IntegerField(default=0, db_index=True)
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
+
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='performance_videos_added', blank=True, null=True)
 
     primary_color = models.CharField(max_length=7, blank=True)  # e.g., "#FF5733"
     secondary_color = models.CharField(max_length=7, blank=True)  # e.g., "#33A1FF"
@@ -398,6 +406,9 @@ class Song(models.Model):
     deezer = models.URLField(max_length=500, blank=True, null=True)
     soundcloud = models.URLField(max_length=500, blank=True, null=True)
     bandcamp = models.URLField(max_length=500, blank=True, null=True)
+
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='songs_added', blank=True, null=True)
+
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
 
@@ -459,6 +470,9 @@ class Project(models.Model):
     deezer = models.URLField(max_length=500, blank=True, null=True)
     soundcloud = models.URLField(max_length=500, blank=True, null=True)
     bandcamp = models.URLField(max_length=500, blank=True, null=True)
+
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='projects_added', blank=True, null=True)
+
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
 
@@ -524,6 +538,9 @@ class Podcast(models.Model):
     reviews = GenericRelation('Review')
     star_average = models.FloatField(default=0)
     popularity_score = models.IntegerField(default=0, db_index=True)
+
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='podcasts_added', blank=True, null=True)
+
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
 
@@ -555,6 +572,9 @@ class Outfit(models.Model):
     star_average = models.FloatField(default=0)
     popularity_score = models.IntegerField(default=0, db_index=True)
     matches = models.ManyToManyField('self', blank=True)
+
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='outfits_added', blank=True, null=True)
+
     is_featured = models.BooleanField(default=False, db_index=True)
     featured_message = models.TextField(blank=True)
 
