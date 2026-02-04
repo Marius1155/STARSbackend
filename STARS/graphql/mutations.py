@@ -1197,7 +1197,7 @@ class Mutation:
                 _link_project_artists(project, data.artists_apple_music_ids, get_artist_node)
 
                 # Songs
-                project.length = _handle_project_songs(project, data.songs or [], get_artist_node)
+                project.length = _handle_project_songs(project, data.songs or [], get_artist_node, info)
                 project.save(update_fields=["length"])
 
                 if data.alternative_versions:
