@@ -698,7 +698,7 @@ class Query:
                             TrigramWordSimilarity(F('title'), Value(title))
                         )
                     )
-                    .filter(similarity__gt=0.6)
+                    .filter(similarity__gt=0.1)
                     .order_by('id', '-similarity')
                     .distinct('id')
                     .values_list('id', flat=True)[:20]
