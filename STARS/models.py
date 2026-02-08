@@ -606,9 +606,24 @@ class Conversation(models.Model):
 
 
 class Message(models.Model):
+    class MessageType(models.TextChoices):
+        TEXT = "TEXT", "Text"
+        IMAGE = "IMAGE", "Image"
+        VIDEO = "VIDEO", "Video"
+        GIF = "GIF", "Gif"
+
     conversation = models.ForeignKey('Conversation', on_delete=models.CASCADE, related_name='messages')
     sender = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='sent_messages', null=True)
-    text = models.TextField()
+
+    # Content fields
+    message_type = models.CharField(
+        max_length=10,
+        choices=MessageType.choices,
+        default=MessageType.TEXT
+    )
+    text = models.TextField(blank=True, null=True)
+    media_url = models.URLField(max_length=500, blank=True, null=True)
+
     time = models.DateTimeField(auto_now_add=True)
     is_delivered = models.BooleanField(default=False)
     is_read = models.BooleanField(default=False)

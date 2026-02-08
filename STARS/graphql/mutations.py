@@ -396,8 +396,11 @@ class ProjectSongCreateInput:
 
 @strawberry.input
 class MessageDataInput:
-    text: str
+    message_type: str # "TEXT", "IMAGE", "VIDEO", or "GIF"
+    text: Optional[str] = None
+    media_data: Optional[str] = None
     replying_to_messsage_id: Optional[strawberry.ID] = None
+
 
 
 @strawberry.input
@@ -2180,41 +2183,60 @@ class Mutation:
             with transaction.atomic():
                 conversation = models.Conversation.objects.select_for_update().get(pk=conversation_id)
 
-                if not conversation.participants.filter(id=user.id).exists():
-                    raise Exception("You are not a participant in this conversation.")
+                final_media_url = None
+                m_type = data.message_type.upper()
 
-                message_to_reply_to = None
-                if data.replying_to_messsage_id:
-                    try:
-                        message_to_reply_to = models.Message.objects.get(
-                            pk=data.replying_to_messsage_id,
-                            conversation=conversation
+                # --- Handle Media Uploads ---
+                if m_type in ["IMAGE", "VIDEO"] and data.media_data:
+                    # Decode base64
+                    header, encoded = data.media_data.split(",", 1) if "," in data.media_data else (None,
+                                                                                                    data.media_data)
+                    file_ext = ".mp4" if m_type == "VIDEO" else ".png"
+
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=file_ext) as temp_file:
+                        temp_file.write(base64.b64decode(encoded))
+                        temp_file.flush()
+
+                        # Upload to Cloudinary (specifying resource_type='video' for videos)
+                        upload_res = cloudinary.uploader.upload(
+                            temp_file.name,
+                            resource_type="video" if m_type == "VIDEO" else "image"
                         )
-                    except models.Message.DoesNotExist:
-                        raise Exception("The message you are trying to reply to does not exist.")
+                        final_media_url = upload_res.get("secure_url")
+                    os.unlink(temp_file.name)
 
+                elif m_type == "GIF":
+                    # For GIFs, we just store the URL provided by the Tenor API from the frontend
+                    final_media_url = data.media_data
+
+                # --- Create Message ---
                 message = models.Message.objects.create(
                     conversation=conversation,
                     sender=user,
-                    text=data.text,
-                    replying_to=message_to_reply_to
+                    message_type=m_type,
+                    text=data.text if m_type == "TEXT" else None,
+                    media_url=final_media_url,
+                    replying_to_id=data.replying_to_messsage_id
                 )
 
+                # Update Conversation metadata
                 conversation.seen_by.clear()
                 conversation.seen_by.add(user)
-
                 conversation.latest_message = message
-                conversation.latest_message_text = message.text
+
+                # Set preview text for the conversation list
+                preview_text = "Sent an image" if m_type == "IMAGE" else \
+                    "Sent a video" if m_type == "VIDEO" else \
+                        "Sent a GIF" if m_type == "GIF" else data.text
+
+                conversation.latest_message_text = preview_text
                 conversation.latest_message_time = message.time
                 conversation.latest_message_sender = user
-                conversation.save(update_fields=[
-                    'latest_message',
-                    'latest_message_text',
-                    'latest_message_time',
-                    'latest_message_sender'
-                ])
+                conversation.save()
 
-                transaction.on_commit(lambda: async_to_sync(broadcast_message_event)(message.id, message.conversation_id, "created"))
+                # Trigger subscriptions (Real-time updates)
+                transaction.on_commit(
+                    lambda: async_to_sync(broadcast_message_event)(message.id, message.conversation_id, "created"))
                 transaction.on_commit(lambda: async_to_sync(broadcast_conversation_update)(conversation.id))
 
                 return message
