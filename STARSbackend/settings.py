@@ -180,6 +180,9 @@ DATABASES = {
     }
 }
 
+#50 MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 52428800
+
 
 # --- Password validation ---
 AUTH_PASSWORD_VALIDATORS = [

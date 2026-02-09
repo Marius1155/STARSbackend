@@ -577,6 +577,25 @@ def _create_performance_video_record(data, thumb_data, event, artists_data, info
     return pv
 
 
+def schedule_broadcast(coro):
+    """Schedule async broadcast from sync context"""
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(coro)
+    except RuntimeError:
+        # No loop running in this thread, need to run in the event loop thread
+        # This is the proper way to schedule from sync context
+        import threading
+        if threading.current_thread() == threading.main_thread():
+            # We're in main thread but no loop - create one
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(coro)
+        else:
+            # We're in a worker thread - use async_to_sync
+            from asgiref.sync import async_to_sync
+            async_to_sync(lambda: coro)()
+
 # -----------------------------------------------------------------------------
 # Input Types
 # -----------------------------------------------------------------------------
@@ -980,6 +999,11 @@ class Mutation:
         if not item:
             raise Exception("Podcast not found on iTunes.")
 
+        cover_url = get_high_res_artwork(item.get("artworkUrl600", ""))
+        cover_data = None
+        if cover_url:
+            cover_data = await sync_to_async(process_image_from_url)(cover_url)
+
         # 3. Save to DB
         def _save_sync():
             user = info.context.request.user
@@ -1004,13 +1028,7 @@ class Mutation:
 
                 get_or_create_podcast_genres(item.get("genres", []), podcast)
 
-                cover_url = get_high_res_artwork(item.get("artworkUrl600", ""))
-
-                if cover_url:
-                    try:
-                        cover_image_url, cover_primary, cover_secondary = process_image_from_url(cover_url)
-                    except Exception as e:
-                        print(f"Error processing podcast cover image: {e}")
+                cover_image_url, cover_primary, cover_secondary = cover_data or (None, None, None)
 
                 if cover_image_url:
                     models.Cover.objects.create(
@@ -1030,6 +1048,7 @@ class Mutation:
 
     @strawberry.mutation
     async def add_music_video(self, info, data: MusicVideoInput) -> types.MusicVideo:
+        thumb_data = await sync_to_async(process_image_from_url)(data.thumbnail_url)
 
         def _sync():
             user = info.context.request.user
@@ -1037,7 +1056,7 @@ class Mutation:
                 raise Exception("Authentication required.")
 
             with transaction.atomic():
-                uploaded_url, primary_color, secondary_color = process_image_from_url(data.thumbnail_url)
+                uploaded_url, primary_color, secondary_color = thumb_data
 
                 if not uploaded_url:
                     # Handle the case where image processing failed, or let it fail gracefully
@@ -2174,42 +2193,65 @@ class Mutation:
             self, info: Info, conversation_id: strawberry.ID, data: MessageDataInput
     ) -> types.Message:
         request = info.context.request
+        user = await database_sync_to_async(lambda: request.user)()
 
-        def _add_message_sync():
-            user = request.user
-            if not user.is_authenticated:
-                raise Exception("Authentication required.")
+        if not await database_sync_to_async(lambda: user.is_authenticated)():
+            raise Exception("Authentication required.")
 
+        async def _upload_to_cloudinary(file_path: str, resource_type: str) -> str:
+            """Upload file to Cloudinary asynchronously"""
+            loop = asyncio.get_event_loop()
+            upload_res = await loop.run_in_executor(
+                None,
+                lambda: cloudinary.uploader.upload(file_path, resource_type=resource_type)
+            )
+            return upload_res.get("secure_url")
+
+        async def _handle_media_upload(m_type: str, media_data: str) -> str | None:
+            """Handle media uploads without blocking"""
+            if m_type in ["IMAGE", "VIDEO"] and media_data:
+                # Decode base64
+                header, encoded = media_data.split(",", 1) if "," in media_data else (None, media_data)
+                file_ext = ".mp4" if m_type == "VIDEO" else ".png"
+
+                # Write file asynchronously
+                loop = asyncio.get_event_loop()
+                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=file_ext)
+
+                # Decode and write in executor to avoid blocking
+                await loop.run_in_executor(
+                    None,
+                    lambda: temp_file.write(base64.b64decode(encoded))
+                )
+                temp_file.flush()
+                temp_file.close()
+
+                try:
+                    # Upload to Cloudinary asynchronously
+                    final_url = await _upload_to_cloudinary(
+                        temp_file.name,
+                        "video" if m_type == "VIDEO" else "image"
+                    )
+                    return final_url
+                finally:
+                    # Clean up temp file
+                    await loop.run_in_executor(None, lambda: os.unlink(temp_file.name))
+
+            elif m_type == "GIF":
+                return media_data
+
+            return None
+
+        # Handle media upload outside of transaction (async, can take time)
+        m_type = data.message_type.upper()
+        final_media_url = await _handle_media_upload(m_type, data.media_data)
+
+        # Database operations in sync function
+        def _create_message_sync():
             with transaction.atomic():
                 conversation = models.Conversation.objects.select_for_update().get(pk=conversation_id)
 
-                final_media_url = None
-                m_type = data.message_type.upper()
-
-                # --- Handle Media Uploads ---
-                if m_type in ["IMAGE", "VIDEO"] and data.media_data:
-                    # Decode base64
-                    header, encoded = data.media_data.split(",", 1) if "," in data.media_data else (None,
-                                                                                                    data.media_data)
-                    file_ext = ".mp4" if m_type == "VIDEO" else ".png"
-
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=file_ext) as temp_file:
-                        temp_file.write(base64.b64decode(encoded))
-                        temp_file.flush()
-
-                        # Upload to Cloudinary (specifying resource_type='video' for videos)
-                        upload_res = cloudinary.uploader.upload(
-                            temp_file.name,
-                            resource_type="video" if m_type == "VIDEO" else "image"
-                        )
-                        final_media_url = upload_res.get("secure_url")
-                    os.unlink(temp_file.name)
-
-                elif m_type == "GIF":
-                    # For GIFs, we just store the URL provided by the Tenor API from the frontend
-                    final_media_url = data.media_data
-
-                # --- Create Message ---
+                # Create Message
                 message = models.Message.objects.create(
                     conversation=conversation,
                     sender=user,
@@ -2224,24 +2266,34 @@ class Mutation:
                 conversation.seen_by.add(user)
                 conversation.latest_message = message
 
-                # Set preview text for the conversation list
-                preview_text = "Sent an image" if m_type == "IMAGE" else \
-                    "Sent a video" if m_type == "VIDEO" else \
-                        "Sent a GIF" if m_type == "GIF" else data.text
+                # Set preview text
+                preview_text = (
+                    "Sent an image" if m_type == "IMAGE" else
+                    "Sent a video" if m_type == "VIDEO" else
+                    "Sent a GIF" if m_type == "GIF" else
+                    data.text
+                )
 
                 conversation.latest_message_text = preview_text
                 conversation.latest_message_time = message.time
                 conversation.latest_message_sender = user
                 conversation.save()
 
-                # Trigger subscriptions (Real-time updates)
+                # Store IDs for broadcasting
+                msg_id = message.id
+                conv_id = conversation.id
+
+                # Trigger subscriptions after commit
                 transaction.on_commit(
-                    lambda: async_to_sync(broadcast_message_event)(message.id, message.conversation_id, "created"))
-                transaction.on_commit(lambda: async_to_sync(broadcast_conversation_update)(conversation.id))
+                    lambda: schedule_broadcast(broadcast_message_event(msg_id, conv_id, "created"))
+                )
+                transaction.on_commit(
+                    lambda: schedule_broadcast(broadcast_conversation_update(conv_id))
+                )
 
                 return message
 
-        return await database_sync_to_async(_add_message_sync)()
+        return await database_sync_to_async(_create_message_sync)()
 
     @strawberry.mutation
     async def mark_conversation_as_seen_by_user(self, info: Info, conversation_id: strawberry.ID) -> SuccessMessage:
@@ -2289,8 +2341,12 @@ class Mutation:
 
                 message.delete()
 
+                ttransaction.on_commit(
+                    lambda: schedule_broadcast(broadcast_message_event(rememeber_message_id, remmeber_conversation_id, "deleted"))
+                )
+                # Also add conversation update:
                 transaction.on_commit(
-                    lambda: async_to_sync(broadcast_message_event)(rememeber_message_id, remmeber_conversation_id, "deleted")
+                    lambda: schedule_broadcast(broadcast_conversation_update(remmeber_conversation_id))
                 )
 
                 return SuccessMessage(message="Message deleted successfully.")
@@ -2318,7 +2374,22 @@ class Mutation:
                 else:
                     message.liked_by.add(user)
 
-                transaction.on_commit(lambda: async_to_sync(broadcast_message_event)(message.id, message.conversation_id, "updated"))
+                # Update conversation preview
+                conversation = message.conversation
+                conversation.latest_message_text = f"@{user.username} liked a message"
+                conversation.latest_message_time = message.time
+                conversation.latest_message_sender = user
+                conversation.save(update_fields=['latest_message_text', 'latest_message_time', 'latest_message_sender'])
+
+                msg_id = message.id
+                conv_id = message.conversation_id
+
+                transaction.on_commit(
+                    lambda: schedule_broadcast(broadcast_message_event(msg_id, conv_id, "updated"))
+                )
+                transaction.on_commit(
+                    lambda: schedule_broadcast(broadcast_conversation_update(conv_id))
+                )
 
                 return SuccessMessage(message="Message liked successfully.")
 
@@ -2348,7 +2419,11 @@ class Mutation:
                 # Broadcast individually after commit
                 for m in unread_messages:
                     m.is_read = True  # update instance in memory
-                    transaction.on_commit(lambda m=m: async_to_sync(broadcast_message_event)(m.id, m.conversation_id, "updated"))
+                    msg_id = m.id
+                    conv_id = m.conversation_id
+                    transaction.on_commit(
+                        lambda mid=msg_id, cid=conv_id: schedule_broadcast(broadcast_message_event(mid, cid, "updated"))
+                    )
 
             return SuccessMessage(message=f"Marked {len(unread_messages)} messages as read.")
 
@@ -2372,7 +2447,12 @@ class Mutation:
                 message.is_delivered = True
                 message.save(update_fields=["is_delivered"])
 
-                transaction.on_commit(lambda: async_to_sync(broadcast_message_event)(message.id, message.conversation_id, "updated"))
+                msg_id = message.id
+                conv_id = message.conversation_id
+
+                transaction.on_commit(
+                    lambda: schedule_broadcast(broadcast_message_event(msg_id, conv_id, "updated"))
+                )
 
             return SuccessMessage(message="Message marked as delivered.")
 
@@ -2380,18 +2460,54 @@ class Mutation:
 
     @strawberry.mutation
     async def add_cover_to_project(self, info, project_id: strawberry.ID, data: CoverDataInput) -> types.Cover:
+        user = await database_sync_to_async(lambda: info.context.request.user)()
 
+        if not await database_sync_to_async(lambda: user.is_authenticated)():
+            raise Exception("Authentication required.")
+
+        # Decode base64 outside transaction
+        loop = asyncio.get_event_loop()
+        image_data = await loop.run_in_executor(
+            None,
+            lambda: base64.b64decode(data.image_file)
+        )
+
+        # Write to temp file asynchronously
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+        await loop.run_in_executor(
+            None,
+            lambda: temp_file.write(image_data)
+        )
+        temp_file.flush()
+        temp_file.close()
+        temp_path = temp_file.name
+
+        try:
+            # Upload to Cloudinary asynchronously
+            upload_result = await loop.run_in_executor(
+                None,
+                lambda: cloudinary.uploader.upload(temp_path, colors=True)
+            )
+
+            uploaded_url = upload_result.get("secure_url")
+            raw_colors = upload_result.get("colors", [])
+
+            # Extract and mute colors
+            raw_primary = raw_colors[0][0] if len(raw_colors) > 0 else None
+            raw_secondary = raw_colors[1][0] if len(raw_colors) > 1 else None
+
+            primary_muted = ensure_muted_color(raw_primary, max_saturation=0.55)
+            secondary_muted = ensure_muted_color(raw_secondary, max_saturation=0.55)
+
+        finally:
+            # Clean up temp file asynchronously
+            await loop.run_in_executor(None, lambda: os.unlink(temp_path))
+
+        # Now do database operations
         def _sync():
-            user = info.context.request.user
-            if not user.is_authenticated:
-                raise Exception("Authentication required.")
+            is_confirmed = user.is_staff or user.is_superuser
 
             with transaction.atomic():
-                is_confirmed = False
-
-                if user.is_staff or user.is_superuser:
-                    is_confirmed = True
-
                 project = models.Project.objects.get(pk=project_id)
 
                 # Determine position
@@ -2401,57 +2517,67 @@ class Mutation:
                 ).count()
                 position = existing_count + 1
 
-                # 1. Decode and save base64 image to temp file
-                image_data = base64.b64decode(data.image_file)
-                # Using suffix .png as in your original snippet
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_file:
-                    temp_file.write(image_data)
-                    temp_file.flush()
-                    temp_path = temp_file.name
-
-                try:
-                    # 2. Upload to Cloudinary and request colors
-                    upload_result = cloudinary.uploader.upload(
-                        temp_path,
-                        colors=True,
-                    )
-
-                    uploaded_url = upload_result.get("secure_url")
-                    raw_colors = upload_result.get("colors", [])
-
-                    # 3. Extract raw hex colors
-                    raw_primary = raw_colors[0][0] if len(raw_colors) > 0 else None
-                    raw_secondary = raw_colors[1][0] if len(raw_colors) > 1 else None
-
-                    # 4. Apply the "Magic" Muting logic
-                    # Using 0.55 as per your helper function's suggestion
-                    primary_muted = ensure_muted_color(raw_primary, max_saturation=0.55)
-                    secondary_muted = ensure_muted_color(raw_secondary, max_saturation=0.55)
-
-                    # 5. Create Cover with processed colors
-                    cover = models.Cover.objects.create(
-                        image=uploaded_url,
-                        content_object=project,
-                        position=position,
-                        primary_color=primary_muted,
-                        secondary_color=secondary_muted,
-                        is_confirmed=is_confirmed,
-                        user=user,
-                    )
-                    return cover
-
-                finally:
-                    # Clean up the temporary file
-                    if os.path.exists(temp_path):
-                        os.unlink(temp_path)
+                # Create Cover with processed colors
+                cover = models.Cover.objects.create(
+                    image=uploaded_url,
+                    content_object=project,
+                    position=position,
+                    primary_color=primary_muted,
+                    secondary_color=secondary_muted,
+                    is_confirmed=is_confirmed,
+                    user=user,
+                )
+                return cover
 
         return await database_sync_to_async(_sync)()
 
     @strawberry.mutation
     async def add_cover_to_podcast(self, info, podcast_id: strawberry.ID, data: CoverDataInput) -> types.Cover:
+        user = await database_sync_to_async(lambda: info.context.request.user)()
 
+        if not await database_sync_to_async(lambda: user.is_authenticated)():
+            raise Exception("Authentication required.")
+
+        # Decode base64 outside transaction
+        loop = asyncio.get_event_loop()
+        image_data = await loop.run_in_executor(
+            None,
+            lambda: base64.b64decode(data.image_file)
+        )
+
+        # Write to temp file asynchronously
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+        await loop.run_in_executor(
+            None,
+            lambda: temp_file.write(image_data)
+        )
+        temp_file.flush()
+        temp_file.close()
+        temp_path = temp_file.name
+
+        try:
+            # Upload to Cloudinary asynchronously
+            upload_result = await loop.run_in_executor(
+                None,
+                lambda: cloudinary.uploader.upload(temp_path, colors=True)
+            )
+
+            uploaded_url = upload_result.get("secure_url")
+            raw_colors = upload_result.get("colors", [])
+
+            # Extract and mute colors
+            raw_primary = raw_colors[0][0] if len(raw_colors) > 0 else None
+            raw_secondary = raw_colors[1][0] if len(raw_colors) > 1 else None
+
+            primary_muted = ensure_muted_color(raw_primary, max_saturation=0.55)
+            secondary_muted = ensure_muted_color(raw_secondary, max_saturation=0.55)
+
+        finally:
+            # Clean up temp file asynchronously
+            await loop.run_in_executor(None, lambda: os.unlink(temp_path))
+
+        # Now do database operations
         def _sync():
-
             with transaction.atomic():
                 podcast = models.Podcast.objects.get(pk=podcast_id)
 
@@ -2461,26 +2587,13 @@ class Mutation:
                 ).count()
                 position = existing_count + 1
 
-                image_data = base64.b64decode(data.image_file)
-                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
-                temp_file.write(image_data)
-                temp_file.flush()
-
-                upload_result = cloudinary.uploader.upload(
-                    temp_file.name,
-                    colors=True
-                )
-                uploaded_url = upload_result["secure_url"]
-                colors = upload_result.get("colors", [])
-                primary_color = colors[0][0] if len(colors) > 0 else None
-                secondary_color = colors[1][0] if len(colors) > 1 else None
-
                 cover = models.Cover.objects.create(
                     image=uploaded_url,
                     content_object=podcast,
                     position=position,
-                    primary_color=primary_color,
-                    secondary_color=secondary_color
+                    primary_color=primary_muted,
+                    secondary_color=secondary_muted,
+                    user=user
                 )
                 return cover
 
