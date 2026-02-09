@@ -2376,7 +2376,10 @@ class Mutation:
 
                 # Update conversation preview
                 conversation = message.conversation
-                conversation.latest_message_text = f"@{user.username} liked a message"
+                if user.first_name:
+                    conversation.latest_message_text = f"{user.first_name} liked a message"
+                else:
+                    conversation.latest_message_text = f"@{user.username} liked a message"
                 conversation.latest_message_time = message.time
                 conversation.latest_message_sender = user
                 conversation.save(update_fields=['latest_message_text', 'latest_message_time', 'latest_message_sender'])
