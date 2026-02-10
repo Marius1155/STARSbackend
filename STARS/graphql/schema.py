@@ -510,6 +510,117 @@ class Query:
         return await sync_to_async(hydrate_results)()
 
     @strawberry.field
+    async def get_artist_most_recent_projects(
+            self,
+            artist_id: strawberry.ID,
+            limit: int = 10
+    ) -> List[types.Project]:
+
+        @cache_graphql_query(
+            CacheKeys.ARTIST_RECENT_PROJECTS,
+            timeout=300,
+            key_params=["artist_id", "limit"]
+        )
+        async def get_cached_ids(artist_id: strawberry.ID, limit: int):
+            def fetch():
+                return list(
+                    models.Project.objects.filter(
+                        project_artists__artist_id=artist_id
+                    )
+                    .order_by('-release_date')
+                    .values_list('id', flat=True)[:limit]
+                )
+
+            return await sync_to_async(fetch)()
+
+        ordered_ids = await get_cached_ids(artist_id=artist_id, limit=limit)
+
+        def hydrate_results():
+            projects = list(models.Project.objects.filter(id__in=ordered_ids))
+
+            projects.sort(key=lambda x: ordered_ids.index(x.id))
+
+            return projects
+
+        return await sync_to_async(hydrate_results)()
+
+    @strawberry.field
+    async def get_artist_most_recent_music_videos(
+            self,
+            artist_id: strawberry.ID,
+            limit: int = 10
+    ) -> List[types.MusicVideo]:
+        """
+        Fetches an artist's most popular music videos based on songs they are featured in.
+        """
+
+        @cache_graphql_query(
+            CacheKeys.ARTIST_RECENT_MUSIC_VIDEOS,
+            timeout=300,
+            key_params=["artist_id", "limit"]
+        )
+        async def get_cached_ids(artist_id: strawberry.ID, limit: int):
+            def fetch():
+                # Filter through the M2M relationship: MusicVideo -> Songs -> Artists
+                return list(
+                    models.MusicVideo.objects.filter(
+                        songs__song_artists__artist_id=artist_id
+                    )
+                    .distinct()
+                    .order_by('-release_date')  # Ensure your model has this field
+                    .values_list('id', flat=True)[:limit]
+                )
+
+            return await sync_to_async(fetch)()
+
+        ordered_ids = await get_cached_ids(artist_id=artist_id, limit=limit)
+
+        def hydrate_results():
+            objs = list(models.MusicVideo.objects.filter(id__in=ordered_ids))
+            objs.sort(key=lambda x: ordered_ids.index(x.id))
+            return objs
+
+        return await sync_to_async(hydrate_results)()
+
+    @strawberry.field
+    async def get_artist_most_recent_performances(
+            self,
+            artist_id: strawberry.ID,
+            limit: int = 10
+    ) -> List[types.PerformanceVideo]:
+        """
+        Fetches an artist's most popular performance videos based on songs they are featured in.
+        """
+
+        @cache_graphql_query(
+            CacheKeys.ARTIST_RECENT_PERFORMANCES,
+            timeout=300,
+            key_params=["artist_id", "limit"]
+        )
+        async def get_cached_ids(artist_id: strawberry.ID, limit: int):
+            def fetch():
+                # Filter through the M2M relationship: PerformanceVideo -> Songs -> Artists
+                return list(
+                    models.PerformanceVideo.objects.filter(
+                        artists__id=artist_id
+                    )
+                    .distinct()
+                    .order_by('-release_date')
+                    .values_list('id', flat=True)[:limit]
+                )
+
+            return await sync_to_async(fetch)()
+
+        ordered_ids = await get_cached_ids(artist_id=artist_id, limit=limit)
+
+        def hydrate_results():
+            objs = list(models.PerformanceVideo.objects.filter(id__in=ordered_ids))
+            objs.sort(key=lambda x: ordered_ids.index(x.id))
+            return objs
+
+        return await sync_to_async(hydrate_results)()
+
+    @strawberry.field
     async def get_artist_most_popular_projects(
             self,
             artist_id: strawberry.ID,

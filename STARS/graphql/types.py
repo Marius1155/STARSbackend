@@ -343,5 +343,5 @@ Coverable = strawberry.union(
 
 Reportable = strawberry.union(
     "Reportable",
-    (Project, Podcast, MusicVideo, PerformanceVideo, Outfit, Review),
+    (Artist, Project, Podcast, MusicVideo, PerformanceVideo, Outfit, Review),
 )
