@@ -499,9 +499,53 @@ def _get_or_create_artist_node(am_id: str, fetched_data: dict) -> Optional[model
         artist = _create_artist_from_data(am_id, fetched_data[am_id])
     return artist
 
-def _determine_project_type(is_single: bool, song_count: int) -> str:
-    if is_single: return models.Project.ProjectType.SINGLE
-    return models.Project.ProjectType.EP if song_count <= 6 else models.Project.ProjectType.ALBUM
+
+def _determine_project_type(is_single: bool, song_count: int, songs: List) -> str:
+    """
+    Determine project type following Apple Music's classification rules:
+    SINGLE:
+    - 1-3 tracks, each under 10 minutes
+    EP:
+    - 4-6 tracks with total duration under 30 minutes
+    - OR 1-3 tracks where at least one track is 10+ minutes (under 30 min total)
+    ALBUM:
+    - 7+ tracks (regardless of duration)
+    - OR any project over 30 minutes total duration
+    """
+
+    # Calculate total length in minutes
+
+    total_length_ms = sum(s.length or 0 for s in songs)
+    total_length_minutes = total_length_ms / 60000
+
+    # ALBUM: 7+ tracks or total duration over 30 minutes
+    if song_count >= 7 or total_length_minutes > 30:
+        return models.Project.ProjectType.ALBUM
+
+    # For 1-3 tracks
+    if song_count <= 3:
+        # Check if any track is 10+ minutes (600,000 ms)
+        has_long_track = any((s.length or 0) >= 600000 for s in songs)
+        if has_long_track:
+            # 1-3 tracks with at least one 10+ min track = EP (if under 30 min total)
+            if total_length_minutes <= 30:
+                return models.Project.ProjectType.EP
+            else:
+                return models.Project.ProjectType.ALBUM
+        else:
+            # 1-3 tracks, all under 10 minutes = SINGLE
+            return models.Project.ProjectType.SINGLE
+
+    # EP: 4-6 tracks with under 30 minutes total
+    if 4 <= song_count <= 6:
+        if total_length_minutes <= 30:
+            return models.Project.ProjectType.EP
+        else:
+            # Over 30 minutes = ALBUM
+            return models.Project.ProjectType.ALBUM
+
+    # Default fallback (shouldn't reach here with valid data)
+    return models.Project.ProjectType.ALBUM
 
 def _link_artists_to_song(song_obj, am_ids: List[str], get_artist_fn):
     unique_ids = list(dict.fromkeys(am_ids))
@@ -1210,7 +1254,7 @@ class Mutation:
                 project = models.Project.objects.create(
                     apple_music_id=data.apple_music_id, title=data.title,
                     number_of_songs=data.number_of_songs, release_date=data.release_date,
-                    project_type=_determine_project_type(data.is_single, data.number_of_songs),
+                    project_type=_determine_project_type(data.is_single, data.number_of_songs, data.songs or []),
                     apple_music=data.apple_music_url, record_label=data.record_label,
                     user=info.context.request.user
                 )
