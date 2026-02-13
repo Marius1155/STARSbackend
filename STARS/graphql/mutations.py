@@ -396,10 +396,11 @@ class ProjectSongCreateInput:
 
 @strawberry.input
 class MessageDataInput:
-    message_type: str # "TEXT", "IMAGE", "VIDEO", or "GIF"
     text: Optional[str] = None
-    media_data: Optional[str] = None
-    replying_to_messsage_id: Optional[strawberry.ID] = None
+    media_data: Optional[str] = None # Use this for Base64 (Camera/Gallery)
+    media_url: Optional[str] = None  # NEW: Use this for direct links (Klipy/GIPHY)
+    message_type: str = "TEXT"
+    replying_to_messsage_id: Optional[str] = None
 
 
 
@@ -2237,14 +2238,19 @@ class Mutation:
                     # Clean up temp file
                     await loop.run_in_executor(None, lambda: os.unlink(temp_file.name))
 
-            elif m_type == "GIF":
-                return media_data
-
             return None
 
         # Handle media upload outside of transaction (async, can take time)
         m_type = data.message_type.upper()
-        final_media_url = await _handle_media_upload(m_type, data.media_data)
+        final_media_url = None
+
+        # 1. Check if frontend sent a direct URL (Best for GIFs)
+        if data.media_url:
+            final_media_url = data.media_url
+
+        # 2. If no URL, but we have data, try to upload (Camera/Gallery)
+        elif data.media_data:
+            final_media_url = await _handle_media_upload(m_type, data.media_data)
 
         # Database operations in sync function
         def _create_message_sync():
@@ -2267,12 +2273,14 @@ class Mutation:
                 conversation.latest_message = message
 
                 # Set preview text
-                preview_text = (
-                    "Sent an image" if m_type == "IMAGE" else
-                    "Sent a video" if m_type == "VIDEO" else
-                    "Sent a GIF" if m_type == "GIF" else
-                    data.text
-                )
+                if m_type == "IMAGE":
+                    preview_text = "Sent an image"
+                elif m_type == "VIDEO":
+                    preview_text = "Sent a video"
+                elif m_type == "GIF":
+                    preview_text = "Sent a GIF"
+                else:
+                    preview_text = data.text
 
                 conversation.latest_message_text = preview_text
                 conversation.latest_message_time = message.time
