@@ -225,6 +225,8 @@ class MusicVideoFilter:
     release_date: auto
     is_featured: auto
 
+    songs: Optional["SongFilter"]
+
     reviews_count: auto
     reviews_count_0_5: auto
     reviews_count_1: auto
@@ -272,6 +274,9 @@ class PerformanceVideoFilter:
     title: auto
     release_date: auto
     is_featured: auto
+
+    songs: Optional["SongFilter"]
+    artists: Optional["ArtistFilter"]
 
     reviews_count: auto
     reviews_count_0_5: auto
