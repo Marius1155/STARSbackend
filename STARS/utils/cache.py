@@ -137,7 +137,8 @@ class CacheKeys:
     ARTIST_POPULAR_PERFORMANCES = "artist_popular_projects"
     ARTIST_POPULAR_MUSIC_VIDEOS = "artist_popular_music_videos"
 
-    ARTIST_RECENT_PROJECTS = "artist_recent_projects"
+    ARTIST_RECENT_ALBUMS = "artist_recent_albums"
+    ARTIST_RECENT_SINGLES_AND_EPS = "artist_recent_singles_and_eps"
     ARTIST_RECENT_PERFORMANCES = "artist_recent_projects"
     ARTIST_RECENT_MUSIC_VIDEOS = "artist_recent_music_videos"
 

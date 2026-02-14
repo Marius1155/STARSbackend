@@ -510,14 +510,14 @@ class Query:
         return await sync_to_async(hydrate_results)()
 
     @strawberry.field
-    async def get_artist_most_recent_projects(
+    async def get_artist_most_recent_albums(
             self,
             artist_id: strawberry.ID,
             limit: int = 10
     ) -> List[types.Project]:
 
         @cache_graphql_query(
-            CacheKeys.ARTIST_RECENT_PROJECTS,
+            CacheKeys.ARTIST_RECENT_ALBUMS,
             timeout=300,
             key_params=["artist_id", "limit"]
         )
@@ -525,7 +525,47 @@ class Query:
             def fetch():
                 return list(
                     models.Project.objects.filter(
-                        project_artists__artist_id=artist_id
+                        project_artists__artist_id=artist_id,
+                        project_type=models.Project.ProjectType.ALBUM
+                    )
+                    .order_by('-release_date')
+                    .values_list('id', flat=True)[:limit]
+                )
+
+            return await sync_to_async(fetch)()
+
+        ordered_ids = await get_cached_ids(artist_id=artist_id, limit=limit)
+
+        def hydrate_results():
+            projects = list(models.Project.objects.filter(id__in=ordered_ids))
+
+            projects.sort(key=lambda x: ordered_ids.index(x.id))
+
+            return projects
+
+        return await sync_to_async(hydrate_results)()
+
+    @strawberry.field
+    async def get_artist_most_recent_singles_and_eps(
+            self,
+            artist_id: strawberry.ID,
+            limit: int = 10
+    ) -> List[types.Project]:
+
+        @cache_graphql_query(
+            CacheKeys.ARTIST_RECENT_SINGLES_AND_EPS,
+            timeout=300,
+            key_params=["artist_id", "limit"]
+        )
+        async def get_cached_ids(artist_id: strawberry.ID, limit: int):
+            def fetch():
+                return list(
+                    models.Project.objects.filter(
+                        project_artists__artist_id=artist_id,
+                        project_type__in=[
+                            models.Project.ProjectType.SINGLE,
+                            models.Project.ProjectType.EP
+                        ]
                     )
                     .order_by('-release_date')
                     .values_list('id', flat=True)[:limit]
