@@ -97,6 +97,7 @@ class ArtistFilter:
     name: auto
     origin: auto
     is_featured: auto
+    star_average: auto
     projects_star_average: auto
     songs_star_average: auto
     music_videos_star_average: auto

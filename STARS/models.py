@@ -28,6 +28,7 @@ class Artist(models.Model):
     deezer = models.URLField(max_length=500, blank=True, null=True)
     soundcloud = models.URLField(max_length=500, blank=True, null=True)
     bandcamp = models.URLField(max_length=500, blank=True, null=True)
+    star_average = models.FloatField(default=0)
     projects_star_average = models.FloatField(default=0)
     songs_star_average = models.FloatField(default=0)
     music_videos_star_average = models.FloatField(default=0)
