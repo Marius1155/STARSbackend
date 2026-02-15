@@ -427,7 +427,6 @@ class SongArtist(models.Model):
         return f"{self.song.title} - {self.position}. {self.artist.name}"
 
     class Meta:
-        #ordering = ['position']
         unique_together = (
             ('song', 'artist'),
             ('song', 'position'),
