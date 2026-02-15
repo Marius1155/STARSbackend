@@ -427,6 +427,7 @@ class SongArtist(models.Model):
         return f"{self.song.title} - {self.position}. {self.artist.name}"
 
     class Meta:
+        ordering = ['position']
         unique_together = (
             ('song', 'artist'),
             ('song', 'position'),
@@ -489,6 +490,7 @@ class ProjectArtist(models.Model):
         return f"{self.project.title} - {self.position}. {self.artist.name}"
 
     class Meta:
+        ordering = ['position']
         unique_together = (
             ('project', 'artist'),
             ('project', 'position'),
@@ -505,6 +507,7 @@ class ProjectSong(models.Model):
         return f"{self.project.title} - {self.position}. {self.song.title}"
 
     class Meta:
+        ordering = ['disc_number', 'position']
         unique_together = (
             ('project', 'song'),
             ('project', 'disc_number', 'position'),
