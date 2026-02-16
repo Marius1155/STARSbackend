@@ -233,6 +233,117 @@ class Query:
 
         return await sync_to_async(get_authenticated_user)()
 
+
+    @strawberry.field
+    async def get_event_most_popular_performances(
+            self,
+            event_id: strawberry.ID,
+            limit: int = 10
+    ) -> List[types.PerformanceVideo]:
+
+        # Ensure you add EVENT_POPULAR_PERFORMANCES to your CacheKeys enum
+        @cache_graphql_query(
+            CacheKeys.EVENT_POPULAR_PERFORMANCES,
+            timeout=300,
+            key_params=["event_id", "limit"]
+        )
+        async def get_cached_ids(event_id: strawberry.ID, limit: int):
+            def fetch():
+                return list(
+                    models.PerformanceVideo.objects.filter(
+                        event_id=event_id
+                    )
+                    .order_by('-popularity_score')
+                    .values_list('id', flat=True)[:limit]
+                )
+
+            return await sync_to_async(fetch)()
+
+        ordered_ids = await get_cached_ids(event_id=event_id, limit=limit)
+
+        def hydrate_results():
+            # Fetch the actual objects using the cached IDs
+            videos = list(models.PerformanceVideo.objects.filter(id__in=ordered_ids))
+
+            # Sort the results in Python to match the popularity order from the cache
+            videos.sort(key=lambda x: ordered_ids.index(x.id))
+
+            return videos
+
+        return await sync_to_async(hydrate_results)()
+
+    @strawberry.field
+    async def get_event_most_popular_songs(
+            self,
+            event_id: strawberry.ID,
+            limit: int = 20
+    ) -> List[types.Song]:
+
+        @cache_graphql_query(
+            CacheKeys.EVENT_POPULAR_SONGS,
+            timeout=300,
+            key_params=["event_id", "limit"]
+        )
+        async def get_cached_ids(event_id: strawberry.ID, limit: int):
+            def fetch():
+                return list(
+                    models.Song.objects.filter(
+                        performance_videos__event_id=event_id
+                    )
+                    .distinct()  # Ensure songs are unique
+                    .order_by('-popularity_score')
+                    .values_list('id', flat=True)[:limit]
+                )
+
+            return await sync_to_async(fetch)()
+
+        ordered_ids = await get_cached_ids(event_id=event_id, limit=limit)
+
+        def hydrate_results():
+            songs = list(models.Song.objects.filter(id__in=ordered_ids))
+            # Sort to match the popularity order from the ID list
+            songs.sort(key=lambda x: ordered_ids.index(x.id))
+            return songs
+
+        return await sync_to_async(hydrate_results)()
+
+
+    @strawberry.field
+    async def get_event_artists(
+            self,
+            event_id: strawberry.ID,
+            limit: int = 10
+    ) -> List[types.Artist]:
+
+        @cache_graphql_query(
+            CacheKeys.EVENT_ARTISTS,
+            timeout=300,
+            key_params=["event_id", "limit"]
+        )
+        async def get_cached_ids(event_id: strawberry.ID, limit: int):
+            def fetch():
+                return list(
+                    models.Artist.objects.filter(
+                        performance_videos__event_id=event_id
+                    )
+                    .distinct()  # Ensure artists are unique
+                    .order_by('name')  # Alphabetical order
+                    .values_list('id', flat=True)[:limit]
+                )
+
+            return await sync_to_async(fetch)()
+
+        ordered_ids = await get_cached_ids(event_id=event_id, limit=limit)
+
+        def hydrate_results():
+            artists = list(models.Artist.objects.filter(id__in=ordered_ids))
+            # Sort to match the alphabetical order from the ID list
+            artists.sort(key=lambda x: ordered_ids.index(x.id))
+            return artists
+
+        return await sync_to_async(hydrate_results)()
+
+
     @strawberry.field
     async def get_popular_projects_by_genre(
             self,

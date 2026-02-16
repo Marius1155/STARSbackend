@@ -135,12 +135,15 @@ class CacheKeys:
 
     ARTIST_POPULAR_SONGS = "artist_popular_songs"
     ARTIST_POPULAR_PROJECTS = "artist_popular_projects"
-    ARTIST_POPULAR_PERFORMANCES = "artist_popular_projects"
+    ARTIST_POPULAR_PERFORMANCES = "artist_popular_performances"
     ARTIST_POPULAR_MUSIC_VIDEOS = "artist_popular_music_videos"
+    EVENT_POPULAR_PERFORMANCES = "event_popular_performances"
+    EVENT_POPULAR_SONGS = "event_popular_songs"
+    EVENT_ARTISTS = "event_artists"
 
     ARTIST_RECENT_ALBUMS = "artist_recent_albums"
     ARTIST_RECENT_SINGLES_AND_EPS = "artist_recent_singles_and_eps"
-    ARTIST_RECENT_PERFORMANCES = "artist_recent_projects"
+    ARTIST_RECENT_PERFORMANCES = "artist_recent_performances"
     ARTIST_RECENT_MUSIC_VIDEOS = "artist_recent_music_videos"
 
     MUSIC_VIDEOS_FROM_SONGS = "music_videos_from_songs"
