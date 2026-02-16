@@ -315,6 +315,7 @@ class SongFilter:
     release_date: auto
     is_featured: auto
     song_artists: Optional["SongArtistFilter"]
+    performances: Optional["PerformanceVideoFilter"]
 
     reviews_count: auto
     reviews_count_0_5: auto
