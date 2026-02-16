@@ -276,6 +276,7 @@ class PerformanceVideoFilter:
     release_date: auto
     is_featured: auto
 
+    event: Optional["EventFilter"]
     songs: Optional["SongFilter"]
     artists: Optional["ArtistFilter"]
 
