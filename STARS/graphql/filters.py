@@ -295,7 +295,13 @@ class PerformanceVideoFilter:
 
     @strawberry_django.filter_field
     def search(self, queryset: QuerySet, value: str, prefix) -> tuple[QuerySet, Q]:
-        return trigram_search(queryset, value, 'title')
+        return trigram_search(
+            queryset, value,
+            'title',
+            'songs__title',
+            'songs__song_artists__artist__name',
+            'event__name'
+        )
 
     @strawberry_django.filter_field
     def songs_in(self, queryset: QuerySet, value: list[strawberry.ID], prefix) -> tuple[QuerySet, Q]:
@@ -316,7 +322,7 @@ class SongFilter:
     release_date: auto
     is_featured: auto
     song_artists: Optional["SongArtistFilter"]
-    performances: Optional["PerformanceVideoFilter"]
+    performance_videos: Optional["PerformanceVideoFilter"]
 
     reviews_count: auto
     reviews_count_0_5: auto

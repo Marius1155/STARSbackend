@@ -1128,7 +1128,7 @@ class Query:
                     ),
 
                     "performance_videos": fuzzy_search(
-                        models.PerformanceVideo.objects.all(), 'title'
+                        models.PerformanceVideo.objects.all(), 'title', 'songs__title', 'songs__song_artists__artist__name', 'event__name'
                     )
                 }
 
