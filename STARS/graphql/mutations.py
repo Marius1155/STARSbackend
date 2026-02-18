@@ -896,7 +896,7 @@ class Mutation:
     @strawberry.mutation
     async def create_report(
             self,
-            info,
+            info: strawberry.Info,
             object_id: strawberry.ID,
             model_name: str,
             reason: str
@@ -1025,7 +1025,7 @@ class Mutation:
         return SuccessMessage(message=f"Imported {count} new podcasts.")
 
     @strawberry.mutation
-    async def import_podcast_from_itunes(self, info, apple_podcasts_id: str) -> types.Podcast:
+    async def import_podcast_from_itunes(self, info: strawberry.Info, apple_podcasts_id: str) -> types.Podcast:
         # 1. Check Local DB
         existing = await sync_to_async(models.Podcast.objects.filter(apple_podcasts_id=apple_podcasts_id).first)()
         if existing:
@@ -1092,7 +1092,7 @@ class Mutation:
 
 
     @strawberry.mutation
-    async def add_music_video(self, info, data: MusicVideoInput) -> types.MusicVideo:
+    async def add_music_video(self, info: strawberry.Info, data: MusicVideoInput) -> types.MusicVideo:
         thumb_data = await sync_to_async(process_image_from_url)(data.thumbnail_url)
 
         def _sync():
@@ -2451,7 +2451,7 @@ class Mutation:
         return await database_sync_to_async(_like_message_sync)()
 
     @strawberry.mutation
-    async def mark_messages_as_read(self, info, conversation_id: strawberry.ID) -> SuccessMessage:
+    async def mark_messages_as_read(self, info: strawberry.Info, conversation_id: strawberry.ID) -> SuccessMessage:
         """Mark all messages from other users in the conversation as read"""
 
         def _sync():
@@ -2485,7 +2485,7 @@ class Mutation:
         return await database_sync_to_async(_sync)()
 
     @strawberry.mutation
-    async def mark_message_as_delivered(self, info, message_id: strawberry.ID) -> SuccessMessage:
+    async def mark_message_as_delivered(self, info: strawberry.Info, message_id: strawberry.ID) -> SuccessMessage:
         """Mark a single message as delivered"""
 
         def _sync():
@@ -2514,7 +2514,7 @@ class Mutation:
         return await database_sync_to_async(_sync)()
 
     @strawberry.mutation
-    async def add_cover_to_project(self, info, project_id: strawberry.ID, data: CoverDataInput) -> types.Cover:
+    async def add_cover_to_project(self, info: strawberry.Info, project_id: strawberry.ID, data: CoverDataInput) -> types.Cover:
         user = await database_sync_to_async(lambda: info.context.request.user)()
 
         if not await database_sync_to_async(lambda: user.is_authenticated)():
@@ -2587,7 +2587,7 @@ class Mutation:
         return await database_sync_to_async(_sync)()
 
     @strawberry.mutation
-    async def add_cover_to_podcast(self, info, podcast_id: strawberry.ID, data: CoverDataInput) -> types.Cover:
+    async def add_cover_to_podcast(self, info: strawberry.Info, podcast_id: strawberry.ID, data: CoverDataInput) -> types.Cover:
         user = await database_sync_to_async(lambda: info.context.request.user)()
 
         if not await database_sync_to_async(lambda: user.is_authenticated)():
