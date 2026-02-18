@@ -590,7 +590,7 @@ def _link_project_artists(project, am_ids, get_artist_fn):
         if artist:
             models.ProjectArtist.objects.create(project=project, artist=artist, position=i + 1)
 
-def _resolve_or_create_event(data: PerformanceVideoInput, info: Info) -> Optional[models.Event]:
+def _resolve_or_create_event(data: PerformanceVideoInput, info: strawberry.Info) -> Optional[models.Event]:
     if data.event_id: return models.Event.objects.get(pk=data.event_id)
     if not data.event_name: return None
     series = None
@@ -1131,7 +1131,7 @@ class Mutation:
 
 
     @strawberry.mutation
-    async def add_performance_video(self, info: Info, data: PerformanceVideoInput) -> types.PerformanceVideo:
+    async def add_performance_video(self, info: strawberry.Info, data: PerformanceVideoInput) -> types.PerformanceVideo:
         am_service = AppleMusicService()
 
         # 1. ID Swap & Global Sanitization
@@ -1185,7 +1185,7 @@ class Mutation:
         return await database_sync_to_async(_sync)()
     '''
     @strawberry.mutation
-    async def create_artist(self, info: Info, data: ArtistCreateInput) -> types.Artist:
+    async def create_artist(self, info: strawberry.Info, data: ArtistCreateInput) -> types.Artist:
         def _create_sync():
             user = info.context.request.user
             if not user.is_authenticated:
@@ -1220,7 +1220,7 @@ class Mutation:
     '''
 
     @strawberry.mutation
-    async def create_project(self, info: Info, data: ProjectCreateInput) -> types.Project:
+    async def create_project(self, info: strawberry.Info, data: ProjectCreateInput) -> types.Project:
         am_service = AppleMusicService()
 
         # 1. Preparation & ID Swapping
@@ -1276,7 +1276,7 @@ class Mutation:
 
 
     @strawberry.mutation
-    async def create_event(self, info: Info, data: EventCreateInput) -> types.Event:
+    async def create_event(self, info: strawberry.Info, data: EventCreateInput) -> types.Event:
 
         def _create_sync():
             user = info.context.request.user
@@ -1318,7 +1318,7 @@ class Mutation:
 
     """
     @strawberry.mutation
-    async def create_podcast(self, info: Info, data: PodcastCreateInput) -> types.Podcast:
+    async def create_podcast(self, info: strawberry.Info, data: PodcastCreateInput) -> types.Podcast:
         # (You would add permission checks here, e.g., if user is staff)
 
         def _create_sync():
@@ -1343,7 +1343,7 @@ class Mutation:
     """
 
     @strawberry.mutation
-    async def create_comment(self, info: Info, data: CommentCreateInput) -> types.Comment:
+    async def create_comment(self, info: strawberry.Info, data: CommentCreateInput) -> types.Comment:
 
         def _create_sync():
             user = info.context.request.user
@@ -1381,7 +1381,7 @@ class Mutation:
         return await database_sync_to_async(_create_sync)()
 
     @strawberry.mutation
-    async def delete_comment(self, info: Info, comment_id: strawberry.ID) -> types.Comment:
+    async def delete_comment(self, info: strawberry.Info, comment_id: strawberry.ID) -> types.Comment:
         def _delete_sync():
             user = info.context.request.user
             if not user.is_authenticated:
@@ -1411,7 +1411,7 @@ class Mutation:
 
     @strawberry.mutation
     async def like_dislike_comment(
-            self, info: Info, comment_id: strawberry.ID, action: LikeAction
+            self, info: strawberry.Info, comment_id: strawberry.ID, action: LikeAction
     ) -> types.Comment:
         def _update_sync():
             user = info.context.request.user
@@ -1458,7 +1458,7 @@ class Mutation:
 
     @strawberry.mutation
     async def like_dislike_review(
-            self, info: Info, review_id: strawberry.ID, action: LikeAction
+            self, info: strawberry.Info, review_id: strawberry.ID, action: LikeAction
     ) -> types.Review:
         def _update_sync():
             user = info.context.request.user
@@ -1506,7 +1506,7 @@ class Mutation:
 
     """
     @strawberry.mutation
-    async def add_hosts_to_podcast(self, info: Info, podcast_id: strawberry.ID,
+    async def add_hosts_to_podcast(self, info: strawberry.Info, podcast_id: strawberry.ID,
                                    artist_ids: List[strawberry.ID]) -> types.Podcast:
         # You would add permission checks here (e.g., if user is staff)
 
@@ -1520,7 +1520,7 @@ class Mutation:
     """
 
     @strawberry.mutation
-    async def login_user(self, info: Info, data: LoginInput) -> types.User:
+    async def login_user(self, info: strawberry.Info, data: LoginInput) -> types.User:
         request = info.context.request
 
         def _login_sync():
@@ -1555,7 +1555,7 @@ class Mutation:
         return await database_sync_to_async(_login_sync)()
 
     @strawberry.mutation
-    async def logout_user(self, info: Info) -> SuccessMessage:
+    async def logout_user(self, info: strawberry.Info) -> SuccessMessage:
         request = info.context.request
 
         def _logout_sync():
@@ -1604,7 +1604,7 @@ class Mutation:
 
 
     @strawberry.mutation
-    async def add_review_to_project(self, info: Info, project_id: strawberry.ID, data: ReviewDataInput) -> types.Review:
+    async def add_review_to_project(self, info: strawberry.Info, project_id: strawberry.ID, data: ReviewDataInput) -> types.Review:
 
         def _create_sync():
             user = info.context.request.user
@@ -1674,7 +1674,7 @@ class Mutation:
 
 
     @strawberry.mutation
-    async def add_review_to_song(self, info: Info, song_id: strawberry.ID, data: ReviewDataInput) -> types.Review:
+    async def add_review_to_song(self, info: strawberry.Info, song_id: strawberry.ID, data: ReviewDataInput) -> types.Review:
 
         def _create_sync():
             user = info.context.request.user
@@ -1744,7 +1744,7 @@ class Mutation:
 
 
     @strawberry.mutation
-    async def add_review_to_outfit(self, info: Info, outfit_id: strawberry.ID, data: ReviewDataInput) -> types.Review:
+    async def add_review_to_outfit(self, info: strawberry.Info, outfit_id: strawberry.ID, data: ReviewDataInput) -> types.Review:
 
         def _create_sync():
             user = info.context.request.user
@@ -1814,7 +1814,7 @@ class Mutation:
 
 
     @strawberry.mutation
-    async def add_review_to_podcast(self, info: Info, podcast_id: strawberry.ID, data: ReviewDataInput) -> types.Review:
+    async def add_review_to_podcast(self, info: strawberry.Info, podcast_id: strawberry.ID, data: ReviewDataInput) -> types.Review:
 
         def _create_sync():
             user = info.context.request.user
@@ -1884,7 +1884,7 @@ class Mutation:
 
 
     @strawberry.mutation
-    async def add_review_to_music_video(self, info: Info, music_video_id: strawberry.ID,
+    async def add_review_to_music_video(self, info: strawberry.Info, music_video_id: strawberry.ID,
                                         data: ReviewDataInput) -> types.Review:
 
         def _create_sync():
@@ -1955,7 +1955,7 @@ class Mutation:
 
 
     @strawberry.mutation
-    async def add_review_to_cover(self, info: Info, cover_id: strawberry.ID, data: ReviewDataInput) -> types.Review:
+    async def add_review_to_cover(self, info: strawberry.Info, cover_id: strawberry.ID, data: ReviewDataInput) -> types.Review:
 
         def _create_sync():
             user = info.context.request.user
@@ -2025,7 +2025,7 @@ class Mutation:
 
 
     @strawberry.mutation
-    async def add_sub_review_to_review(self, info: Info, review_id: strawberry.ID,
+    async def add_sub_review_to_review(self, info: strawberry.Info, review_id: strawberry.ID,
                                        data: SubReviewDataInput) -> types.SubReview:
         def _create_sync():
             user = info.context.request.user
@@ -2051,7 +2051,7 @@ class Mutation:
 
 
     @strawberry.mutation
-    async def delete_review(self, info: Info, review_id: strawberry.ID) -> types.Review:
+    async def delete_review(self, info: strawberry.Info, review_id: strawberry.ID) -> types.Review:
         def _delete_sync():
             user = info.context.request.user
             if not user.is_authenticated:
@@ -2126,7 +2126,7 @@ class Mutation:
         return await database_sync_to_async(_delete_sync)()
 
     @strawberry.mutation
-    async def edit_review(self, info: Info, data: ReviewUpdateInput) -> types.Review:
+    async def edit_review(self, info: strawberry.Info, data: ReviewUpdateInput) -> types.Review:
         def _edit_sync():
             user = info.context.request.user
             if not user.is_authenticated:
@@ -2192,7 +2192,7 @@ class Mutation:
 
 
     @strawberry.mutation
-    async def create_conversation(self, info: Info, data: ConversationCreateInput) -> types.Conversation:
+    async def create_conversation(self, info: strawberry.Info, data: ConversationCreateInput) -> types.Conversation:
 
         def _create_conversation_sync():
             user = info.context.request.user
@@ -2235,7 +2235,7 @@ class Mutation:
 
     @strawberry.mutation
     async def add_message_to_conversation(
-            self, info: Info, conversation_id: strawberry.ID, data: MessageDataInput
+            self, info: strawberry.Info, conversation_id: strawberry.ID, data: MessageDataInput
     ) -> types.Message:
         request = info.context.request
         user = await database_sync_to_async(lambda: request.user)()
@@ -2348,7 +2348,7 @@ class Mutation:
         return await database_sync_to_async(_create_message_sync)()
 
     @strawberry.mutation
-    async def mark_conversation_as_seen_by_user(self, info: Info, conversation_id: strawberry.ID) -> SuccessMessage:
+    async def mark_conversation_as_seen_by_user(self, info: strawberry.Info, conversation_id: strawberry.ID) -> SuccessMessage:
         request = info.context.request
 
         def _mark_seen_sync():
@@ -2373,7 +2373,7 @@ class Mutation:
         return await database_sync_to_async(_mark_seen_sync)()
 
     @strawberry.mutation
-    async def delete_message(self, info: Info, id: strawberry.ID) -> SuccessMessage:
+    async def delete_message(self, info: strawberry.Info, id: strawberry.ID) -> SuccessMessage:
         def _delete_message_sync():
             user = info.context.request.user
             if not user.is_authenticated:
@@ -2406,7 +2406,7 @@ class Mutation:
         return await database_sync_to_async(_delete_message_sync)()
 
     @strawberry.mutation
-    async def like_message(self, info: Info, id: strawberry.ID) -> SuccessMessage:
+    async def like_message(self, info: strawberry.Info, id: strawberry.ID) -> SuccessMessage:
         def _like_message_sync():
             user = info.context.request.user
             if not user.is_authenticated:
@@ -2656,7 +2656,7 @@ class Mutation:
 
 
     @strawberry.mutation
-    async def follow_or_unfollow_user(self, info: Info, follower_id: strawberry.ID, followed_id: strawberry.ID) -> types.Profile:
+    async def follow_or_unfollow_user(self, info: strawberry.Info, follower_id: strawberry.ID, followed_id: strawberry.ID) -> types.Profile:
         def _sync():
             user = info.context.request.user
             if not user.is_authenticated or str(user.id) != str(follower_id):
@@ -2684,7 +2684,7 @@ class Mutation:
         return await database_sync_to_async(_sync)()
 
     @strawberry.mutation
-    async def change_my_password(self, info: Info, old_password: str, new_password: str) -> SuccessMessage:
+    async def change_my_password(self, info: strawberry.Info, old_password: str, new_password: str) -> SuccessMessage:
 
         def _sync_change_password():
             user: User = info.context.request.user
@@ -2707,7 +2707,7 @@ class Mutation:
         return await database_sync_to_async(_sync_change_password)()
 
     @strawberry.mutation
-    async def change_my_display_name(self, info: Info, new_display_name: str) -> SuccessMessage:
+    async def change_my_display_name(self, info: strawberry.Info, new_display_name: str) -> SuccessMessage:
 
         def _sync_change_display_name():
             user: User = info.context.request.user
@@ -2722,7 +2722,7 @@ class Mutation:
         return await database_sync_to_async(_sync_change_display_name)()
 
     @strawberry.mutation
-    async def change_my_username(self, info: Info, new_username: str) -> SuccessMessage:
+    async def change_my_username(self, info: strawberry.Info, new_username: str) -> SuccessMessage:
 
         def _sync_change_username():
             user: User = info.context.request.user
@@ -2741,7 +2741,7 @@ class Mutation:
 
 
     @strawberry.mutation
-    async def set_profile_premium(self, info: Info, has_premium: bool) -> SuccessMessage:
+    async def set_profile_premium(self, info: strawberry.Info, has_premium: bool) -> SuccessMessage:
 
         def _sync_set_profile_premium():
             user: User = info.context.request.user
@@ -2759,7 +2759,7 @@ class Mutation:
 
 
     @strawberry.mutation
-    async def delete_my_account(self, info: Info, password: str) -> SuccessMessage:
+    async def delete_my_account(self, info: strawberry.Info, password: str) -> SuccessMessage:
 
         def _sync_delete_account():
             user: User = info.context.request.user
@@ -2780,7 +2780,7 @@ class Mutation:
 
     """
     @strawberry.mutation
-    async def login_with_google(self, info: Info, access_token: str) -> types.User:
+    async def login_with_google(self, info: strawberry.Info, access_token: str) -> types.User:
         request = info.context.request
         app = await database_sync_to_async(SocialApp.objects.get)(provider='google')
         token = SocialToken(app=app, token=access_token)
@@ -2795,7 +2795,7 @@ class Mutation:
 
     """
     @strawberry.mutation
-    async def login_with_apple(self, info: Info, access_token: str, id_token: str) -> types.User:
+    async def login_with_apple(self, info: strawberry.Info, access_token: str, id_token: str) -> types.User:
         request = info.context.request
         app = await database_sync_to_async(SocialApp.objects.get)(provider='apple')
         token = SocialToken(app=app, token=access_token)
