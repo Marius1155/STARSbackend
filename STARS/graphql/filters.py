@@ -105,6 +105,8 @@ class ArtistFilter:
     covers_star_average: auto
     outfits_star_average: auto
 
+    performance_videos: Optional["PerformanceVideoFilter"]
+
     @strawberry_django.filter_field
     def search(self, queryset: QuerySet, value: str, prefix) -> tuple[QuerySet, Q]:
         return trigram_search(queryset, value, 'name')
