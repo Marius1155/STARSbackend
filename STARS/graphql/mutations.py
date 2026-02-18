@@ -554,7 +554,7 @@ def _link_artists_to_song(song_obj, am_ids: List[str], get_artist_fn):
         if s_artist:
             models.SongArtist.objects.create(song=song_obj, artist=s_artist, position=j + 1)
 
-def _get_or_create_song(song_in, get_artist_fn, info) -> Optional[models.Song]:
+def _get_or_create_song(song_in, get_artist_fn, info: strawberry.Info) -> Optional[models.Song]:
     if song_in.song_id: return models.Song.objects.filter(pk=song_in.song_id).first()
     song_obj = models.Song.objects.create(
         apple_music_id=song_in.apple_music_id, title=song_in.title,
@@ -567,7 +567,7 @@ def _get_or_create_song(song_in, get_artist_fn, info) -> Optional[models.Song]:
         _link_artists_to_song(song_obj, song_in.artists_apple_music_ids, get_artist_fn)
     return song_obj
 
-def _handle_project_songs(project, song_inputs, get_artist_fn, info) -> int:
+def _handle_project_songs(project, song_inputs, get_artist_fn, info: strawberry.Info) -> int:
     total_length = 0
     for song_in in song_inputs:
         song_obj = _get_or_create_song(song_in, get_artist_fn, info)
@@ -578,7 +578,7 @@ def _handle_project_songs(project, song_inputs, get_artist_fn, info) -> int:
             total_length += song_obj.length
     return total_length
 
-def _apply_project_metadata(project, data, cover_data, info):
+def _apply_project_metadata(project, data, cover_data, info: strawberry.Info):
     if data.genres: get_or_create_project_genres(data.genres, project)
     cover_url, p, s = cover_data
     if cover_url:
@@ -607,7 +607,7 @@ def _resolve_or_create_event(data: PerformanceVideoInput, info: strawberry.Info)
         location=data.event_location or "", is_one_time=is_one_time, series=series, user=info.context.request.user
     )
 
-def _create_performance_video_record(data, thumb_data, event, artists_data, info) -> models.PerformanceVideo:
+def _create_performance_video_record(data, thumb_data, event, artists_data, info: strawberry.Info) -> models.PerformanceVideo:
     t_url, t_p, t_s = thumb_data
     pv = models.PerformanceVideo.objects.create(
         youtube_id=data.youtube_id, title=data.title, channel_name=data.channel_name,
@@ -947,7 +947,7 @@ class Mutation:
         return await database_sync_to_async(_sync)()
 
     @strawberry.mutation
-    async def import_all_top_podcasts(self, info) -> SuccessMessage:
+    async def import_all_top_podcasts(self, info: strawberry.Info) -> SuccessMessage:
         """
         Massive import: Fetches Top 200 podcasts from every genre ~5000 total.
         """
