@@ -333,15 +333,15 @@ class CreateReportPayload:
 
 Reviewable = strawberry.union(
     "Reviewable",
-    (Event, Project, Song, MusicVideo, PerformanceVideo, Podcast, Outfit, Cover),
+    types=(Event, Project, Song, MusicVideo, PerformanceVideo, Podcast, Outfit, Cover),
 )
 
 Coverable = strawberry.union(
     "Coverable",
-    (Project, Podcast),
+    types=(Project, Podcast),
 )
 
 Reportable = strawberry.union(
     "Reportable",
-    (Artist, Project, Podcast, MusicVideo, PerformanceVideo, Outfit, Review, Event, EventSeries),
+    types=(Artist, Project, Podcast, MusicVideo, PerformanceVideo, Outfit, Review, Event, EventSeries),
 )
