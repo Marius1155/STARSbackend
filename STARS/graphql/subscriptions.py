@@ -1,6 +1,6 @@
 import strawberry
 import asyncio
-from typing import AsyncGenerator, Optional
+from typing import AsyncGenerator, Optional, Annotated, Union
 from asgiref.sync import async_to_sync
 from channels.db import database_sync_to_async
 from channels.layers import get_channel_layer
@@ -25,8 +25,10 @@ class MessageDeletedPayload:
     event_type: str
     id: strawberry.ID
 
-MessageEventUnion = strawberry.union("MessageEventUnion", (MessagePayload, MessageDeletedPayload))
-
+MessageEventUnion = Annotated[
+    Union[MessagePayload, MessageDeletedPayload],
+    strawberry.union("MessageEventUnion")
+]
 
 @strawberry.type
 class ConversationEventPayload:
