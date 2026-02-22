@@ -66,6 +66,8 @@ class EventSeries(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='event_series_added', blank=True, null=True)
 
+    picture_is_confirmed = models.BooleanField(default=False)
+
     primary_color = models.CharField(max_length=7, blank=True)  # e.g., "#FF5733"
     secondary_color = models.CharField(max_length=7, blank=True)  # e.g., "#33A1FF"
 
@@ -109,6 +111,8 @@ class Event(models.Model):
     featured_message = models.TextField(blank=True)
 
     user = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='event_added', blank=True, null=True)
+
+    picture_is_confirmed = models.BooleanField(default=False)
 
     primary_color = models.CharField(max_length=7, blank=True)  # e.g., "#FF5733"
     secondary_color = models.CharField(max_length=7, blank=True)  # e.g., "#33A1FF"

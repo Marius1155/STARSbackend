@@ -141,6 +141,11 @@ class CacheKeys:
     EVENT_POPULAR_SONGS = "event_popular_songs"
     EVENT_ARTISTS = "event_artists"
 
+    EVENT_SERIES_POPULAR_PERFORMANCES = "event_series_popular_performances"
+    EVENT_SERIES_RECENT_PERFORMANCES = "event_series_recent_performances"
+    EVENT_SERIES_POPULAR_EVENTS = "event_series_popular_events"
+    EVENT_SERIES_RECENT_EVENTS = "event_series_recent_events"
+
     ARTIST_RECENT_ALBUMS = "artist_recent_albums"
     ARTIST_RECENT_SINGLES_AND_EPS = "artist_recent_singles_and_eps"
     ARTIST_RECENT_PERFORMANCES = "artist_recent_performances"

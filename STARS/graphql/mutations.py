@@ -2393,7 +2393,7 @@ class Mutation:
 
                 message.delete()
 
-                ttransaction.on_commit(
+                transaction.on_commit(
                     lambda: schedule_broadcast(broadcast_message_event(rememeber_message_id, remmeber_conversation_id, "deleted"))
                 )
                 # Also add conversation update:
@@ -2510,6 +2510,133 @@ class Mutation:
                 )
 
             return SuccessMessage(message="Message marked as delivered.")
+
+        return await database_sync_to_async(_sync)()
+
+    @strawberry.mutation
+    async def add_image_to_event(self, info: strawberry.Info, event_id: strawberry.ID, data: CoverDataInput) -> types.Cover:
+        user = await database_sync_to_async(lambda: info.context.request.user)()
+
+        if not await database_sync_to_async(lambda: user.is_authenticated)():
+            raise Exception("Authentication required.")
+
+        # Decode base64 outside transaction
+        loop = asyncio.get_event_loop()
+        image_data = await loop.run_in_executor(
+            None,
+            lambda: base64.b64decode(data.image_file)
+        )
+
+        # Write to temp file asynchronously
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+        await loop.run_in_executor(
+            None,
+            lambda: temp_file.write(image_data)
+        )
+        temp_file.flush()
+        temp_file.close()
+        temp_path = temp_file.name
+
+        try:
+            # Upload to Cloudinary asynchronously
+            upload_result = await loop.run_in_executor(
+                None,
+                lambda: cloudinary.uploader.upload(temp_path, colors=True)
+            )
+
+            uploaded_url = upload_result.get("secure_url")
+            raw_colors = upload_result.get("colors", [])
+
+            # Extract and mute colors
+            raw_primary = raw_colors[0][0] if len(raw_colors) > 0 else None
+            raw_secondary = raw_colors[1][0] if len(raw_colors) > 1 else None
+
+            primary_muted = ensure_muted_color(raw_primary, max_saturation=0.55)
+            secondary_muted = ensure_muted_color(raw_secondary, max_saturation=0.55)
+
+        finally:
+            # Clean up temp file asynchronously
+            await loop.run_in_executor(None, lambda: os.unlink(temp_path))
+
+        # Now do database operations
+        def _sync():
+            is_confirmed = user.is_staff or user.is_superuser
+
+            with transaction.atomic():
+                event = models.Event.objects.select_for_update().filter(pk=event_id).first()
+                if not event:
+                    raise Exception("Event not found.")
+                if event.picture:
+                    raise Exception("A picture has already been submitted for this event.")
+                event.picture = uploaded_url
+                event.primary_color = primary_muted
+                event.secondary_color = secondary_muted
+                event.picture_is_confirmed = is_confirmed
+                event.save(update_fields=["picture", "primary_color", "secondary_color", "picture_is_confirmed"])
+
+        return await database_sync_to_async(_sync)()
+
+    @strawberry.mutation
+    async def add_image_to_event_series(self, info: strawberry.Info, event_series_id: strawberry.ID,
+                                 data: CoverDataInput) -> types.Cover:
+        user = await database_sync_to_async(lambda: info.context.request.user)()
+
+        if not await database_sync_to_async(lambda: user.is_authenticated)():
+            raise Exception("Authentication required.")
+
+        # Decode base64 outside transaction
+        loop = asyncio.get_event_loop()
+        image_data = await loop.run_in_executor(
+            None,
+            lambda: base64.b64decode(data.image_file)
+        )
+
+        # Write to temp file asynchronously
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+        await loop.run_in_executor(
+            None,
+            lambda: temp_file.write(image_data)
+        )
+        temp_file.flush()
+        temp_file.close()
+        temp_path = temp_file.name
+
+        try:
+            # Upload to Cloudinary asynchronously
+            upload_result = await loop.run_in_executor(
+                None,
+                lambda: cloudinary.uploader.upload(temp_path, colors=True)
+            )
+
+            uploaded_url = upload_result.get("secure_url")
+            raw_colors = upload_result.get("colors", [])
+
+            # Extract and mute colors
+            raw_primary = raw_colors[0][0] if len(raw_colors) > 0 else None
+            raw_secondary = raw_colors[1][0] if len(raw_colors) > 1 else None
+
+            primary_muted = ensure_muted_color(raw_primary, max_saturation=0.55)
+            secondary_muted = ensure_muted_color(raw_secondary, max_saturation=0.55)
+
+        finally:
+            # Clean up temp file asynchronously
+            await loop.run_in_executor(None, lambda: os.unlink(temp_path))
+
+        # Now do database operations
+        def _sync():
+            is_confirmed = user.is_staff or user.is_superuser
+
+            with transaction.atomic():
+                event_series = models.EventSeries.objects.select_for_update().filter(pk=event_series_id).first()
+                if not event_series:
+                    raise Exception("Event series not found.")
+                if event_series.picture:
+                    raise Exception("A picture has already been submitted for this event series.")
+                event_series.picture = uploaded_url
+                event_series.primary_color = primary_muted
+                event_series.secondary_color = secondary_muted
+                event_series.picture_is_confirmed = is_confirmed
+                event_series.save(update_fields=["picture", "primary_color", "secondary_color", "picture_is_confirmed"])
 
         return await database_sync_to_async(_sync)()
 

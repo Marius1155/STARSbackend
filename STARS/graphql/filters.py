@@ -118,6 +118,7 @@ class EventSeriesFilter:
     name: auto
     is_featured: auto
     series_type: auto
+    picture_is_confirmed: auto
 
     @strawberry_django.filter_field
     def search(self, queryset: QuerySet, value: str, prefix) -> tuple[QuerySet, Q]:
@@ -147,6 +148,8 @@ class EventFilter:
     reviews_count_4_5: auto
     reviews_count_5: auto
     star_average: auto
+
+    picture_is_confirmed: auto
 
     @strawberry_django.filter_field
     def search(self, queryset: QuerySet, value: str, prefix) -> tuple[QuerySet, Q]:

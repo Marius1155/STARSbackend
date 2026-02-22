@@ -233,6 +233,138 @@ class Query:
 
         return await sync_to_async(get_authenticated_user)()
 
+    # 1. Most popular performances of an event series
+    @strawberry.field
+    async def get_event_series_most_popular_performances(
+            self,
+            series_id: strawberry.ID,
+            limit: int = 10
+    ) -> List[types.PerformanceVideo]:
+        @cache_graphql_query(
+            CacheKeys.EVENT_SERIES_POPULAR_PERFORMANCES,
+            timeout=300,
+            key_params=["series_id", "limit"]
+        )
+        async def get_cached_ids(series_id: strawberry.ID, limit: int):
+            def fetch():
+                return list(
+                    models.PerformanceVideo.objects.filter(
+                        event__series_id=series_id
+                    )
+                    .order_by('-popularity_score')
+                    .values_list('id', flat=True)[:limit]
+                )
+
+            return await sync_to_async(fetch)()
+
+        ordered_ids = await get_cached_ids(series_id=series_id, limit=limit)
+
+        def hydrate_results():
+            videos = list(models.PerformanceVideo.objects.filter(id__in=ordered_ids))
+            videos.sort(key=lambda x: ordered_ids.index(x.id))
+            return videos
+
+        return await sync_to_async(hydrate_results)()
+
+    # 2. Most recent performances of an event series
+    @strawberry.field
+    async def get_event_series_most_recent_performances(
+            self,
+            series_id: strawberry.ID,
+            limit: int = 10
+    ) -> List[types.PerformanceVideo]:
+        @cache_graphql_query(
+            CacheKeys.EVENT_SERIES_RECENT_PERFORMANCES,
+            timeout=300,
+            key_params=["series_id", "limit"]
+        )
+        async def get_cached_ids(series_id: strawberry.ID, limit: int):
+            def fetch():
+                return list(
+                    models.PerformanceVideo.objects.filter(
+                        event__series_id=series_id
+                    )
+                    .order_by('-release_date')
+                    .values_list('id', flat=True)[:limit]
+                )
+
+            return await sync_to_async(fetch)()
+
+        ordered_ids = await get_cached_ids(series_id=series_id, limit=limit)
+
+        def hydrate_results():
+            videos = list(models.PerformanceVideo.objects.filter(id__in=ordered_ids))
+            videos.sort(key=lambda x: ordered_ids.index(x.id))
+            return videos
+
+        return await sync_to_async(hydrate_results)()
+
+    # 3. Most popular events of an event series
+    @strawberry.field
+    async def get_event_series_most_popular_events(
+            self,
+            series_id: strawberry.ID,
+            limit: int = 10
+    ) -> List[types.Event]:
+        @cache_graphql_query(
+            CacheKeys.EVENT_SERIES_POPULAR_EVENTS,
+            timeout=300,
+            key_params=["series_id", "limit"]
+        )
+        async def get_cached_ids(series_id: strawberry.ID, limit: int):
+            def fetch():
+                return list(
+                    models.Event.objects.filter(
+                        series_id=series_id
+                    )
+                    .order_by('-popularity_score')
+                    .values_list('id', flat=True)[:limit]
+                )
+
+            return await sync_to_async(fetch)()
+
+        ordered_ids = await get_cached_ids(series_id=series_id, limit=limit)
+
+        def hydrate_results():
+            events = list(models.Event.objects.filter(id__in=ordered_ids))
+            events.sort(key=lambda x: ordered_ids.index(x.id))
+            return events
+
+        return await sync_to_async(hydrate_results)()
+
+    # 4. Most recent events of an event series
+    @strawberry.field
+    async def get_event_series_most_recent_events(
+            self,
+            series_id: strawberry.ID,
+            limit: int = 10
+    ) -> List[types.Event]:
+        @cache_graphql_query(
+            CacheKeys.EVENT_SERIES_RECENT_EVENTS,
+            timeout=300,
+            key_params=["series_id", "limit"]
+        )
+        async def get_cached_ids(series_id: strawberry.ID, limit: int):
+            def fetch():
+                return list(
+                    models.Event.objects.filter(
+                        series_id=series_id
+                    )
+                    .order_by('-date')
+                    .values_list('id', flat=True)[:limit]
+                )
+
+            return await sync_to_async(fetch)()
+
+        ordered_ids = await get_cached_ids(series_id=series_id, limit=limit)
+
+        def hydrate_results():
+            events = list(models.Event.objects.filter(id__in=ordered_ids))
+            events.sort(key=lambda x: ordered_ids.index(x.id))
+            return events
+
+        return await sync_to_async(hydrate_results)()
+
 
     @strawberry.field
     async def get_event_most_popular_performances(
