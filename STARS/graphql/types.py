@@ -1,7 +1,7 @@
 import strawberry
 import strawberry_django
 from strawberry.types import Info
-from typing import Optional, Iterable, Any, List
+from typing import Optional, Iterable, Any, List, Annotated, Union
 from django.db.models import QuerySet, Count, Q
 from strawberry_django.relay import DjangoCursorConnection
 from STARS import models
@@ -331,17 +331,17 @@ class Report(strawberry.relay.Node):
 class CreateReportPayload:
     created_successfully: bool
 
-Reviewable = strawberry.union(
-    "Reviewable",
-    types=(Event, Project, Song, MusicVideo, PerformanceVideo, Podcast, Outfit, Cover),
-)
+Reviewable = Annotated[
+    Union[Event, Project, Song, MusicVideo, PerformanceVideo, Podcast, Outfit, Cover],
+    strawberry.union("Reviewable")
+]
 
-Coverable = strawberry.union(
-    "Coverable",
-    types=(Project, Podcast),
-)
+Coverable = Annotated[
+    Union[Project, Podcast],
+    strawberry.union("Coverable")
+]
 
-Reportable = strawberry.union(
-    "Reportable",
-    types=(Artist, Project, Podcast, MusicVideo, PerformanceVideo, Outfit, Review, Event, EventSeries),
-)
+Reportable = Annotated[
+    Union[Artist, Project, Podcast, MusicVideo, PerformanceVideo, Outfit, Review, Event, EventSeries],
+    strawberry.union("Reportable")
+]
