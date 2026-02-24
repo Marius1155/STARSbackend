@@ -2514,7 +2514,7 @@ class Mutation:
         return await database_sync_to_async(_sync)()
 
     @strawberry.mutation
-    async def add_image_to_event(self, info: strawberry.Info, event_id: strawberry.ID, data: CoverDataInput) -> types.Cover:
+    async def add_image_to_event(self, info: strawberry.Info, event_id: strawberry.ID, data: CoverDataInput) -> types.Event:
         user = await database_sync_to_async(lambda: info.context.request.user)()
 
         if not await database_sync_to_async(lambda: user.is_authenticated)():
@@ -2568,17 +2568,24 @@ class Mutation:
                     raise Exception("Event not found.")
                 if event.picture:
                     raise Exception("A picture has already been submitted for this event.")
-                event.picture = uploaded_url
-                event.primary_color = primary_muted
-                event.secondary_color = secondary_muted
-                event.picture_is_confirmed = is_confirmed
-                event.save(update_fields=["picture", "primary_color", "secondary_color", "picture_is_confirmed"])
+
+                if uploaded_url:
+                    event.picture = uploaded_url
+                    event.primary_color = primary_muted
+                    event.secondary_color = secondary_muted
+                    event.picture_is_confirmed = is_confirmed
+                    event.save(update_fields=["picture", "primary_color", "secondary_color", "picture_is_confirmed"])
+
+                    return event
+
+                else:
+                    raise Exception("Error trying to upload image.")
 
         return await database_sync_to_async(_sync)()
 
     @strawberry.mutation
     async def add_image_to_event_series(self, info: strawberry.Info, event_series_id: strawberry.ID,
-                                 data: CoverDataInput) -> types.Cover:
+                                 data: CoverDataInput) -> types.EventSeries:
         user = await database_sync_to_async(lambda: info.context.request.user)()
 
         if not await database_sync_to_async(lambda: user.is_authenticated)():
@@ -2612,8 +2619,8 @@ class Mutation:
             raw_colors = upload_result.get("colors", [])
 
             # Extract and mute colors
-            raw_primary = raw_colors[0][0] if len(raw_colors) > 0 else None
-            raw_secondary = raw_colors[1][0] if len(raw_colors) > 1 else None
+            raw_primary = raw_colors[0][0] if len(raw_colors) > 0 else "#ffffff"
+            raw_secondary = raw_colors[1][0] if len(raw_colors) > 1 else "#ffffff"
 
             primary_muted = ensure_muted_color(raw_primary, max_saturation=0.55)
             secondary_muted = ensure_muted_color(raw_secondary, max_saturation=0.55)
@@ -2632,11 +2639,18 @@ class Mutation:
                     raise Exception("Event series not found.")
                 if event_series.picture:
                     raise Exception("A picture has already been submitted for this event series.")
-                event_series.picture = uploaded_url
-                event_series.primary_color = primary_muted
-                event_series.secondary_color = secondary_muted
-                event_series.picture_is_confirmed = is_confirmed
-                event_series.save(update_fields=["picture", "primary_color", "secondary_color", "picture_is_confirmed"])
+
+                if uploaded_url:
+                    event_series.picture = uploaded_url
+                    event_series.primary_color = primary_muted
+                    event_series.secondary_color = secondary_muted
+                    event_series.picture_is_confirmed = is_confirmed
+                    event_series.save(update_fields=["picture", "primary_color", "secondary_color", "picture_is_confirmed"])
+
+                    return event_series
+
+                else:
+                    raise Exception("Error trying to upload image.")
 
         return await database_sync_to_async(_sync)()
 
