@@ -2548,8 +2548,8 @@ class Mutation:
             raw_colors = upload_result.get("colors", [])
 
             # Extract and mute colors
-            raw_primary = raw_colors[0][0] if len(raw_colors) > 0 else None
-            raw_secondary = raw_colors[1][0] if len(raw_colors) > 1 else None
+            raw_primary = raw_colors[0][0] if len(raw_colors) > 0 else "#ffffff"
+            raw_secondary = raw_colors[1][0] if len(raw_colors) > 1 else "#ffffff"
 
             primary_muted = ensure_muted_color(raw_primary, max_saturation=0.55)
             secondary_muted = ensure_muted_color(raw_secondary, max_saturation=0.55)
